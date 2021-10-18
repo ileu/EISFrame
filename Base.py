@@ -317,11 +317,12 @@ def create_fig(nrows: int = 1, ncols: int = 1, sharex='all', sharey='all', figsi
     set_plot_params()
 
     if not figsize:
-        figsize = (6.4 * ncols, 4.8 * nrows),
+        figsize = (6.4 * ncols, 4.8 * nrows)
     if not gridspec_kw:
         gridspec_kw = {"hspace": 0}
     elif gridspec_kw.get("hspace") is None:
         gridspec_kw["hspace"] = 0
+
     return plt.subplots(
         nrows,
         ncols,

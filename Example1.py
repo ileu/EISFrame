@@ -12,25 +12,26 @@ import Base
 
 
 def main():
-    data_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\20210920_B8-P1_HT400C-3h_Li-3mm-300C-30min_FCandPT_01_PEIS_C02.txt"
-    image_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\Ampcera-Batch8P1\References\Images\Circuit_400C.png"
+    # data_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\20210920_B8-P1_HT400C-3h_Li-3mm-300C-30min_FCandPT_01_PEIS_C02.txt"
+    # image_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\Ampcera-Batch8P1\References\Images\Circuit_400C.png"
+    # test = np.array([1.83421823e-02, 1.85072793e-03, 9.65789803e+01, 1.06215171e-02, 4.23501651e-02, 1.03216851e+02,
+    #                  9.59719824e-01])
 
-    bounds = ([0, 0, 0, 0, 0, 0, 0], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
-    initial_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
+    # initial_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
+    # mytakestep = MyTakeStep()
+    # data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
+    # test = import_txt_to_frame(data_path, data_param)
 
-    mytakestep = MyTakeStep()
-
-    data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
-
-    test = import_txt_to_frame(data_path, data_param)
-
-    frequencies, Z = preprocessing.readCSV(r"C:\Users\ueli\Desktop\exampleData.csv")
+    frequencies, Z = preprocessing.readCSV("exampleData.csv")
     frequencies, Z = preprocessing.ignoreBelowX(frequencies, Z)
 
     circuit = CustomCircuit('R0-p(R1,C1)-p(R2-Wo1,C2)', initial_guess=[.01, .01, 100, .01, .05, 100, 1])
+    bounds = ([1e-10, 1e-10, 1e-10, 1e-10, 1e-10, 1e-10, 1e-10], [10, 1, 10, 1, 10, 10000, 1000])
 
-    circuit.fit(frequencies, Z, global_opt=True, bounds=bounds, minimizer_kwargs={"bounds": Bounds(*bounds)}, niter=300,
-                callback=my_callback)
+    circuit.fit(frequencies, Z, global_opt=True, bounds=bounds,
+                minimizer_kwargs={"bounds": Bounds(*bounds), "method": 'L-BFGS-B'}, niter=100)
+    print(circuit.parameters_)
+
     Z_fit = circuit.predict(frequencies)
 
     fig, axs = Base.create_fig(1, 1)

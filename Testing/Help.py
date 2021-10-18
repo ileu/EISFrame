@@ -99,10 +99,6 @@ class MyTakeStep:
         return x
 
 
-def my_callback(x, f, accept):
-    print(x, f, accept)
-
-
 if __name__ == "__main__":
     # print(wrapCircuit(circuit, constants))
     # x = wrapCircuit2(circuit, constants)(frequencies, *parameters1)
@@ -119,7 +115,7 @@ if __name__ == "__main__":
     results = basinhopping(opt_function, x0=initial_guess,
                            accept_test=basinhopping_bounds,
                            minimizer_kwargs={"bounds": bounds_minimizer, "method": 'L-BFGS-B'},
-                           niter=100, take_step=mytakestep, disp=True, callback=my_callback)
+                           niter=100, disp=False)
     end = time.time()
     popt = results.x
     print(results)
