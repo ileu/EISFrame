@@ -9,11 +9,15 @@ from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from impedance.models.circuits import CustomCircuit
 from impedance import preprocessing
+from typing import Union
 
 
 class MarkPoint:
-    """
-    TODO
+    """ Special point to mark during plotting.
+
+    A mark point is given by a specific frequency. The mark point is described by a
+    color and a name. A frequency range can be given to narrow the search area in
+    frequency space for a data point.
     """
 
     def __init__(
@@ -24,7 +28,14 @@ class MarkPoint:
             delta_f: float = -1,
             ecr: bool = False
     ) -> None:
-        """Initialises a MarkPoint."""
+        """ Special point in the EIS spectrum
+
+        @param name: Name of the mark point
+        @param color: Color of the mark point
+        @param freq: Specific frequency of the feature
+        @param delta_f: interval to look for datapoints, if none given -> defualt is 10% of freq
+        @param ecr: special value to mark ECR tail
+        """
         self.name = name
         self.color = color
         self.freq = freq
@@ -32,12 +43,13 @@ class MarkPoint:
         if delta_f <= 0:
             self.delta_f = freq // 10
         self.ecr = ecr
-        self.left = self.freq - self.delta_f
-        self.right = self.freq + self.delta_f
-        self.index = -1
-        self.magnitude = np.floor(np.log10(freq))
+        self.left = self.freq - self.delta_f  # left border of freq range
+        self.right = self.freq + self.delta_f  # right border of freq range
+        self.index = -1  # index of the first found data point matching in the freq range
+        self.magnitude = np.floor(np.log10(freq))  # magnitude of the frequency
 
 
+#  Some default markpoints
 grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
 hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e4)
 lxzo = MarkPoint('LxZO', 'lime', freq=2e3, delta_f=5e2)
@@ -46,17 +58,27 @@ ecr_tail = MarkPoint('ECR', 'darkgreen', freq=0.5, delta_f=1, ecr=True)
 
 
 class Cell:
+    """
+        Save the characteristics of a cell. Usefull for further calculation.
+        TODO: Implement it :)
+    """
+
     def __init__(self, diameter_mm, height_mm):
+        """ Initializer of a cell
+
+        @param diameter_mm: diameter of the cell in mm
+        @param height_mm: height of the cell in mm
+        """
         self.diameter_mm = diameter_mm
         self.height_mm = height_mm
 
-        self.area_mm2 = (diameter_mm / 2) ** 2 * np.pi
-        self.volume_mm3 = self.area_mm2 * height_mm
+        self.area_mm2 = (diameter_mm / 2) ** 2 * np.pi  # area of the cell
+        self.volume_mm3 = self.area_mm2 * height_mm  # volume of the cell
 
 
 class EISFrame:
-    """
-    TODO
+    """ EISFrame used to store the data and plot/fit the data.
+
     """
 
     def __init__(self, df: pd.DataFrame) -> None:
@@ -64,7 +86,7 @@ class EISFrame:
 
         An EIS frame can plot a Nyquist plot and the lifecycle of the cell with different default settings.
 
-        :param df: pandas.DataFrame containing the data
+        @param df: pandas.DataFrame containing the data
         """
         self.df = df
         self._default_mark_points = [grain_boundaries, hllzo, lxzo, interface, ecr_tail]
@@ -80,44 +102,53 @@ class EISFrame:
         self.mark_points = self._default_mark_points
 
     def plot_nyquist(self, ax: axes.Axes = None, image: str = ''):
-        """ Plots a Nyquist plot with the internal dataframe
+        """ Plots a Nyquist plot with the internal dataframe TODO: add all parameters to the function
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the different markpoints on the plot.
 
-        :param ax: matplotlib.axes.Axes to plot to
-        :param image: path to image to include in plot
-
-        :return: list of lines for markpoints/data, data line is first line
-                 If image available also returns image axes and image
+        @param ax: matplotlib.axes.Axes to plot to
+        @param image: path to image to include in plot
+        @return: TODO: list of lines for markpoints/data, data line is first line
+                 TODO: If image available also returns image axes and image
         """
+        # check if the necessary data is available for a Nyquist plot
         if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(self.df.columns):
             raise ValueError('Wrong data for a Nyquist Plot')
 
+        # find indices of the markpoints. Takes first point that is in freq range
         for mark in self.mark_points:
             subsequent = (
                 idx for idx, freq in enumerate(self.df["freq/Hz"])
                 if mark.left < freq < mark.right)
             mark.index = next(subsequent, -1)
 
-        x_label = "Re(Z)/Ohm"
-        y_label = "-Im(Z)/Ohm"
+        # just so I dont have to write that all the time
+        x_name = "Re(Z)/Ohm"
+        y_name = "-Im(Z)/Ohm"
 
+        # label for the plot
+        x_label = r"Re(Z)/$\Omega$"
+        y_label = r"-Im(Z)/$\Omega$"
+
+        # check if any axes is given, if not GetCurrentAxis from matplotlib
         if ax is None:
             ax = plt.gca()
 
+        # plot the data
         line = ax.plot(
-            self.df[x_label],
-            self.df[y_label],
+            self.df[x_name],
+            self.df[y_name],
             marker='o',
             color='black',
             ls='none',
         )
-        lines = [line]
+        lines = [line]  # store all the lines inside lines
 
+        # plot each markpoint with corresponding color and name
         for mark in self.mark_points:
             line = ax.plot(
-                self.df[x_label][mark.index],
-                self.df[y_label][mark.index],
+                self.df[x_name][mark.index],
+                self.df[y_name][mark.index],
                 marker='o',
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
@@ -127,6 +158,7 @@ class EISFrame:
                 label=mark.name)
             lines.append(line)
 
+        # additional configuration for the plot
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         ax.set_xlim(-50, None)
@@ -137,6 +169,7 @@ class EISFrame:
         ax.set_aspect('equal')
         _plot_legend(ax)
 
+        # if a path to a image is given, also plot it
         if image:
             imax = ax.inset_axes([.05, .5, .9, .2])
             img = plt.imread(image)
@@ -146,36 +179,40 @@ class EISFrame:
 
         return lines
 
-    def fit_nyquist(self, ax: axes.Axes, fit_guess: str = '', fit_circuit: str = '',
-                    draw_circle: bool = True) -> None:
-        """ Fitting for the nyquist
+    def fit_nyquist(self, ax: axes.Axes, fit_circuit: str = '', fit_guess: str = '',
+                    draw_circle: bool = True) -> list:
+        """ Fitting for the nyquist TODO: add all options to the function
 
-        :param ax:
-        :param fit_guess: initial values for the fitting
-        :param fit_circuit: equivalence circuit for the fitting
-        :param draw_circle:
-        :return:
+        @param ax: axes to draw the fit to
+        @param fit_circuit: equivalence circuit for the fitting
+        @param fit_guess: initial values for the fitting
+        @param draw_circle: if the corresponding circles should be drawn or not
+        @return: fitting parameters TODO: maybe more?
         """
-        for mark in self.mark_points:
-            print(mark.name, mark.magnitude)
+        # load and prepare data
         frequencies = self.df["freq/Hz"]
         z = self.df["Re(Z)/Ohm"] - 1j * self.df["-Im(Z)/Ohm"]
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
         frequencies = np.array(frequencies)
         z = np.array(z)
+        # only for testing purposes like this
         circuit = fit_circuit
         if not fit_guess:
             fit_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
         if not fit_circuit:
             circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
 
+        # bounds for the fitting
         bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0], [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
-        bounds = ([1, 1, 1, 0, 1, 1, 0], [3, 3, 4, 1, 5, 5, 1])
 
+        # create the circuit and start the fitting still TODO: fix the global fitting routine
         custom_circuit = CustomCircuit(initial_guess=fit_guess, circuit=circuit, )
         custom_circuit.fit(frequencies, z, global_opt=True)
+
+        # print the fitting parameters to the console
         print(custom_circuit)
 
+        # plot the fitting result
         f_pred = np.logspace(-2, 7, 200)
         custom_circuit_fit = custom_circuit.predict(f_pred)
         line = ax.plot(
@@ -185,6 +222,7 @@ class EISFrame:
             color="red",
             zorder=4)
 
+        # check if circle needs to be drawn
         if draw_circle:
             self._plot_semis(custom_circuit, ax)
 
@@ -192,47 +230,55 @@ class EISFrame:
         return line
 
     def plot_lifecycle(self):
-        # TODO
+        # TODO plot lifecycle
         if {"time/s", "<Ewe>/V"}.issubset(self.df.columns):
             return True
-        return
+        return False
 
     def _plot_semis(self, circuit: CustomCircuit, ax: axes.Axes = None):
-        """TODO
+        """ plots the semicircles to the corresponding circuit elements.
 
-        :param self:
-        :param circuit:
-        :param ax:
-        :return:
+        the permitted elements are p(R,CPE), p(R,C) or TODO: any Warburg element
+        @param circuit: CustomCircuit
+        @param ax: axes to be plotted to
         """
+        # check if axes is given, else get current axes
         if ax is None:
             ax = plt.gca()
 
+        # read out details about circuit
         circuit_string = circuit.circuit
         names = circuit.get_param_names()[0]
         resistors = [names.index(name) for name in names if "R" in name]
 
+        # split the circuit in to elements connected through series
         elements = circuit_string.split('-')
         for e in elements:
+            # check if any of the elements is a parallel circuit
             if not e.startswith('p'):
                 continue
             e = e.strip('p()')
             # TODO: Check if valid components
+            # check if element is p(R,CPE) or P(R,C) if none skip to next elemenet
             if not (e.count('R') == 1 and (e.count('CPE') == 1 or e.count('C') == 1)):
                 continue
-            components = e.split(',')
+            components = e.split(',')  # get the names of both elements
 
+            # find the indices of the elements and all resistors that are in fornt of it
             components_index = [names.index(name) for name in names for component in components if component in name]
             prev_resistors = [resistor for resistor in resistors if resistor < min(components_index)]
 
+            # get the fitted values
             components_values = circuit.parameters_[components_index]
             resistors_values = circuit.parameters_[prev_resistors]
 
+            # calculate the data of the circle
             circle_data = predict_circle(*components_values) + np.sum(resistors_values)
             specific_freq = calc_specific_freq(*components_values)
             specific_freq_magnitude = np.floor(np.log10(specific_freq))
             color = 'black'
             ecr_color = next((m.color for m in self.mark_points if m.ecr), "green")
+            # check with which markpoint the circle is associated by comparing magnitudes
             for mark in self.mark_points:
                 if specific_freq_magnitude == mark.magnitude:
                     print(mark.name)
@@ -242,6 +288,7 @@ class EISFrame:
                     print("ECR")
                     color = ecr_color
                     break
+            # draw circle
             ax.fill_between(
                 np.real(circle_data),
                 -np.imag(circle_data),
@@ -254,40 +301,52 @@ class EISFrame:
         return
 
 
-def _circle_interpretation(self, circuit, ax):
-    return
-
-
-def create_fig(nrows: int = 1, ncols: int = 1) -> tuple[figure.Figure, list]:
+def create_fig(nrows: int = 1, ncols: int = 1, sharex='all', sharey='all', figsize=None, subplot_kw=None,
+               gridspec_kw=None, **fig_kw) -> tuple[figure.Figure, Union[list[axes.Axes], axes.Axes]]:
     """ Creates the figure, axes for the plots and set the style of the plot
-
-    :param nrows: number of rows
-    :param ncols: number of columns
-    :return: the figure and list of created axes
+    
+    @param sharex:
+    @param sharey:
+    @param figsize:
+    @param subplot_kw:
+    @param gridspec_kw:
+    @param nrows: number of rows
+    @param ncols: number of columns
+    @return: the figure and list of created axes
     """
     set_plot_params()
+
+    if not figsize:
+        figsize = (6.4 * ncols, 4.8 * nrows),
+    if not gridspec_kw:
+        gridspec_kw = {"hspace": 0}
+    elif gridspec_kw.get("hspace") is None:
+        gridspec_kw["hspace"] = 0
     return plt.subplots(
         nrows,
         ncols,
-        figsize=(6.4 * ncols, 4.8 * nrows),
-        sharex='all',
-        sharey='all',
-        gridspec_kw={"hspace": 0},
+        figsize=figsize,
+        sharex=sharex,
+        sharey=sharey,
+        gridspec_kw=gridspec_kw,
+        subplot_kw=subplot_kw,
+        **fig_kw
     )
 
 
-def save_fig(path: str = '', fig: figure.Figure = None, show: bool = False):
+def save_fig(path: str = '', fig: figure.Figure = None, show: bool = False, **kwargs) -> None:
     """ Saves the current figure at path
 
-    :param path: path to save the figure
-    :param fig: the figure to save
-    :param show: True: show figure, no saving, False: save and show figure
+
+    @param path: path to save the figure
+    @param fig: the figure to save
+    @param show: show figure, no saving, False: save and show figure
     """
     if fig is None:
         fig = plt.gcf()
     fig.tight_layout()
     if not show:
-        fig.savefig(path, bbox_inches='tight')
+        fig.savefig(path, bbox_inches='tight', **kwargs)
         fig.canvas.draw_idle()
     fig.show()
 
@@ -303,10 +362,6 @@ def predict_circle(r, q, n, w=np.logspace(-2, 10, 200)) -> np.array:
 
 
 def set_plot_params() -> None:
-    """
-
-    :return:
-    """
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     rcParams['font.size'] = 10
@@ -356,26 +411,39 @@ def set_plot_params() -> None:
     })
 
 
-def _plot_legend(ax: axes.Axes = None) -> legend.Legend:
+def _plot_legend(ax: axes.Axes = None, loc='upper left', fontsize='small', frameon=False, markerscale=0.5,
+                 handletextpad=0.1, mode='expand', **kwargs) -> legend.Legend:
     """ Adds legend to an axes
 
-    :param ax: axes
-    :return: legend
+    @param ax: axes
+    @param loc:
+    @param fontsize:
+    @param frameon:
+    @param markerscale:
+    @param handletextpad:
+    @param mode:
+    @param kwargs:
+    @return: legend
     """
     if ax is None:
         ax = plt.gca()
 
     leg = ax.legend(
-        loc='upper left',
-        fontsize='small',
-        frameon=False,
-        markerscale=0.5,
-        handletextpad=0.1,
-        mode='expand')
+        loc=loc,
+        fontsize=fontsize,
+        frameon=frameon,
+        markerscale=markerscale,
+        handletextpad=handletextpad,
+        mode=mode,
+        **kwargs
+    )
     return leg
 
 
 def load_data(path: str, data_param: list) -> list['EISFrame']:
+    """
+        TODO: WIP
+    """
     if "mpt" not in path:
         raise ValueError("Only mpt file supported atm")
     mpt_file = open(path, 'r')
