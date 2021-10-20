@@ -133,7 +133,7 @@ class EISFrame:
         if ax is None:
             ax = plt.gca()
 
-        # remove all datapoints with (0,0)
+        # remove all data points with (0,0)
         df = self.df.drop(self.df[self.df["Re(Z)/Ohm"] == 0].index)
 
         x_data = df["Re(Z)/Ohm"]
@@ -156,7 +156,7 @@ class EISFrame:
         )
         lines = {"Data": line}  # store all the lines inside lines
 
-        # plot each markpoint with corresponding color and name
+        # plot each mark point with corresponding color and name
         for mark in self.mark_points:
             line = ax.plot(
                 x_data[mark.index],
@@ -277,12 +277,12 @@ class EISFrame:
                 continue
             e = e.strip('p()')
             # TODO: Check if valid components
-            # check if element is p(R,CPE) or P(R,C) if none skip to next elemenet
+            # check if element is p(R,CPE) or P(R,C) if none skip to next element
             if not (e.count('R') == 1 and (e.count('CPE') == 1 or e.count('C') == 1)):
                 continue
             components = e.split(',')  # get the names of both elements
 
-            # find the indices of the elements and all resistors that are in fornt of it
+            # find the indices of the elements and all resistors that are in front of it
             components_index = [names.index(name) for name in names for component in components if component in name]
             prev_resistors = [resistor for resistor in resistors if resistor < min(components_index)]
 
@@ -296,7 +296,7 @@ class EISFrame:
             specific_freq_magnitude = np.floor(np.log10(specific_freq))
             color = 'black'
             ecr_color = next((m.color for m in self.mark_points if m.ecr), "green")
-            # check with which markpoint the circle is associated by comparing magnitudes
+            # check with which mark point the circle is associated by comparing magnitudes
             for mark in self.mark_points:
                 if specific_freq_magnitude == mark.magnitude:
                     print(mark.name)

@@ -1,4 +1,3 @@
-import glob
 import os
 import re
 import imageio
@@ -31,7 +30,6 @@ def main():
             Base.save_fig(img_path)
             image = imageio.imread(img_path)
             writer.append_data(image)
-
 
 
 if __name__ == "__main__":

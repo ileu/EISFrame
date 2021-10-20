@@ -17,7 +17,6 @@ def main():
         for i, cycle in enumerate(data):
             fig, ax = Base.create_fig()
             cycle.plot_nyquist(ax)
-            cycle.fit_nyquist()
             Base.save_fig(os.path.join(os.path.dirname(file), "plots", f"{image_name}", f"cycle_{i}.png"))
         break
 
