@@ -1,15 +1,17 @@
 """
 TODO
 """
+import os
 import numpy as np
 import pandas as pd
-import re
+import warnings
 import matplotlib.pyplot as plt
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from impedance.models.circuits import CustomCircuit
 from impedance import preprocessing
 from typing import Union
+import eclabfiles as ecf
 
 
 class MarkPoint:
@@ -51,8 +53,8 @@ class MarkPoint:
 
 #  Some default markpoints
 grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
-hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e4)
-lxzo = MarkPoint('LxZO', 'lime', freq=2e3, delta_f=5e2)
+hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e3)
+lxlzo = MarkPoint('LxLZO', 'lime', freq=2e3, delta_f=5e2)
 interface = MarkPoint('Interfacial resistance', 'magenta', freq=50, delta_f=5)
 ecr_tail = MarkPoint('ECR', 'darkgreen', freq=0.5, delta_f=1, ecr=True)
 
@@ -60,20 +62,20 @@ ecr_tail = MarkPoint('ECR', 'darkgreen', freq=0.5, delta_f=1, ecr=True)
 class Cell:
     """
         Save the characteristics of a cell. Usefull for further calculation.
-        TODO: Implement it :)
+        TODO: Implement it in the plotting
     """
 
-    def __init__(self, diameter_mm, height_mm):
+    def __init__(self, diameter_mm, thickness_mm):
         """ Initializer of a cell
 
         @param diameter_mm: diameter of the cell in mm
-        @param height_mm: height of the cell in mm
+        @param thickness_mm: height of the cell in mm
         """
         self.diameter_mm = diameter_mm
-        self.height_mm = height_mm
+        self.height_mm = thickness_mm
 
         self.area_mm2 = (diameter_mm / 2) ** 2 * np.pi  # area of the cell
-        self.volume_mm3 = self.area_mm2 * height_mm  # volume of the cell
+        self.volume_mm3 = self.area_mm2 * thickness_mm  # volume of the cell
 
 
 class EISFrame:
@@ -89,9 +91,15 @@ class EISFrame:
         @param df: pandas.DataFrame containing the data
         """
         self.df = df
-        self._default_mark_points = [grain_boundaries, hllzo, lxzo, interface, ecr_tail]
+        self._default_mark_points = [grain_boundaries, hllzo, lxlzo, interface, ecr_tail]
         self.mark_points = self._default_mark_points
         self.axes = {}  # TODO: put all plots in here
+
+    def __str__(self):
+        return self.df.__str__()
+
+    def __repr__(self):
+        return self.df.__repr__()
 
     def reset_markpoints(self) -> None:
         """ Resets list markpoints to default
@@ -101,7 +109,8 @@ class EISFrame:
         """
         self.mark_points = self._default_mark_points
 
-    def plot_nyquist(self, ax: axes.Axes = None, image: str = ''):
+    def plot_nyquist(self, ax: axes.Axes = None, image: str = '', excluded_data=None,
+                     ls='None', marker='o', plot_range=None, label=None):
         """ Plots a Nyquist plot with the internal dataframe TODO: add all parameters to the function
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the different markpoints on the plot.
@@ -113,7 +122,8 @@ class EISFrame:
         """
         # check if the necessary data is available for a Nyquist plot
         if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(self.df.columns):
-            raise ValueError('Wrong data for a Nyquist Plot')
+            warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
+            return
 
         # find indices of the markpoints. Takes first point that is in freq range
         for mark in self.mark_points:
@@ -138,11 +148,11 @@ class EISFrame:
         line = ax.plot(
             self.df[x_name],
             self.df[y_name],
-            marker='o',
-            color='black',
-            ls='none',
+            marker=marker,
+            ls=ls,
+            label=label,
         )
-        lines = [line]  # store all the lines inside lines
+        lines = {"Data": line}  # store all the lines inside lines
 
         # plot each markpoint with corresponding color and name
         for mark in self.mark_points:
@@ -156,12 +166,16 @@ class EISFrame:
                 markeredgewidth=3,
                 ls='none',
                 label=mark.name)
-            lines.append(line)
+            lines[mark.name] = line
 
         # additional configuration for the plot
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
-        ax.set_xlim(-50, None)
+
+        if plot_range is None:
+            ax.set_xlim(-50, None)
+        else:
+            ax.set_xlim(*plot_range)
         ax.set_ylim(*ax.get_xlim())
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
@@ -175,7 +189,8 @@ class EISFrame:
             img = plt.imread(image)
             imax.imshow(img)
             imax.axis('off')
-            return lines, imax, img
+            lines["Image"] = img
+            return lines, imax
 
         return lines
 
@@ -232,8 +247,9 @@ class EISFrame:
     def plot_lifecycle(self):
         # TODO plot lifecycle
         if {"time/s", "<Ewe>/V"}.issubset(self.df.columns):
-            return True
-        return False
+            warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
+            return
+        return
 
     def _plot_semis(self, circuit: CustomCircuit, ax: axes.Axes = None):
         """ plots the semicircles to the corresponding circuit elements.
@@ -316,8 +332,8 @@ def create_fig(nrows: int = 1, ncols: int = 1, sharex='all', sharey='all', figsi
     """
     set_plot_params()
 
-    if not figsize:
-        figsize = (6.4 * ncols, 4.8 * nrows),
+    if figsize is None:
+        figsize = (6.4 * ncols, 4.8 * nrows)
     if not gridspec_kw:
         gridspec_kw = {"hspace": 0}
     elif gridspec_kw.get("hspace") is None:
@@ -346,9 +362,11 @@ def save_fig(path: str = '', fig: figure.Figure = None, show: bool = False, **kw
         fig = plt.gcf()
     fig.tight_layout()
     if not show:
+        if not os.path.isdir(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
         fig.savefig(path, bbox_inches='tight', **kwargs)
         fig.canvas.draw_idle()
-    fig.show()
+    plt.close(fig)
 
 
 def calc_specific_freq(r, q, n=1):
@@ -440,23 +458,28 @@ def _plot_legend(ax: axes.Axes = None, loc='upper left', fontsize='small', frame
     return leg
 
 
-def load_data(path: str, data_param: list) -> list['EISFrame']:
+def load_csv_to_df(path: str, sep='\t'):
+    return pd.read_csv(path, sep=sep, encoding='unicode_escape')
+
+
+def load_data(path: str, data_param: list[str] = None) -> list['EISFrame']:
     """
         TODO: WIP
     """
-    if "mpt" not in path:
-        raise ValueError("Only mpt file supported atm")
-    mpt_file = open(path, 'r')
-    next(mpt_file)
-    num_headers_re = re.compile(r'Nb header lines : (?P<num>\d+)\s*$')
-    num_headers_match = num_headers_re.match(next(mpt_file))
-    num_headers = int(num_headers_match['num'])
-    for __ in range(num_headers - 3):
-        next(mpt_file)
-    data = pd.read_csv(mpt_file, sep='\t', encoding='windows-1252')
+    if data_param is None:
+        data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
+
+    if ".csv" or ".txt" in path:
+        data = load_csv_to_df(path)
+    else:
+        data = ecf.to_df(path)
+
+    if data.empty:
+        return []
+
     cycles = []
-    for i in range(int(max(data['cycle number']))):
-        cycles.append(data[data['cycle number'] == i])
-        cycles[i] = EISFrame(cycles[i][data_param])
+    for i in range(1, int(max(data['cycle number']))):
+        cycle = data[data['cycle number'] == i].reset_index()
+        cycles.append(EISFrame(cycle[data_param]))
 
     return cycles

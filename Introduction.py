@@ -10,7 +10,7 @@ variable_name = 45  # variables small letters (no camelcase)
 CONST_NAME = 324  # constants only capital letters
 
 
-def function_name():  # function names same as variable names
+def function_name(parameter ):# function names same as variable names
     return 0  # intend is 4 spaces or tab
 
 

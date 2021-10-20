@@ -7,27 +7,24 @@ from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
+import eclabfiles as ecf
 
 import Base
 
 
 def main():
-    data_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\20210920_B8-P1_HT400C-3h_Li-3mm-300C-30min_FCandPT_01_PEIS_C02.txt"
-    image_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\Ampcera-Batch8P1\References\Images\Circuit_400C.png"
-
-    bounds = ([0, 0, 0, 0, 0, 0, 0], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
-    initial_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
-
-    mytakestep = MyTakeStep()
-
+    data_path = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch8\20210916_B8-P1_HT750C-3h_Li-3mm-300C-30min\20210916_B8-P1_HT750C-3h_Li-3mm-300C-30min_EIS_01_PEIS_C05.mpr"
+    image_path = r"G:\Collaborators\Sauter Ulrich\Ampcera-Batch8P1\References\Images\Circuit_750C.png"
     data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
 
-    test = import_txt_to_frame(data_path, data_param)
+    test123 = ecf.to_df(data_path)
+    print(test123)
 
-    frequencies, Z = preprocessing.readCSV(r"C:\Users\ueli\Desktop\exampleData.csv")
+    frequencies, Z = preprocessing.readCSV(r".\ExampleData1.csv")
     frequencies, Z = preprocessing.ignoreBelowX(frequencies, Z)
 
     circuit = CustomCircuit('R0-p(R1,C1)-p(R2-Wo1,C2)', initial_guess=[.01, .01, 100, .01, .05, 100, 1])
+    bounds = ([0, 0, 0, 0, 0, 0, 0], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
 
     circuit.fit(frequencies, Z, global_opt=True, bounds=bounds, minimizer_kwargs={"bounds": Bounds(*bounds)}, niter=300,
                 callback=my_callback)
@@ -97,8 +94,8 @@ def import_data_to_frame(path: str, data_param: list):
     return cycles
 
 
-def import_txt_to_frame(path: str, data_param: list):
-    data = pd.read_csv(path, sep='\t', encoding='unicode_escape')
+def import_csv_to_frame(path: str, data_param: list, sep='\t'):
+    data = pd.read_csv(path, sep=sep, encoding='unicode_escape')
     return Base.EISFrame(data[data_param])
 
 
