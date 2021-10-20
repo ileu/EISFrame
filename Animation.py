@@ -16,7 +16,7 @@ def main():
     data_switch = len(data)
     data = data + Base.load_data(filepath2, data_param=data_params)
     image_name = re.split(r"\\", filepath1)[-1][:-4]
-    with imageio.get_writer('tail_animation.gif', mode='I') as writer:
+    with imageio.get_writer(r'Images\tail_animation.gif', mode='I') as writer:
         for i, cycle in enumerate(data):
             fig, ax = Base.create_fig()
             fig.suptitle("LLZTO_Batch4_rAcetonitryle-3days")
@@ -31,6 +31,7 @@ def main():
             Base.save_fig(img_path)
             image = imageio.imread(img_path)
             writer.append_data(image)
+
 
 
 if __name__ == "__main__":

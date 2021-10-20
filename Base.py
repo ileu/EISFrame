@@ -125,17 +125,6 @@ class EISFrame:
             warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
             return
 
-        # find indices of the markpoints. Takes first point that is in freq range
-        for mark in self.mark_points:
-            subsequent = (
-                idx for idx, freq in enumerate(self.df["freq/Hz"])
-                if mark.left < freq < mark.right)
-            mark.index = next(subsequent, -1)
-
-        # just so I dont have to write that all the time
-        x_name = "Re(Z)/Ohm"
-        y_name = "-Im(Z)/Ohm"
-
         # label for the plot
         x_label = r"Re(Z)/$\Omega$"
         y_label = r"-Im(Z)/$\Omega$"
@@ -144,10 +133,23 @@ class EISFrame:
         if ax is None:
             ax = plt.gca()
 
+        # remove all datapoints with (0,0)
+        df = self.df.drop(self.df[self.df["Re(Z)/Ohm"] == 0].index)
+
+        x_data = df["Re(Z)/Ohm"]
+        y_data = df["-Im(Z)/Ohm"]
+
+        # find indices of the markpoints. Takes first point that is in freq range
+        for mark in self.mark_points:
+            subsequent = (
+                idx for idx, freq in enumerate(self.df["freq/Hz"])
+                if mark.left < freq < mark.right)
+            mark.index = next(subsequent, -1)
+
         # plot the data
         line = ax.plot(
-            self.df[x_name],
-            self.df[y_name],
+            x_data,
+            y_data,
             marker=marker,
             ls=ls,
             label=label,
@@ -157,8 +159,8 @@ class EISFrame:
         # plot each markpoint with corresponding color and name
         for mark in self.mark_points:
             line = ax.plot(
-                self.df[x_name][mark.index],
-                self.df[y_name][mark.index],
+                x_data[mark.index],
+                y_data[mark.index],
                 marker='o',
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
