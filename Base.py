@@ -51,7 +51,7 @@ class MarkPoint:
         self.magnitude = np.floor(np.log10(freq))  # magnitude of the frequency
 
 
-#  Some default markpoints
+#  Some default mark points
 grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
 hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e3)
 lxlzo = MarkPoint('LxLZO', 'lime', freq=2e3, delta_f=5e2)
@@ -117,8 +117,14 @@ class EISFrame:
 
         @param ax: matplotlib.axes.Axes to plot to
         @param image: path to image to include in plot
+        @param excluded_data:
+        @param ls:
+        @param marker:
+        @param plot_range:
+        @param label:
         @return: TODO: list of lines for markpoints/data, data line is first line
                  TODO: If image available also returns image axes and image
+                 TODO: Look at SchemDraw
         """
         # check if the necessary data is available for a Nyquist plot
         if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(self.df.columns):
@@ -139,7 +145,7 @@ class EISFrame:
         x_data = df["Re(Z)/Ohm"]
         y_data = df["-Im(Z)/Ohm"]
 
-        # find indices of the markpoints. Takes first point that is in freq range
+        # find indices of the mark points. Takes first point that is in freq range
         for mark in self.mark_points:
             subsequent = (
                 idx for idx, freq in enumerate(self.df["freq/Hz"])
@@ -196,7 +202,7 @@ class EISFrame:
 
         return lines
 
-    def fit_nyquist(self, ax: axes.Axes, fit_circuit: str = '', fit_guess: str = '',
+    def fit_nyquist(self, ax: axes.Axes, fit_circuit: str = None, fit_guess: str = None,
                     draw_circle: bool = True) -> list:
         """ Fitting for the nyquist TODO: add all options to the function
 
@@ -214,9 +220,9 @@ class EISFrame:
         z = np.array(z)
         # only for testing purposes like this
         circuit = fit_circuit
-        if not fit_guess:
+        if fit_guess is None:
             fit_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
-        if not fit_circuit:
+        if fit_circuit is None:
             circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
 
         # bounds for the fitting
@@ -336,10 +342,11 @@ def create_fig(nrows: int = 1, ncols: int = 1, sharex='all', sharey='all', figsi
 
     if figsize is None:
         figsize = (6.4 * ncols, 4.8 * nrows)
-    if not gridspec_kw:
+    if gridspec_kw is None:
         gridspec_kw = {"hspace": 0}
     elif gridspec_kw.get("hspace") is None:
         gridspec_kw["hspace"] = 0
+
     return plt.subplots(
         nrows,
         ncols,
@@ -363,11 +370,12 @@ def save_fig(path: str = '', fig: figure.Figure = None, show: bool = False, **kw
     if fig is None:
         fig = plt.gcf()
     fig.tight_layout()
-    if not show:
-        if not os.path.isdir(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
-        fig.savefig(path, bbox_inches='tight', **kwargs)
-        fig.canvas.draw_idle()
+    if not os.path.isdir(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+    fig.savefig(path, bbox_inches='tight', **kwargs)
+    fig.canvas.draw_idle()
+    if show:
+        plt.show()
     plt.close(fig)
 
 

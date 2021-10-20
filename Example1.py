@@ -18,7 +18,6 @@ def main():
     data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
 
     test123 = ecf.to_df(data_path)
-    print(test123)
 
     frequencies, Z = preprocessing.readCSV(r".\ExampleData1.csv")
     frequencies, Z = preprocessing.ignoreBelowX(frequencies, Z)

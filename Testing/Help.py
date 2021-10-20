@@ -1,9 +1,8 @@
 import time
-
 from impedance.models.circuits import CustomCircuit
 
+import Base
 from Help2 import wrapCircuit, wrapCircuit2
-from Example1 import import_txt_to_frame
 from impedance import preprocessing
 import numpy as np
 from scipy.optimize import basinhopping, Bounds
@@ -13,7 +12,7 @@ image_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\Ampcera-Batch8P1\References\I
 
 data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
 
-test = import_txt_to_frame(data_path, data_param)
+test = Base.load_csv_to_df(data_path, data_param)
 
 circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
 constants = {}
