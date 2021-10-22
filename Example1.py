@@ -22,14 +22,14 @@ def main():
     # data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
     # test = import_txt_to_frame(data_path, data_param)
 
-    frequencies, z = preprocessing.readCSV(r".\exampleData.csv")
+    frequencies, z = preprocessing.readCSV(r".\Testing\exampleData.csv")
     frequencies, z = preprocessing.ignoreBelowX(frequencies, z)
 
     circuit = CustomCircuit('R0-p(R1,C1)-p(R2-Wo1,C2)', initial_guess=[.01, .01, 100, .01, .05, 100, 1])
     bounds = ([1e-10, 1e-10, 1e-10, 1e-10, 1e-10, 1e-10, 1e-10], [10, 1, 10, 1, 10, 10000, 1000])
 
     circuit.fit(frequencies, z, global_opt=True, bounds=bounds,
-                minimizer_kwargs={"bounds": Bounds(*bounds), "method": 'L-BFGS-B'}, niter=100)
+                minimizer_kwargs={"bounds": Bounds(*bounds), "method": 'L-BFGS-B'}, niter=10)
 
     print(circuit)
 

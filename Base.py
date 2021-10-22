@@ -460,4 +460,10 @@ def load_data(path: str, data_param: list) -> list['EISFrame']:
         cycles.append(data[data['cycle number'] == i])
         cycles[i] = EISFrame(cycles[i][data_param])
 
+    # TODO: Sort MB by technique
+    # cycles = [mb[mb['cycle number'] == i] for i in range(int(max(mb['cycle number'])))]
+    # sequences = []
+    # for cycle in cycles:
+    #     sequences.append([cycle[cycle['Ns'] == i] for i in range(int(max(cycle['Ns'])))])
+
     return cycles
