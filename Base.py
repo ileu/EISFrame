@@ -479,7 +479,7 @@ def load_data(path: str, data_param: list[str] = None) -> list['EISFrame']:
     if data_param is None:
         data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
 
-    if ".csv" or ".txt" in path:
+    if ".csv" in path or ".txt" in path:
         data = load_csv_to_df(path)
     else:
         data = ecf.to_df(path)
