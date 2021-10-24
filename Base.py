@@ -109,7 +109,7 @@ class EISFrame:
         """
         self.mark_points = self._default_mark_points
 
-    def plot_nyquist(self, ax: axes.Axes = None, image: str = '', excluded_data=None,
+    def plot_nyquist(self, ax: axes.Axes = None, image: str = '', cell: Cell = None, excluded_data=None,
                      ls='None', marker='o', plot_range=None, label=None):
         """ Plots a Nyquist plot with the internal dataframe TODO: add all parameters to the function
 
@@ -117,6 +117,7 @@ class EISFrame:
 
         @param ax: matplotlib.axes.Axes to plot to
         @param image: path to image to include in plot
+        @param cell:
         @param excluded_data:
         @param ls:
         @param marker:
@@ -144,6 +145,13 @@ class EISFrame:
 
         x_data = df["Re(Z)/Ohm"]
         y_data = df["-Im(Z)/Ohm"]
+
+        if cell is not None:
+            x_data = x_data * cell.area_mm2 * 1e-2
+            x_label += r"$cm^2$"
+
+            y_data = y_data * cell.area_mm2 * 1e-2
+            y_label += r"$cm^2$"
 
         # find indices of the mark points. Takes first point that is in freq range
         for mark in self.mark_points:
@@ -184,6 +192,7 @@ class EISFrame:
             ax.set_xlim(-50, None)
         else:
             ax.set_xlim(*plot_range)
+
         ax.set_ylim(*ax.get_xlim())
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
