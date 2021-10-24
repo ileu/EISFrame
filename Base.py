@@ -50,6 +50,7 @@ class MarkPoint:
 
 
 #  Some default markpoints
+# TODO: move around or make it so that indices reset after plotting
 grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
 hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e4)
 lxzo = MarkPoint('LxZO', 'lime', freq=2e3, delta_f=5e2)
@@ -60,7 +61,6 @@ ecr_tail = MarkPoint('ECR', 'darkgreen', freq=0.5, delta_f=1, ecr=True)
 class Cell:
     """
         Save the characteristics of a cell. Usefull for further calculation.
-        TODO: Implement it :)
     """
 
     def __init__(self, diameter_mm, height_mm):
@@ -101,7 +101,7 @@ class EISFrame:
         """
         self.mark_points = self._default_mark_points
 
-    def plot_nyquist(self, ax: axes.Axes = None, image: str = ''):
+    def plot_nyquist(self, ax: axes.Axes = None, image: str = '', cell: Cell = None):
         """ Plots a Nyquist plot with the internal dataframe TODO: add all parameters to the function
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the different markpoints on the plot.
@@ -179,14 +179,17 @@ class EISFrame:
 
         return lines
 
-    def fit_nyquist(self, ax: axes.Axes, fit_circuit: str = '', fit_guess: str = '',
-                    draw_circle: bool = True) -> list:
+    def fit_nyquist(self, ax: axes.Axes, fit_circuit: str = '', fit_guess: str = '', fit_bounds: tuple = None,
+                    global_opt: bool = False, draw_circle: bool = True, draw_circuit: bool = False) -> list:
         """ Fitting for the nyquist TODO: add all options to the function
 
         @param ax: axes to draw the fit to
         @param fit_circuit: equivalence circuit for the fitting
         @param fit_guess: initial values for the fitting
+        @param fit_bounds:
+        @param global_opt:
         @param draw_circle: if the corresponding circles should be drawn or not
+        @param draw_circuit:
         @return: fitting parameters TODO: maybe more?
         """
         # load and prepare data
@@ -203,11 +206,12 @@ class EISFrame:
             circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
 
         # bounds for the fitting
-        bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0], [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
+        if fit_bounds is None:
+            bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0], [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
 
         # create the circuit and start the fitting still TODO: fix the global fitting routine
         custom_circuit = CustomCircuit(initial_guess=fit_guess, circuit=circuit, )
-        custom_circuit.fit(frequencies, z, global_opt=True)
+        custom_circuit.fit(frequencies, z, global_opt=global_opt)
 
         # print the fitting parameters to the console
         print(custom_circuit)
@@ -298,6 +302,23 @@ class EISFrame:
                 ls='None'
             )
 
+        return
+
+    def _plot_circuit(self, circuit: CustomCircuit, ax: axes.Axes = None):
+        # TODO: Look at SchemDraw to draw circuit and color with different mark  points
+
+        # check if axes is given, else get current axes
+        if ax is None:
+            ax = plt.gca()
+
+        # read out details about circuit
+        circuit_string = circuit.circuit
+        names = circuit.get_param_names()[0]
+
+        elements = circuit_string.split('-')
+        # count how many components in string -> n
+        # if n%2  == 1 -> draw one elment in center and do for (n-1) i.e. even n
+        # if n%2 == 0 -> draw elements moved by 0.5 (maybe 0.25?) up and down
         return
 
 
