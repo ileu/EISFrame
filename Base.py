@@ -93,7 +93,7 @@ class EISFrame:
         self.df = df
         self._default_mark_points = [grain_boundaries, hllzo, lxlzo, interface, ecr_tail]
         self.mark_points = self._default_mark_points
-        self.axes = {}  # TODO: put all plots in here
+        self.lines = {}
 
     def __str__(self):
         return self.df.__str__()
@@ -109,8 +109,9 @@ class EISFrame:
         """
         self.mark_points = self._default_mark_points
 
-    def plot_nyquist(self, ax: axes.Axes = None, image: str = '', cell: Cell = None, excluded_data=None,
-                     ls='None', marker='o', plot_range=None, label=None):
+    def plot_nyquist(self, ax: axes.Axes = None, image: str = '', cell: Cell = None, exclude_start: int = None,
+                     exclude_end: int = None, ls='None', marker='o', plot_range=None, label=None,
+                     size=8, scale=1.5):
         """ Plots a Nyquist plot with the internal dataframe TODO: add all parameters to the function
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the different markpoints on the plot.
@@ -118,14 +119,15 @@ class EISFrame:
         @param ax: matplotlib.axes.Axes to plot to
         @param image: path to image to include in plot
         @param cell:
-        @param excluded_data:
+        @param exclude_start:
+        @param exclude_end:
         @param ls:
         @param marker:
         @param plot_range:
         @param label:
-        @return: TODO: list of lines for markpoints/data, data line is first line
-                 TODO: If image available also returns image axes and image
-                 TODO: Look at SchemDraw
+        @param size:
+        @param scale:
+        @return: dictionary of matplotlib.lines.Line2D containing all the drawn plots
         """
         # check if the necessary data is available for a Nyquist plot
         if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(self.df.columns):
@@ -143,8 +145,8 @@ class EISFrame:
         # remove all data points with (0,0)
         df = self.df.drop(self.df[self.df["Re(Z)/Ohm"] == 0].index)
 
-        x_data = df["Re(Z)/Ohm"]
-        y_data = df["-Im(Z)/Ohm"]
+        x_data = df["Re(Z)/Ohm"][slice(exclude_start, exclude_end)]
+        y_data = df["-Im(Z)/Ohm"][slice(exclude_start, exclude_end)]
 
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
@@ -167,6 +169,7 @@ class EISFrame:
             marker=marker,
             ls=ls,
             label=label,
+            markersize=size,
         )
         lines = {"Data": line}  # store all the lines inside lines
 
@@ -178,7 +181,7 @@ class EISFrame:
                 marker='o',
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
-                markersize=10,
+                markersize=scale * size,
                 markeredgewidth=3,
                 ls='none',
                 label=mark.name)
@@ -200,6 +203,9 @@ class EISFrame:
         ax.set_aspect('equal')
         _plot_legend(ax)
 
+        # add lines to the axes property
+        self.lines += lines
+
         # if a path to a image is given, also plot it
         if image:
             imax = ax.inset_axes([.05, .5, .9, .2])
@@ -212,7 +218,7 @@ class EISFrame:
         return lines
 
     def fit_nyquist(self, ax: axes.Axes, fit_circuit: str = '', fit_guess: str = '', fit_bounds: tuple = None,
-                    global_opt: bool = False, draw_circle: bool = True, draw_circuit: bool = False) -> list:
+                    global_opt: bool = False, draw_circle: bool = True, draw_circuit: bool = False) -> tuple[list, dict]:
         """ Fitting for the nyquist TODO: add all options to the function
 
         @param ax: axes to draw the fit to
@@ -231,26 +237,27 @@ class EISFrame:
         frequencies = np.array(frequencies)
         z = np.array(z)
         # only for testing purposes like this
-        circuit = fit_circuit
         if fit_guess is None:
             fit_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
         if fit_circuit is None:
-            circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
+            fit_circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
 
         # bounds for the fitting
         if fit_bounds is None:
             bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0], [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
 
         # create the circuit and start the fitting still TODO: fix the global fitting routine
-        custom_circuit = CustomCircuit(initial_guess=fit_guess, circuit=circuit, )
-        custom_circuit.fit(frequencies, z, global_opt=global_opt)
+        circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
+        circuit.fit(frequencies, z, global_opt=global_opt)
 
         # print the fitting parameters to the console
-        print(custom_circuit)
+        print(circuit)
+
+        parameters = dict(zip(circuit.get_param_names(), circuit.parameters_))
 
         # plot the fitting result
         f_pred = np.logspace(-2, 7, 200)
-        custom_circuit_fit = custom_circuit.predict(f_pred)
+        custom_circuit_fit = circuit.predict(f_pred)
         line = ax.plot(
             np.real(custom_circuit_fit),
             -np.imag(custom_circuit_fit),
@@ -258,12 +265,13 @@ class EISFrame:
             color="red",
             zorder=4)
 
+        self.lines["fit"] = line
         # check if circle needs to be drawn
         if draw_circle:
-            self._plot_semis(custom_circuit, ax)
+            self._plot_semis(circuit, ax)
 
         _plot_legend(ax)
-        return line
+        return line, parameters
 
     def plot_lifecycle(self):
         # TODO plot lifecycle
@@ -350,7 +358,7 @@ class EISFrame:
 
         elements = circuit_string.split('-')
         # count how many components in string -> n
-        # if n%2  == 1 -> draw one elment in center and do for (n-1) i.e. even n
+        # if n%2  == 1 -> draw one element in center and do for (n-1) i.e. even n
         # if n%2 == 0 -> draw elements moved by 0.5 (maybe 0.25?) up and down
         return
 
@@ -392,7 +400,6 @@ def create_fig(nrows: int = 1, ncols: int = 1, sharex='all', sharey='all', figsi
 def save_fig(path: str = '', fig: figure.Figure = None, show: bool = False, **kwargs) -> None:
     """ Saves the current figure at path
 
-
     @param path: path to save the figure
     @param fig: the figure to save
     @param show: show figure, no saving, False: save and show figure
@@ -415,8 +422,23 @@ def calc_specific_freq(r, q, n=1):
     return spec_frec
 
 
-def predict_circle(r, q, n, w=np.logspace(-2, 10, 200)) -> np.array:
+def predict_circle(r, q, n=1, w=np.logspace(-2, 10, 200)) -> np.array:
     return np.reciprocal(1 / r + q * w ** n * np.exp(np.pi / 2 * n * 1j))
+
+
+def predict_warburg(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
+    x = np.sqrt(2 * np.pi * w)
+    return a * np.reciprocal(x) * (1 - 1j)
+
+
+def predict_warburg_open(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
+    x = np.sqrt(1j * w * b)
+    return a * np.reciprocal(x * np.tanh(x))
+
+
+def predict_warburg_shot(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
+    x = np.sqrt(1j * w * b)
+    return a * np.reciprocal(x) * np.tanh(x)
 
 
 def set_plot_params() -> None:
