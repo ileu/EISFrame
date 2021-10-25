@@ -6,8 +6,8 @@ import Base
 
 def main():
     path = r"G:\Limit\VMP3 data\Rabeb\Batch4-LLZTO\Acetonitryle-3days"
-    filename1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle-3days_Li300C_3mm_0p7th_PT_C15.mpr"
-    filename2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.mpr"
+    filename1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle-3days_Li300C_3mm_0p7th_PT_C15.txt"
+    filename2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.txt"
     filepath1 = path+filename1
     filepath2 = path+filename2
     data_params = ["time/s", "Ewe/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]

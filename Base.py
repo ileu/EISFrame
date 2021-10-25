@@ -150,10 +150,10 @@ class EISFrame:
 
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
-            x_label += r"$cm^2$"
+            x_label += r"$.cm^2$"
 
             y_data = y_data * cell.area_mm2 * 1e-2
-            y_label += r"$cm^2$"
+            y_label += r"$.cm^2$"
 
         # find indices of the mark points. Takes first point that is in freq range
         for mark in self.mark_points:
@@ -192,7 +192,7 @@ class EISFrame:
         ax.set_ylabel(y_label)
 
         if plot_range is None:
-            ax.set_xlim(-50, None)
+            ax.set_xlim(-max(x_data) * 0.05, max(x_data) * 1.05)
         else:
             ax.set_xlim(*plot_range)
 
@@ -204,7 +204,8 @@ class EISFrame:
         _plot_legend(ax)
 
         # add lines to the axes property
-        self.lines += lines
+        # TODO how to add dictionaries together
+        #self.lines += lines
 
         # if a path to a image is given, also plot it
         if image:
@@ -549,5 +550,5 @@ def load_data(path: str, data_param: list[str] = None) -> list['EISFrame']:
     # sequences = []
     # for cycle in cycles:
     #     sequences.append([cycle[cycle['Ns'] == i] for i in range(int(max(cycle['Ns'])))])
-
+    # TODO: Catch errors if columns not availible
     return cycles
