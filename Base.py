@@ -425,9 +425,12 @@ def save_fig(
 ) -> None:
     """ Saves the current figure at path
 
-    @param path: path to save the figure
-    @param fig: the figure to save
-    @param show: show figure, no saving, False: save and show figure
+    Parameters
+    ----------
+    path: str, path to save the figure
+    fig: figure.Figure: the figure to save
+    show: bool,  show figure, no saving, False: save and show figure
+    kwargs any Keywords for Figure.savefig
     """
     if fig is None:
         fig = plt.gcf()

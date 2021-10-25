@@ -1,6 +1,6 @@
 import schemdraw as sd
 from schemdraw import dsp, elements as elm
-import SchemeElements as selm
+import SchemeElements as SElm
 
 elm.style(elm.STYLE_IEC)
 d = sd.Drawing(fontsize=14)
@@ -26,7 +26,7 @@ d = sd.Drawing(fontsize=14)
 
 d.push()
 d += dsp.Line().up().length(d.unit / 4)
-d += selm.WarburgShort().right()
+d += SElm.WarburgShort().right()
 d += dsp.Line().down().length(d.unit / 4)
 d.pop()
 d += elm.Resistor()
