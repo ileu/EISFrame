@@ -10,7 +10,7 @@ variable_name = 45  # variables small letters (no camelcase)
 CONST_NAME = 324  # constants only capital letters
 
 
-def function_name(parameter ):# function names same as variable names
+def function_name(parameter):  # function names same as variable names
     return 0  # intend is 4 spaces or tab
 
 
@@ -103,7 +103,9 @@ for letter in list:  # for each element do something
 for i in range(len(list)):  # "standard" for loop from other languages
     print(list[i])
 
-for i, letter in enumerate(list):  # enumerate genreate a tuple with (index, element) of list
+for i, letter in enumerate(
+        list
+        ):  # enumerate genreate a tuple with (index, element) of list
     print("list at %d: %s" % (i, letter))  # string formating
 
 
@@ -186,6 +188,7 @@ def compose(f1, f2, x):
 
 
 print(compose(f, g, 2))
+
 
 # classes
 
