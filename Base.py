@@ -537,11 +537,44 @@ def load_data(path: str, data_param: list[str] = None) -> list['EISFrame']:
     if data_param is None:
         data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm",
                       "-Im(Z)/Ohm"]
+    __, ext = os.path.splitext(path)
 
-    if ".csv" in path or ".txt" in path:
+    if ".csv" in path or ".txt" in ext:
         data = load_csv_to_df(path)
+    elif ext == '.mpt':
+        mpt = ecf.parse(path)
+        mpt_records = mpt['datapoints']
+        data = pd.DataFrame.from_dict(mpt_records)
+    elif ext == '.mpr':
+        mpr = ecf.parse(path)
+        # look for settings file
+        technique = None
+        for header in mpr:
+            if 'Set' not in header['short name']:
+                continue
+            # check for technique and load data
+            technique = header['data']['technique']
+            break
+        if technique == 'PEIS':
+            # TODO
+            print('PEIS')
+        elif technique == 'CC':
+            # TODO
+            print('CC')
+        elif technique == 'MB':
+            # TODO
+            print('MB')
+        else:
+            warnings.warn("Technique not supported")
+            return []
+        mpr_records = mpr[1]['data']['datapoints']
+        data = pd.DataFrame.from_dict(mpr_records)
+    elif ext == '.mps':
+        warnings.warn("mps not supported")
+        data = pd.DataFrame()
     else:
-        data = ecf.to_df(path)
+        warnings.warn("Datatype not supported")
+        data = pd.DataFrame()
 
     if data.empty:
         warnings.warn(

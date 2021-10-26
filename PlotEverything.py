@@ -5,8 +5,9 @@ import Base
 
 
 def main():
-    path = r"G:\Limit\VMP3 data\Rabeb\Ampcera-LLZTO-Batch6\B6-P7_MO-7d_750C-3h"
+    path = r"Test1.mpr"
     peis_mpr_files = glob.glob(path + r"\*.mpr")
+    peis_mpr_files = [path]
 
     cell_3mm = Base.Cell(3, 0.7)
 
