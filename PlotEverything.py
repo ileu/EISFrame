@@ -11,6 +11,10 @@ def main():
 
     cell_3mm = Base.Cell(3, 0.7)
 
+    print(f"Found {len(peis_mpr_files)} files")
+
+    peis_mpr_files = peis_mpr_files[:3]
+
     for file in peis_mpr_files:
         image_name = '_'.join(re.split("[_.]", file)[-5:-1])
         print(file, image_name)

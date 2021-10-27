@@ -7,6 +7,7 @@
 """
 import os
 import warnings
+import logging
 from typing import Union
 
 import eclabfiles as ecf
@@ -30,9 +31,13 @@ class MarkPoint:
     """
 
     def __init__(
-            self, name: str, color: str, freq: float, delta_f: float = -1,
+            self,
+            name: str,
+            color: str,
+            freq: float,
+            delta_f: float = -1,
             ecr: bool = False
-    ) -> None:
+            ) -> None:
         """ Special point in the EIS spectrum
 
         @param name: Name of the mark point
@@ -55,7 +60,9 @@ class MarkPoint:
         # the freq range
         self.magnitude = np.floor(np.log10(freq))  # magnitude of the frequency
 
-    def __repr__(self):
+    def __repr__(
+            self
+            ):
         out = f"{self.name} @ {self.freq}, color {self.color}"
         out += f"with index {self.index}"
         return out
@@ -74,7 +81,11 @@ class Cell:
         Save the characteristics of a cell. Usefull for further calculation.
     """
 
-    def __init__(self, diameter_mm, thickness_mm):
+    def __init__(
+            self,
+            diameter_mm,
+            thickness_mm
+            ):
         """ Initializer of a cell
 
         @param diameter_mm: diameter of the cell in mm
@@ -86,7 +97,9 @@ class Cell:
         self.area_mm2 = (diameter_mm / 2) ** 2 * np.pi  # area of the cell
         self.volume_mm3 = self.area_mm2 * thickness_mm  # volume of the cell
 
-    def __repr__(self):
+    def __repr__(
+            self
+            ):
         return f"dia: {self.diameter_mm}, area: {self.area_mm2}"
 
 
@@ -95,7 +108,10 @@ class EISFrame:
 
     """
 
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(
+            self,
+            df: pd.DataFrame
+            ) -> None:
         """Initialises an EISFrame
 
         An EIS frame can plot a Nyquist plot and the lifecycle of the cell
@@ -109,13 +125,19 @@ class EISFrame:
         self.mark_points = self._default_mark_points
         self.lines = {}
 
-    def __str__(self):
+    def __str__(
+            self
+            ):
         return self.df.__str__()
 
-    def __repr__(self):
+    def __repr__(
+            self
+            ):
         return self.df.__repr__()
 
-    def reset_markpoints(self) -> None:
+    def reset_markpoints(
+            self
+            ) -> None:
         """ Resets list markpoints to default
 
         The default values of the list corresponds to the markpoints for
@@ -123,11 +145,23 @@ class EISFrame:
         """
         self.mark_points = self._default_mark_points
 
+    def __len__(self):
+        return len(self.df)
+
     def plot_nyquist(
-            self, ax: axes.Axes = None, image: str = '', cell: Cell = None,
-            exclude_start: int = None, exclude_end: int = None, ls='None',
-            marker='o', plot_range=None, label=None, size=8, scale=1.5
-    ):
+            self,
+            ax: axes.Axes = None,
+            image: str = '',
+            cell: Cell = None,
+            exclude_start: int = None,
+            exclude_end: int = None,
+            ls='None',
+            marker='o',
+            plot_range=None,
+            label=None,
+            size=8,
+            scale=1.5
+            ):
         """ Plots a Nyquist plot with the internal dataframe
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the
@@ -150,7 +184,7 @@ class EISFrame:
         # check if the necessary data is available for a Nyquist plot
         if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(
                 self.df.columns
-        ):
+                ):
             warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
             return
 
@@ -184,8 +218,8 @@ class EISFrame:
 
         # plot the data
         line = ax.plot(
-                x_data, y_data, marker=marker, ls=ls, label=label,
-                markersize=size, )
+            x_data, y_data, marker=marker, ls=ls, label=label,
+            markersize=size, )
         lines = {"Data": line}  # store all the lines inside lines
 
         # plot each mark point with corresponding color and name
@@ -193,11 +227,11 @@ class EISFrame:
             if mark.index < 0:
                 continue
             line = ax.plot(
-                    x_data[mark.index], y_data[mark.index], marker='o',
-                    markerfacecolor=mark.color, markeredgecolor=mark.color,
-                    markersize=scale * size, markeredgewidth=3, ls='none',
-                    label=mark.name
-            )
+                x_data[mark.index], y_data[mark.index], marker='o',
+                markerfacecolor=mark.color, markeredgecolor=mark.color,
+                markersize=scale * size, markeredgewidth=3, ls='none',
+                label=mark.name
+                )
             lines[mark.name] = line
 
         # additional configuration for the plot
@@ -231,10 +265,15 @@ class EISFrame:
         return lines
 
     def fit_nyquist(
-            self, ax: axes.Axes, fit_circuit: str = '', fit_guess: str = '',
-            fit_bounds: tuple = None, global_opt: bool = False,
-            draw_circle: bool = True, draw_circuit: bool = False
-    ) -> tuple[list, dict]:
+            self,
+            ax: axes.Axes,
+            fit_circuit: str = '',
+            fit_guess: str = '',
+            fit_bounds: tuple = None,
+            global_opt: bool = False,
+            draw_circle: bool = True,
+            draw_circuit: bool = False
+            ) -> tuple[list, dict]:
         """ Fitting for the nyquist TODO: add all options to the function
 
         @param ax: axes to draw the fit to
@@ -276,9 +315,9 @@ class EISFrame:
         f_pred = np.logspace(-2, 7, 200)
         custom_circuit_fit = circuit.predict(f_pred)
         line = ax.plot(
-                np.real(custom_circuit_fit), -np.imag(custom_circuit_fit),
-                label="fit", color="red", zorder=4
-        )
+            np.real(custom_circuit_fit), -np.imag(custom_circuit_fit),
+            label="fit", color="red", zorder=4
+            )
 
         self.lines["fit"] = line
         # check if circle needs to be drawn
@@ -291,14 +330,72 @@ class EISFrame:
         _plot_legend(ax)
         return line, parameters
 
-    def plot_lifecycle(self):
+    def plot_lifecycle(
+            self,
+            ax: axes.Axes = None,
+            plot_xrange=None,
+            plot_yrange=None,
+            ):
         # TODO plot lifecycle
-        if {"time/s", "<Ewe>/V"}.issubset(self.df.columns):
-            warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
+        if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
+            warnings.warn('Wrong data for a lifecycle Plot', RuntimeWarning)
             return
-        return
 
-    def _plot_semis(self, circuit: CustomCircuit, ax: axes.Axes = None):
+        ls = 'None'
+        marker = 'o'
+        plot_range = None
+        label = None
+        size = 8
+        scale = 1.5
+
+        # label for the plot
+        x_label = r"Time/h"
+        y_label = r"$E_{we}$/V"
+
+        # check if any axes is given, if not GetCurrentAxis from matplotlib
+        if ax is None:
+            ax = plt.gca()
+
+        # remove all data points with (0,0)
+        df = self.df[self.df["Ewe/V"] != 0].copy().reset_index()
+
+        x_data = df["time/s"] / 60.0 / 60.0
+        y_data = df["Ewe/V"]
+
+        line = ax.plot(
+                x_data, y_data, marker=None, ls='-', label=label,
+                markersize=size, color='blue')
+
+        # additional configuration for the plot
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+
+        if plot_xrange is None:
+            xrange = max(*x_data * 1.05, *ax.get_xlim())
+            ax.set_xlim(-xrange * 0.04, xrange)
+        else:
+            ax.set_xlim(*plot_xrange)
+
+        if plot_yrange is None:
+            yrange = max(*y_data * 1.05, *ax.get_ylim())
+            ax.set_ylim(-yrange, yrange)
+        else:
+            ax.set_ylim(*plot_yrange)
+
+        ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
+        ax.locator_params(nbins=4)
+
+        if label is not None:
+            _plot_legend(ax)
+
+        return line
+
+    def _plot_semis(
+            self,
+            circuit: CustomCircuit,
+            ax: axes.Axes = None
+            ):
         """ plots the semicircles to the corresponding circuit elements.
 
         the permitted elements are p(R,CPE), p(R,C) or
@@ -343,14 +440,14 @@ class EISFrame:
 
             # calculate the data of the circle
             circle_data = predict_circle(*components_values) + np.sum(
-                    resistors_values
-            )
+                resistors_values
+                )
             specific_freq = calc_specific_freq(*components_values)
             specific_freq_magnitude = np.floor(np.log10(specific_freq))
             color = 'black'
             ecr_color = next(
-                    (m.color for m in self.mark_points if m.ecr), "green"
-            )
+                (m.color for m in self.mark_points if m.ecr), "green"
+                )
             # check with which mark point the circle is associated by
             # comparing magnitudes
             for mark in self.mark_points:
@@ -364,13 +461,17 @@ class EISFrame:
                     break
             # draw circle
             ax.fill_between(
-                    np.real(circle_data), -np.imag(circle_data), color=color,
-                    alpha=0.5, zorder=5, ls='None'
-            )
+                np.real(circle_data), -np.imag(circle_data), color=color,
+                alpha=0.5, zorder=5, ls='None'
+                )
 
         return
 
-    def _plot_circuit(self, circuit: CustomCircuit, ax: axes.Axes = None):
+    def _plot_circuit(
+            self,
+            circuit: CustomCircuit,
+            ax: axes.Axes = None
+            ):
         # TODO: Look at SchemDraw to draw circuit and color with different
         #  mark  points
 
@@ -391,9 +492,15 @@ class EISFrame:
 
 
 def create_fig(
-        nrows: int = 1, ncols: int = 1, sharex='all', sharey='all',
-        figsize=None, subplot_kw=None, gridspec_kw=None, **fig_kw
-) -> tuple[figure.Figure, Union[list[axes.Axes], axes.Axes]]:
+        nrows: int = 1,
+        ncols: int = 1,
+        sharex='all',
+        sharey='all',
+        figsize=None,
+        subplot_kw=None,
+        gridspec_kw=None,
+        **fig_kw
+        ) -> tuple[figure.Figure, Union[list[axes.Axes], axes.Axes]]:
     """ Creates the figure, axes for the plots and set the style of the plot
     
     @param sharex:
@@ -415,14 +522,17 @@ def create_fig(
         gridspec_kw["hspace"] = 0
 
     return plt.subplots(
-            nrows, ncols, figsize=figsize, sharex=sharex, sharey=sharey,
-            gridspec_kw=gridspec_kw, subplot_kw=subplot_kw, **fig_kw
-    )
+        nrows, ncols, figsize=figsize, sharex=sharex, sharey=sharey,
+        gridspec_kw=gridspec_kw, subplot_kw=subplot_kw, **fig_kw
+        )
 
 
 def save_fig(
-        path: str = '', fig: figure.Figure = None, show: bool = False, **kwargs
-) -> None:
+        path: str = '',
+        fig: figure.Figure = None,
+        show: bool = False,
+        **kwargs
+        ) -> None:
     """ Saves the current figure at path
 
     Parameters
@@ -444,27 +554,47 @@ def save_fig(
     plt.close(fig)
 
 
-def calc_specific_freq(r, q, n=1):
+def calc_specific_freq(
+        r,
+        q,
+        n=1
+        ):
     spec_frec = np.reciprocal(np.power(r * q, np.reciprocal(n)))
     spec_frec *= np.reciprocal(2 * np.pi)
     return spec_frec
 
 
-def predict_circle(r, q, n=1, w=np.logspace(-2, 10, 200)) -> np.array:
+def predict_circle(
+        r,
+        q,
+        n=1,
+        w=np.logspace(-2, 10, 200)
+        ) -> np.array:
     return np.reciprocal(1 / r + q * w ** n * np.exp(np.pi / 2 * n * 1j))
 
 
-def predict_warburg(a, w=np.logspace(-2, 10, 200)) -> np.array:
+def predict_warburg(
+        a,
+        w=np.logspace(-2, 10, 200)
+        ) -> np.array:
     x = np.sqrt(2 * np.pi * w)
     return a * np.reciprocal(x) * (1 - 1j)
 
 
-def predict_warburg_open(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
+def predict_warburg_open(
+        a,
+        b,
+        w=np.logspace(-2, 10, 200)
+        ) -> np.array:
     x = np.sqrt(1j * w * b)
     return a * np.reciprocal(x * np.tanh(x))
 
 
-def predict_warburg_shot(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
+def predict_warburg_shot(
+        a,
+        b,
+        w=np.logspace(-2, 10, 200)
+        ) -> np.array:
     x = np.sqrt(1j * w * b)
     return a * np.reciprocal(x) * np.tanh(x)
 
@@ -476,33 +606,38 @@ def set_plot_params() -> None:
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 10.0
     plot_color_cycle = cycler(
-            'color',
-            ['000000', '0000FE', 'FE0000', '008001', 'FD8000', '8c564b',
-             'e377c2', '7f7f7f', 'bcbd22', '17becf', ]
-    )
+        'color',
+        ['000000', '0000FE', 'FE0000', '008001', 'FD8000', '8c564b', 'e377c2',
+         '7f7f7f', 'bcbd22', '17becf', ]
+        )
     rcParams['axes.prop_cycle'] = plot_color_cycle
     rcParams['axes.xmargin'] = 0
     rcParams['axes.ymargin'] = 0
     rcParams.update(
-            {"figure.subplot.hspace": 0, "figure.subplot.left": 0.11,
-             "figure.subplot.right": 0.946, "figure.subplot.bottom": 0.156,
-             "figure.subplot.top": 0.965, "xtick.major.size": 4,
-             "xtick.minor.size": 2.5, "xtick.major.width": 1.1,
-             "xtick.minor.width": 1.1, "xtick.major.pad": 5,
-             "xtick.minor.visible": True, "xtick.direction": 'in',
-             "xtick.top": True, "ytick.major.size": 4, "ytick.minor.size": 2.5,
-             "ytick.major.width": 1.1, "ytick.minor.width": 1.1,
-             "ytick.major.pad": 5, "ytick.minor.visible": True,
-             "ytick.direction": 'in', "ytick.right": True,
-             "lines.markersize": 10, "lines.markeredgewidth": 0.8, }
-    )
+        {"figure.subplot.hspace": 0, "figure.subplot.left": 0.11,
+         "figure.subplot.right": 0.946, "figure.subplot.bottom": 0.156,
+         "figure.subplot.top": 0.965, "xtick.major.size": 4,
+         "xtick.minor.size": 2.5, "xtick.major.width": 1.1,
+         "xtick.minor.width": 1.1, "xtick.major.pad": 5,
+         "xtick.minor.visible": True, "xtick.direction": 'in',
+         "xtick.top": True, "ytick.major.size": 4, "ytick.minor.size": 2.5,
+         "ytick.major.width": 1.1, "ytick.minor.width": 1.1,
+         "ytick.major.pad": 5, "ytick.minor.visible": True,
+         "ytick.direction": 'in', "ytick.right": True, "lines.markersize": 10,
+         "lines.markeredgewidth": 0.8, }
+        )
 
 
 def _plot_legend(
-        ax: axes.Axes = None, loc='upper left', fontsize='small',
-        frameon=False, markerscale=0.5, handletextpad=0.1, mode='expand',
+        ax: axes.Axes = None,
+        loc='upper left',
+        fontsize='small',
+        frameon=False,
+        markerscale=0.5,
+        handletextpad=0.1,
+        mode='expand',
         **kwargs
-) -> legend.Legend:
+        ) -> legend.Legend:
     """ Adds legend to an axes
 
     @param ax: axes
@@ -519,91 +654,108 @@ def _plot_legend(
         ax = plt.gca()
 
     leg = ax.legend(
-            loc=loc, fontsize=fontsize, frameon=frameon,
-            markerscale=markerscale, handletextpad=handletextpad, mode=mode,
-            **kwargs
-    )
+        loc=loc, fontsize=fontsize, frameon=frameon, markerscale=markerscale,
+        handletextpad=handletextpad, mode=mode, **kwargs
+        )
     return leg
 
 
-def load_csv_to_df(path: str, sep='\t'):
+def load_csv_to_df(
+        path: str,
+        sep='\t'
+        ):
     return pd.read_csv(path, sep=sep, encoding='unicode_escape')
 
 
-def load_data(path: str, data_param: list[str] = None) -> list['EISFrame']:
+def _load_mpr(
+        path: str,
+        data_param: list[str] = None
+        ) -> tuple[pd.DataFrame, str]:
+    mpr = ecf.parse(path)
+    # look for settings file
+    technique = None
+    for part in mpr:
+        if b'Set' not in part['header']['short_name']:
+            continue
+        # check for technique and load data
+        technique = part['data']['technique']
+        break
+
+    if technique == 'MB':
+        cycle_param = "z cycle"
+    else:
+        cycle_param = "cycle number"
+
+    mpr_records = mpr[1]['data']['datapoints']
+    data = pd.DataFrame.from_dict(mpr_records)
+
+    return data, cycle_param
+
+
+def load_data(
+        path: str,
+        data_param: list[str] = None
+        ) -> Union[EISFrame, list['EISFrame']]:
     """
         TODO: WIP
     """
     if data_param is None:
-        data_param = ["time/s", "<Ewe>/V", "freq/Hz", "Re(Z)/Ohm",
-                      "-Im(Z)/Ohm"]
+        data_param = ["time/s", "Ewe/V", "freq/Hz", "Re(Zce)/Ohm", "-Im(Zce)/Ohm"]
     __, ext = os.path.splitext(path)
 
     if ".csv" in path or ".txt" in ext:
         data = load_csv_to_df(path)
-    elif ext == '.mpt':
-        mpt = ecf.parse(path)
-        mpt_records = mpt['datapoints']
-        data = pd.DataFrame.from_dict(mpt_records)
     elif ext == '.mpr':
-        mpr = ecf.parse(path)
-        # look for settings file
-        technique = None
-        for header in mpr:
-            if 'Set' not in header['short name']:
-                continue
-            # check for technique and load data
-            technique = header['data']['technique']
-            break
-        if technique == 'PEIS':
-            # TODO
-            print('PEIS')
-        elif technique == 'CC':
-            # TODO
-            print('CC')
-        elif technique == 'MB':
-            # TODO
-            print('MB')
-        else:
-            warnings.warn("Technique not supported")
-            return []
-        mpr_records = mpr[1]['data']['datapoints']
-        data = pd.DataFrame.from_dict(mpr_records)
-    elif ext == '.mps':
-        warnings.warn("mps not supported")
-        data = pd.DataFrame()
+        data, extra_param = _load_mpr(path, data_param)
+        data_param.append(extra_param)
+    # elif ext == '.mps':
+    #     warnings.warn("mps not supported")
+    #     data = pd.DataFrame()
+    # elif ext == '.mpt':
+    #     mpt = ecf.parse(path)
+    #     mpt_records = mpt['datapoints']
+    #     data = pd.DataFrame.from_dict(mpt_records)
     else:
         warnings.warn("Datatype not supported")
         data = pd.DataFrame()
 
     if data.empty:
         warnings.warn(
-                "Not valid data file since column cycle number is missing"
-        )
-        warnings.warn("File location: " + path)
-
-    # check if cycle number is a data column
-    if "cycle number" not in data:
-        warnings.warn(
-                "Not valid data file since column cycle number is missing"
-        )
-        warnings.warn("File location: " + path)
+            "Not valid data file since column cycle number is missing"
+            )
+        logging.info("File location: " + path)
         return []
 
     # check if all the parameters are available
     for param in data_param:
         if param not in data:
             warnings.warn(
-                    f"Not valid data file since column {param} is missing"
-            )
-            warnings.warn(f"Availible parameters are {data.columns}")
-            warnings.warn("File location: " + path)
+                f"Not valid data file since column {param} is missing",
+                stacklevel=2
+                )
+            print(f"Availible parameters are {data.columns}")
+            logging.info("File location: " + path)
             return []
 
+    if "cycle number" in data_param:
+        cycle_param = "cycle number"
+    elif "z cycle" in data_param:
+        cycle_param = "z cycle"
+    else:
+        print("No cycles detected")
+        return EISFrame(data)
+
     cycles = []
-    for i in range(1, int(max(data['cycle number']))):
-        cycle = data[data['cycle number'] == i].reset_index()
+    for i in range(1, int(max(data[cycle_param]))):
+        cycle = data[data[cycle_param] == i].reset_index()
         cycles.append(EISFrame(cycle[data_param]))
+
+    # TODO: Implement better import structure
+    # __, ext = os.path.splitext(path)
+    # if ext == '.mpt':
+    #   mpt == parse_mpt(path)
+    #   mpt_records = mpt['datapoints']
+    #   df = pd.DataFrame.from_dict(mpt.records)
 
     # TODO: Sort MB by technique
     # cycles = [mb[mb['cycle number'] == i] for i in range(int(max(mb['cycle

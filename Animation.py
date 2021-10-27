@@ -21,18 +21,18 @@ def main():
     data = data + Base.load_data(filepath2, data_param=data_params)
     image_name = re.split(r"\\", filepath1)[-1][:-4]
     print("Animating")
-    with imageio.get_writer(r'Images\tail_animation.gif', mode='I') as writer:
+    with imageio.get_writer(r'Images\tail_animation_wMark.gif', mode='I') as writer:
         for i, cycle in enumerate(data):
             fig, ax = Base.create_fig()
             fig.suptitle("LLZTO_Batch4_rAcetonitryle-3days")
-            cycle.mark_points = []
+            # cycle.mark_points = []
             label = f"Cycle {i + 1}"
             print(label)
             if i < data_switch:
                 label += " before stop"
             else:
                 label += " after stop"
-            cycle.plot_nyquist(ax, plot_range=(-50, 3000), label=label)
+            cycle.plot_nyquist(ax, plot_range=(-50, 3000), label=label, scale=1)
             img_path = os.path.join(
                 os.path.dirname(filepath1), "plots", f"{image_name}",
                 f"cycle_{i}.png"

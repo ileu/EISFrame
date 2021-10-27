@@ -26,7 +26,7 @@ d = sd.Drawing(fontsize=14)
 
 d.push()
 d += dsp.Line().up().length(d.unit / 4)
-d += SElm.WarburgShort().right()
+d += SElm.CPE().right()
 d += dsp.Line().down().length(d.unit / 4)
 d.pop()
 d += elm.Resistor()
