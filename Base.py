@@ -67,6 +67,9 @@ class MarkPoint:
         out += f"with index {self.index}"
         return out
 
+    def reset_index(self):
+        self.index = -1
+
 
 #  Some default mark points
 grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
@@ -197,10 +200,11 @@ class EISFrame:
             ax = plt.gca()
 
         # remove all data points with (0,0)
-        df = self.df.drop(self.df[self.df["Re(Z)/Ohm"] == 0].index)
+        df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
+        df = df.reset_index()[exclude_start:exclude_end]
 
-        x_data = df["Re(Z)/Ohm"][slice(exclude_start, exclude_end)]
-        y_data = df["-Im(Z)/Ohm"][slice(exclude_start, exclude_end)]
+        x_data = df["Re(Z)/Ohm"]
+        y_data = df["-Im(Z)/Ohm"]
 
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
@@ -212,7 +216,8 @@ class EISFrame:
         # find indices of the mark points. Takes first point that is in freq
         # range
         for mark in self.mark_points:
-            subsequent = (idx for idx, freq in enumerate(self.df["freq/Hz"]) if
+            mark.reset_index()
+            subsequent = (idx for idx, freq in enumerate(df["freq/Hz"]) if
                           mark.left < freq < mark.right)
             mark.index = next(subsequent, -1)
 
@@ -229,7 +234,7 @@ class EISFrame:
             line = ax.plot(
                 x_data[mark.index], y_data[mark.index], marker='o',
                 markerfacecolor=mark.color, markeredgecolor=mark.color,
-                markersize=scale * size, markeredgewidth=3, ls='none',
+                markersize=scale * size, ls='none',
                 label=mark.name
                 )
             lines[mark.name] = line
@@ -705,6 +710,7 @@ def load_data(
 
     if ".csv" in path or ".txt" in ext:
         data = load_csv_to_df(path)
+        data_param.append("cycle number")
     elif ext == '.mpr':
         data, extra_param = _load_mpr(path, data_param)
         data_param.append(extra_param)
