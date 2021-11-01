@@ -1,14 +1,19 @@
+import glob
 import os
 import re
-
 import Base
 
 
 def main():
-    file1 = r"Test1.mpr"
-    file2 = r"Test2.mpr"
+    dir_path = r"G:\Limit\VMP3 data\Rabeb\Ampcera-LLZTO-Batch6\B6-P7_MO-7d_750C-3h"
 
-    peis_mpr_files = [file1, file2]
+    peis_mpr_files = glob.glob(dir_path + r"\*PT*.mpr")
+    peis_mpr_files = [file for file in peis_mpr_files if "PEIS" not in file]
+    print(peis_mpr_files)
+    print(len(peis_mpr_files))
+
+    peis_mpr_files.sort()
+
     fig, ax = Base.create_fig()
     extra_time = 0
     for file in peis_mpr_files:
