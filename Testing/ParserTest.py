@@ -24,6 +24,15 @@ class Capacitor(Component):
         return f"(1j * omega * {self.key}) ** -1"
 
 
+class CPE(Component):
+    def __init__(self, key):
+        super().__init__(key)  # not necessary but I guess good code??
+        self.key = [self.key + "_0", self.key + "_1"]
+
+    def __call__(self):
+        return f"(1j * omega * {self.key[0]}) ** -{self.key[1]}"
+
+
 def parse_circuit(circ):
     param_names = []
 
@@ -39,8 +48,8 @@ def parse_circuit(circ):
             comp = Capacitor(key)
         else:
             return c, 1
-        param_names.append(comp.get_paramnames())
 
+        param_names.append(comp.get_paramnames())
         return c, comp()
 
     def parallel(c: str):
@@ -95,4 +104,3 @@ w = np.linspace(0.1, 5, 4)
 print(circuit_str)
 print(eqn)
 print(test(pars, w))
-
