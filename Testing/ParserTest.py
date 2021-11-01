@@ -2,7 +2,7 @@ import numpy as np
 
 from Parser.CircuitParser import parse_circuit
 
-circuit_str = 'R0-p(R-R1,C)'
+circuit_str = 'R0-p(R-R1,C)-p(R,C)'
 
 test, names, eqn = parse_circuit(circuit_str)
 pars = {'R': 1, 'R0': 2, 'R1': 3, 'C': 2}

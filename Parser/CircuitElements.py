@@ -16,7 +16,7 @@ class Resistor(Component):
 
 class Capacitor(Component):
     def __call__(self):
-        return f"(1j * omega * {self.key}) ** -1"
+        return f"(1j * omega * {self.key}) ** -1.0"
 
 
 class CPE(Component):

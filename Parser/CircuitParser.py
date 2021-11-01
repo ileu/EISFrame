@@ -1,12 +1,15 @@
 import re
 
 import numpy as np
-from CircuitElements import Resistor, Capacitor
+
+from Parser.CircuitElements import Resistor, Capacitor
 
 
 def parse_circuit(circ):
     param_names = []
 
+    # TODO: Make sure param_names are unique, maybe??
+    # TODO: Either make them unique in code or force it from user...
     def component(c: str):
         index = re.match(r'([A-z]+)_?\d?', c)
         key = c[:index.end()]
@@ -32,9 +35,9 @@ def parse_circuit(circ):
             c, eq = circuit(c)
             if tot_eq:
                 tot_eq += " + "
-            tot_eq += f"({eq}) ** -1"
+            tot_eq += f"({eq}) ** -1.0"
         c = c[1:]
-        return c, f"({tot_eq}) ** -1"
+        return c, f"({tot_eq}) ** -1.0"
 
     def element(c: str):
         if c.startswith('p('):
@@ -62,6 +65,9 @@ def parse_circuit(circ):
         omega = np.array(omega)
         if result.shape == omega.shape:
             return result
-        return np.full(omega.shape, result)
+        elif not result.shape:
+            return np.full(omega.shape, result)
+
+        raise ValueError
 
     return evaluate, param_names, equation
