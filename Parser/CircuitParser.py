@@ -2,28 +2,28 @@ import re
 
 import numpy as np
 
-from Parser.CircuitElements import Resistor, Capacitor
+from CircuitElements import circuit_components
 
 
 def parse_circuit(circ):
     param_names = []
+    param_units = []
 
-    # TODO: Make sure param_names are unique, maybe??
-    # TODO: Either make them unique in code or force it from user...
     def component(c: str):
         index = re.match(r'([A-z]+)_?\d?', c)
         key = c[:index.end()]
         c = c[index.end():]
 
-        # TODO: depending on key select appropriate component
-        if key.startswith('R'):
-            comp = Resistor(key)
-        elif key.startswith('C'):
-            comp = Capacitor(key)
+        for comp in circuit_components.values():
+            symbol = re.match('[A-z]+', key).group()
+            if comp.get_symbol() == symbol:
+                comp = comp(key)
+                break
         else:
             return c, 1
 
         param_names.append(comp.get_paramnames())
+        param_names.append(comp.get_unit())
         return c, comp()
 
     def parallel(c: str):
