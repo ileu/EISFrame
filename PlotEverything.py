@@ -5,7 +5,7 @@ import Base
 
 
 def main():
-    path = r"Test1.mpr"
+    path = r"TestData/Test1.mpr"
     peis_mpr_files = glob.glob(path + r"\*.mpr")
     peis_mpr_files = [path]
 

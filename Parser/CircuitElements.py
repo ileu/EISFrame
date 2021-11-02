@@ -1,5 +1,11 @@
 initial_state = set(globals().copy())
 non_element_functions = ['Component', 'initial_state', 'non_element_functions']
+# TODO: add default bounds
+
+
+class Circuit:
+    def __init__(self, circ_string):
+        self.circ_string = circ_string
 
 
 class Component:
@@ -36,7 +42,7 @@ class Resistor(Component):
 
 class Capacitor(Component):
     def __call__(self):
-        return f"(1j * omega * {self.key}) ** -1.0"
+        return f"1.0 / (1j * omega * {self.key})"
 
     @staticmethod
     def get_symbol():
@@ -66,12 +72,8 @@ class CPE(Component):
 
 class Walburg(Component):
     """ defines a semi-infinite Warburg element    """
-
     def __call__(self):
-        # omega = 2 * np.pi * np.array(f)
-        # Aw = p[0]
-        # Z = Aw * (1 - 1j) / np.sqrt(omega)
-        pass
+        return f"{self.key} * (1 - 1j) / np.sqrt(omega)"
 
     @staticmethod
     def get_symbol():

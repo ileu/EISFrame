@@ -5,9 +5,11 @@ from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
 
+import Base
+
 
 def main():
-    frequencies, z = preprocessing.readCSV(r".\Testing\exampleData.csv")
+    frequencies, z = preprocessing.readCSV(r".\ExampleData1.csv")
     frequencies, z = preprocessing.ignoreBelowX(frequencies, z)
 
     circuit = CustomCircuit(
@@ -48,6 +50,14 @@ def main():
     plt.show()
 
 
+def main2():
+    frame = Base.load_data(r"ExampleData1.csv")
+    # TODO: fml organise imports
+    # https://stackoverflow.com/questions/54598292/python-modulenotfounderror-when-trying-to-import-module-from-imported-package/54613085
+    # https://docs.python.org/3/tutorial/modules.html#packages
+    print(frame)
+
+
 class MyTakeStep:
     def __init__(self, stepsize=0.5):
         self.stepsize = stepsize
@@ -64,5 +74,5 @@ class MyTakeStep:
 
 if __name__ == "__main__":
     print("start")
-    main()
+    main2()
     print("end")

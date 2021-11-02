@@ -135,7 +135,7 @@ def integer_division(a, b, return_reminder=False):
 
 
 print(integer_division(10, 3))
-print(integer_division(10, 3, 1))
+print(integer_division(10, 3, True))
 print(integer_division(return_reminder=True, a=10, b=3))
 
 

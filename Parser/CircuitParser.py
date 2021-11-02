@@ -35,9 +35,9 @@ def parse_circuit(circ):
             c, eq = circuit(c)
             if tot_eq:
                 tot_eq += " + "
-            tot_eq += f"({eq}) ** -1.0"
+            tot_eq += f"1.0 / ({eq})"
         c = c[1:]
-        return c, f"({tot_eq}) ** -1.0"
+        return c, f"1.0 / ({tot_eq})"
 
     def element(c: str):
         if c.startswith('p('):
@@ -60,14 +60,11 @@ def parse_circuit(circ):
 
     def evaluate(params, omega):
         params["omega"] = omega
+        # TODO: Maybe safety check?
+        # print([isinstance(s, (complex, float, int)) for s in params.values()])
+        # print(params.values())
+        params["np"] = np
         result = eval(equation, params)
-        result = np.array(result)
-        omega = np.array(omega)
-        if result.shape == omega.shape:
-            return result
-        elif not result.shape:
-            return np.full(omega.shape, result)
-
-        raise ValueError
+        return result
 
     return evaluate, param_names, equation

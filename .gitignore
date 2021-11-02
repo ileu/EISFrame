@@ -4,10 +4,10 @@
 /Testing/.ipynb_checkpoints/
 /Testing/Untitled.ipynb
 /Thumbs.db
-/Introduction.ipynb
+/Examples/Introduction.ipynb
 /Testing/*.ipynb
-/Test1.mpr
-/Test2.mpr
-/Test3.txt
-/plots/
+/TestData/Test1.mpr
+/TestData/Test2.mpr
+/TestData/Test3.txt
 /.vscode/
+/plots/

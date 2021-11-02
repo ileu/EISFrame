@@ -19,6 +19,9 @@ from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
+from scipy.optimize import basinhopping, Bounds
+
+from Parser.CircuitParser import parse_circuit
 
 
 class MarkPoint:
@@ -356,18 +359,53 @@ class EISFrame:
             fit_bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0],
                           [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
 
+        # calculate rmse
+        def rmse(y_predicted, y_actual):
+            """ Calculates the root mean squared error between two vectors """
+            return np.sqrt(np.square(np.subtract(y_actual, y_predicted)).mean())
+
         # create the circuit and start the fitting still
-        circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
-        circuit.fit(frequencies, z, global_opt=global_opt, bounds=fit_bounds)
+        # circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
+        # circuit.fit(frequencies, z, global_opt=global_opt, bounds=fit_bounds)
 
+        # parse circuit nad get circuit equation, evaluation function and
+        # parameter names
+        eval_func, param_names, eqn = parse_circuit(fit_circuit)
+
+        # prepare optimizing function:
+        def opt_func(x):
+            params = dict(zip(param_names(), x))
+            predict = eval_func(params, frequencies)
+            return rmse(predict, z)
+
+        class MyBounds:
+            def __init__(self, xmax, xmin):
+                self.xmax = np.array(xmax)
+                self.xmin = np.array(xmin)
+
+            def __call__(self, **kwargs):
+                x = kwargs["x_new"]
+                tmax = bool(np.all(x <= self.xmax))
+                tmin = bool(np.all(x >= self.xmin))
+                return tmax and tmin
+
+        opt_result = basinhopping(
+            opt_func,
+            fit_guess,
+            accept_test=MyBounds(*fit_bounds),
+            minimizer_kwargs={"boundds": Bounds(*fit_bounds)},
+                disp=True,
+            )
+
+        param_values = []
         # print the fitting parameters to the console
-        print(circuit)
+        print(param_names)
 
-        parameters = dict(zip(circuit.get_param_names(), circuit.parameters_))
+        parameters = dict(zip(param_names(), param_values))
 
         # plot the fitting result
         f_pred = np.logspace(-2, 7, 200)
-        custom_circuit_fit = circuit.predict(f_pred)
+        custom_circuit_fit = eval_func(param_values, f_pred)
         line = ax.plot(
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
@@ -379,19 +417,16 @@ class EISFrame:
         self.lines["fit"] = line
         # check if circle needs to be drawn
         if draw_circle:
-            self._plot_semis(circuit, ax)
+            self._plot_semis(param_values, ax)
 
         if draw_circuit:
-            self._plot_circuit(circuit, ax)
+            self._plot_circuit(param_values, ax)
 
         _plot_legend(ax)
         return line, parameters
 
     def plot_lifecycle(
-            self,
-            ax: axes.Axes = None,
-            plot_xrange=None,
-            plot_yrange=None
+            self, ax: axes.Axes = None, plot_xrange=None, plot_yrange=None
             ):
         # TODO plot lifecycle
         if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
