@@ -28,9 +28,20 @@ def main():
         slider_axs.append(slid_ax)
         sliders.append(slider)
 
-    circuit = r"R0-p(R1,C1)"
+    circuit = r"p(R0,C1)-Ws"
     evaluate, names, eqn = parse_circuit(circuit)
-    pars = {'R0': 2e-2, 'R1': 6.79e-3, 'C1': 5.62, 'R2': 3.91 * 1e-3, 'C2': 5.88 * 1e-2}
+    pars = {
+        'R0': 2e-2,
+        'R1': 6.79e-3,
+        'C1': 5.62,
+        'R2': 3.91 * 1e-3,
+        'C2': 5.88 * 1e-2,
+        'W': 1e-3,
+        'Wo_0': 1e-3,
+        'Wo_1': 1e-3,
+        'Ws_0': 1e-3,
+        'Ws_1': 1e-3
+        }
     w = np.logspace(-1, 6, 200, dtype=float)
     data = evaluate(pars, w)
     data = np.array(data)
@@ -49,15 +60,22 @@ def main():
         test = sliders[0].val
 
         pars = {
-            'R0': test,
+            'R0': 1,
             'R1': 6.79e-3,
             'C1': 5.62,
             'R2': 3.91 * 1e-3,
-            'C2': 5.88 * 1e-2
+            'C2': 5.88 * 1e-2,
+            'W': 1e-3,
+            'Wo_0': 1e-3,
+            'Wo_1': test,
+            'Ws_0': 1e-3,
+            'Ws_1': 1e-3
             }
         w = np.logspace(-1, 6, 200, dtype=float)
         data = evaluate(pars, w)
         data = np.array(data)
+
+        print(data)
 
         line.set_xdata(data.real)
         line.set_ydata(-data.imag)
