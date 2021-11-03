@@ -22,7 +22,10 @@ from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import basinhopping, Bounds
 
+from Parser.CircuitParser import parse_circuit
 
+
+# TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make-a-python-script-standalone-executable-to-run-without-any-dependen
 class MarkPoint:
     """ Special point to mark during plotting.
 

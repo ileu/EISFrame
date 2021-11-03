@@ -16,6 +16,7 @@ def main():
 
     fig, ax = Base.create_fig()
     extra_time = 0
+    peis_mpr_files = [r"TestData\Test1.mpr", r"TestData\Test2.mpr"]
     for file in peis_mpr_files:
         image_name = '_'.join(re.split("[_.]", file)[-5:-1])
         print(file, image_name)

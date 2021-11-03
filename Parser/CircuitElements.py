@@ -1,5 +1,6 @@
 initial_state = set(globals().copy())
-non_element_functions = ['Component', 'initial_state', 'non_element_functions']
+non_element_functions = ['Component', 'initial_state', 'non_element_functions',
+                         'Circuit']
 # TODO: add default bounds
 
 

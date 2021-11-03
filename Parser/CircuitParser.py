@@ -2,7 +2,7 @@ import re
 
 import numpy as np
 
-from CircuitElements import circuit_components
+from Parser.CircuitElements import circuit_components
 
 
 def parse_circuit(circ):
