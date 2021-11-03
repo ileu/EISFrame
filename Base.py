@@ -15,13 +15,12 @@ import eclabfiles as ecf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pint
 from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import basinhopping, Bounds
-
-from Parser.CircuitParser import parse_circuit
 
 
 class MarkPoint:
@@ -71,6 +70,11 @@ class MarkPoint:
 
     def __repr__(self):
         return self.__str__()
+
+    def label(self):
+        ureg = pint.UnitRegistry()
+        label = self.freq * ureg.Hz
+        return f"{label.to_compact():~.0f}"
 
 
 #  Some default mark points
@@ -213,7 +217,7 @@ class EISFrame:
         """
         # check if the necessary data is available for a Nyquist plot
         # TODO: Redo with subclass maybe?
-        if not {"freq/Hz", "Re(Zce)/Ohm", "-Im(Zce)/Ohm"}.issubset(
+        if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(
                 self.df.columns
                 ):
             warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
@@ -228,20 +232,20 @@ class EISFrame:
             ax = plt.gca()
 
         # remove all data points with (0,0) and adjust dataframe
-        df = self.df[self.df["Re(Zce)/Ohm"] != 0].copy()
+        df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
         df = df.reset_index()[exclude_start:exclude_end]
 
         # get the x,y data for plotting
-        x_data = df["Re(Zce)/Ohm"]
-        y_data = df["-Im(Zce)/Ohm"]
+        x_data = df["Re(Z)/Ohm"]
+        y_data = df["-Im(Z)/Ohm"]
 
         # adjust impedance if a cell is given
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
-            x_label += r"$.cm^2$"
+            x_label = r"Re(Z)/$\Omega$.cm$^2$"
 
             y_data = y_data * cell.area_mm2 * 1e-2
-            y_label += r"$.cm^2$"
+            y_label = r"-Im(Z)/$\Omega$.cm$^2$"
 
         # find indices of mark points. Take first point in freq range
         for mark in self.mark_points:
@@ -264,6 +268,7 @@ class EISFrame:
         for mark in self.mark_points:
             if mark.index < 0:
                 continue
+            mark_label = f"{mark.name} @ {mark.label()}"
             line = ax.plot(
                     x_data[mark.index],
                     y_data[mark.index],
@@ -272,7 +277,7 @@ class EISFrame:
                     markeredgecolor=mark.color,
                     markersize=scale * size,
                     ls='none',
-                    label=mark.name
+                    label=mark_label
                     )
             lines[mark.name] = line
 
@@ -370,8 +375,9 @@ class EISFrame:
 
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
-        eval_func, param_names, eqn = parse_circuit(fit_circuit)
+        # eval_func, param_names, eqn = parse_circuit(fit_circuit)
 
+        eval_func, param_names, eqn = 0
         # prepare optimizing function:
         def opt_func(x):
             params = dict(zip(param_names(), x))
@@ -705,7 +711,7 @@ def predict_warburg_shot(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
 def set_plot_params() -> None:
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
-    rcParams['font.size'] = 10
+    rcParams['font.size'] = 14
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 4.0
     plot_color_cycle = cycler(

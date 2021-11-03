@@ -15,28 +15,40 @@ def main():
                 r".txt"
     filepath1 = path + filename1
     filepath2 = path + filename2
-    data_params = ["time/s", "Ewe/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"]
+    data_params = ["time/s", "Ewe/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm",
+                   "cycle number"]
     data = Base.load_data(filepath1, data_param=data_params)
     data_switch = len(data)
     data = data + Base.load_data(filepath2, data_param=data_params)
     image_name = re.split(r"\\", filepath1)[-1][:-4]
     print("Animating")
-    with imageio.get_writer(r'Images\tail_animation_wMark.gif', mode='I') as writer:
+    cell = Base.Cell(3, 0.7)
+    print(f"Cell: {cell}")
+    with imageio.get_writer(
+            r'Images\tail_animation_wMark.gif', mode='I'
+            ) as writer:
         for i, cycle in enumerate(data):
             fig, ax = Base.create_fig()
             fig.suptitle("LLZTO_Batch4_rAcetonitryle-3days")
-            # cycle.mark_points = []
             label = f"Cycle {i + 1}"
             print(label)
             if i < data_switch:
                 label += " before stop"
             else:
                 label += " after stop"
-            cycle.plot_nyquist(ax, plot_range=(-50, 3000), label=label, scale=1)
-            img_path = os.path.join(
-                os.path.dirname(filepath1), "plots", f"{image_name}",
-                f"cycle_{i}.png"
+            cycle.plot_nyquist(
+                ax,
+                plot_range=(-0.5, 300),
+                label=label,
+                scale=1,
+                cell=cell
                 )
+            img_path = os.path.join(
+                    os.path.dirname(filepath1),
+                    "plots",
+                    f"{image_name}",
+                    f"cycle_{i}.png"
+                    )
             Base.save_fig(img_path)
             image = imageio.imread(img_path)
             writer.append_data(image)
