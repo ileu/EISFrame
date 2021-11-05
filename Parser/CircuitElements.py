@@ -16,7 +16,9 @@ class Component:
         self.key = key
 
     def get_paramnames(self):
-        return self.key
+        if type(self.key) is list:
+            return self.key
+        return [self.key]
 
     def __call__(self):
         raise NotImplementedError

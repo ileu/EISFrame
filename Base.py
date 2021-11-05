@@ -25,7 +25,8 @@ from scipy.optimize import basinhopping, Bounds
 from Parser.CircuitParser import parse_circuit
 
 
-# TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make-a-python-script-standalone-executable-to-run-without-any-dependen
+# TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
+#  -a-python-script-standalone-executable-to-run-without-any-dependen
 class MarkPoint:
     """ Special point to mark during plotting.
 
@@ -240,7 +241,7 @@ class EISFrame:
 
         # get the x,y data for plotting
         x_data = df["Re(Z)/Ohm"]
-        y_data = df["-Im(Z)/Ohm"]
+        y_data = -df["-Im(Z)/Ohm"]
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -318,7 +319,7 @@ class EISFrame:
     def fit_nyquist(
             self,
             ax: axes.Axes,
-            fit_circuit: str = '',
+            fit_circuit: str = None,
             fit_guess: list[float] = None,
             fit_bounds: tuple = None,
             global_opt: bool = False,
@@ -352,7 +353,7 @@ class EISFrame:
         """
         # load and prepare data
         frequencies = self.df["freq/Hz"]
-        z = self.df["Re(Z)/Ohm"] - 1j * self.df["-Im(Z)/Ohm"]
+        z = self.df["Re(Z)/Ohm"] + 1j * self.df["-Im(Z)/Ohm"]
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
         frequencies = np.array(frequencies)
         z = np.array(z)
@@ -370,7 +371,8 @@ class EISFrame:
         # calculate rmse
         def rmse(y_predicted, y_actual):
             """ Calculates the root mean squared error between two vectors """
-            return np.sqrt(np.square(np.subtract(y_actual, y_predicted)).mean())
+            return np.sqrt(
+                    sum(np.square(np.absolute(np.subtract(y_predicted, y_actual)))))
 
         # create the circuit and start the fitting still
         # circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
@@ -378,14 +380,15 @@ class EISFrame:
 
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
-        # eval_func, param_names, eqn = parse_circuit(fit_circuit)
+        eval_func, param_names, eqn = parse_circuit(fit_circuit)
 
-        eval_func, param_names, eqn = 0
         # prepare optimizing function:
         def opt_func(x):
-            params = dict(zip(param_names(), x))
+            params = dict(zip(param_names, x))
             predict = eval_func(params, frequencies)
             return rmse(predict, z)
+
+        print(opt_func(fit_guess))
 
         class MyBounds:
             def __init__(self, xmax, xmin):
@@ -399,22 +402,20 @@ class EISFrame:
                 return tmax and tmin
 
         opt_result = basinhopping(
-            opt_func,
-            fit_guess,
-            accept_test=MyBounds(*fit_bounds),
-            minimizer_kwargs={"boundds": Bounds(*fit_bounds)},
-                disp=True,
-            )
+                opt_func,
+                fit_guess,
+                # accept_test=MyBounds(*fit_bounds),
+                minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
+                disp=True, niter=100)
 
-        param_values = []
+        param_values = opt_result.x
         # print the fitting parameters to the console
-        print(param_names)
 
-        parameters = dict(zip(param_names(), param_values))
-
+        parameters = dict(zip(param_names, param_values))
+        print(parameters)
         # plot the fitting result
         f_pred = np.logspace(-2, 7, 200)
-        custom_circuit_fit = eval_func(param_values, f_pred)
+        custom_circuit_fit = eval_func(parameters, f_pred)
         line = ax.plot(
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
@@ -467,8 +468,7 @@ class EISFrame:
                 marker=marker,
                 ls=ls,
                 label=label,
-                markersize=size,
-                color='blue'
+                markersize=size
                 )
 
         # additional configuration for the plot
@@ -837,7 +837,7 @@ def _get_default_data_param(columns):
 
 
 def load_data(
-        path: str, data_param: list[str] = None
+        path: str, data_param: list[str] = None, sep='\t'
         ) -> Union[EISFrame, list['EISFrame']]:
     """
         TODO: WIP
@@ -845,7 +845,7 @@ def load_data(
     __, ext = os.path.splitext(path)
 
     if ".csv" in path or ".txt" in ext:
-        data = load_csv_to_df(path)
+        data = load_csv_to_df(path, sep)
     elif ext == '.mpr' or ext == '.mpt':
         data = ecf.to_df(path)
     else:
@@ -881,7 +881,13 @@ def load_data(
         return EISFrame(data)
 
     cycles = []
-    for i in range(1, int(max(data[cycle_param]))):
+
+    max_cyclenumber = int(max(data[cycle_param]))
+
+    if max_cyclenumber == 1 or max_cyclenumber == 0:
+        return [EISFrame(data)]
+
+    for i in range(1, max_cyclenumber):
         cycle = data[data[cycle_param] == i].reset_index()
         cycles.append(EISFrame(cycle))  # [data_param]))
 

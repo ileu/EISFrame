@@ -24,11 +24,13 @@ def main():
             fig, ax = Base.create_fig()
             cycle.plot_nyquist(ax, cell=cell_3mm)
             Base.save_fig(
-                os.path.join(
-                    os.path.dirname(file), "plots", f"{image_name}",
-                    f"cycle_{i}.png"
+                    os.path.join(
+                            os.path.dirname(file),
+                            "plots",
+                            f"{image_name}",
+                            f"cycle_{i}.png"
+                            )
                     )
-                )
 
 
 if __name__ == "__main__":
