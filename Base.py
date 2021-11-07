@@ -145,19 +145,54 @@ class EISFrame:
         EISFrame used to store the data and plot/fit the data.
     """
 
-    def __init__(self, df: pd.DataFrame) -> None:
-        """Initialises an EISFrame
+    def __init__(self, df: pd.DataFrame, params=None) -> None:
+        """ Initialises an EISFrame
 
-        An EIS frame can plot a Nyquist plot and the lifecycle of the cell
-        with different default settings.
+        An EIS frame can plot a Nyquist plot and a lifecycle lifecycle plot
+        of the given cycling data with different default settings.
 
-        @param df: pandas.DataFrame containing the data
+        Parameters
+        ----------
+        df : pd.DataFrame
+
+        params : dict
         """
+        if params is None:
+            params = {}
+        self._params = params
         self.df = df
         self._default_mark_points = [grain_boundaries, hllzo, lxlzo, interface,
                                      ecr_tail]
         self.mark_points = self._default_mark_points
         self.lines = {}
+
+    @property
+    def time(self) -> pd.DataFrame:
+        return self.df[self._params['time']]
+
+    @time.setter
+    def time(self, value):
+        self.df[self._params['time']] = value
+
+    @property
+    def impedance(self) -> pd.DataFrame:
+        return self.df[self._params['impedance']]
+
+    @property
+    def frequency(self) -> pd.DataFrame:
+        return self.df[self._params['frequency']]
+
+    @property
+    def current(self) -> pd.DataFrame:
+        return self.df[self._params['current']]
+
+    @property
+    def voltage(self) -> pd.DataFrame:
+        return self.df[self._params['voltage']]
+
+    @property
+    def cycle(self) -> pd.DataFrame:
+        return self.df['cycle']
 
     def __str__(self):
         return self.df.__str__()
@@ -166,7 +201,17 @@ class EISFrame:
         return self.df.__repr__()
 
     def __getitem__(self, item):
+        if isinstance(item, int):
+            df = self.df[self.df[self._params['cycle']] == item].reset_index()
+            subframe = self._create_subframe(df)
+            return subframe
         return self.df.__getitem__(item)
+
+    def __iter__(self):
+        return self.cycle.__iter__()
+
+    def __next__(self):
+        return self.cycle.__next__()
 
     def __len__(self):
         return len(self.df)
@@ -241,7 +286,7 @@ class EISFrame:
 
         # get the x,y data for plotting
         x_data = df["Re(Z)/Ohm"]
-        y_data = -df["-Im(Z)/Ohm"]
+        y_data = df["-Im(Z)/Ohm"]
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -353,15 +398,15 @@ class EISFrame:
         """
         # load and prepare data
         frequencies = self.df["freq/Hz"]
-        z = self.df["Re(Z)/Ohm"] + 1j * self.df["-Im(Z)/Ohm"]
+        z = self.df["Re(Z)/Ohm"] - 1j * self.df["-Im(Z)/Ohm"]
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
         frequencies = np.array(frequencies)
         z = np.array(z)
         # only for testing purposes like this
         if fit_guess is None:
-            fit_guess = [10, 1146.4, 3.5 * 1e-10, 1, 1210, .001, .5]
+            fit_guess = [.01, .01, 100, .01, .05, 100, 1]
         if fit_circuit is None:
-            fit_circuit = 'R_0-p(R_1,CPE_1)-p(R_2,CPE_2)'
+            fit_circuit = 'R0-p(R1,C1)-p(R2-Wo1,C2)'
 
         # bounds for the fitting
         if fit_bounds is None:
@@ -371,8 +416,7 @@ class EISFrame:
         # calculate rmse
         def rmse(y_predicted, y_actual):
             """ Calculates the root mean squared error between two vectors """
-            return np.sqrt(
-                    sum(np.square(np.absolute(np.subtract(y_predicted, y_actual)))))
+            return np.sqrt(np.square(np.subtract(y_actual, y_predicted)).mean())
 
         # create the circuit and start the fitting still
         # circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
@@ -388,8 +432,6 @@ class EISFrame:
             predict = eval_func(params, frequencies)
             return rmse(predict, z)
 
-        print(opt_func(fit_guess))
-
         class MyBounds:
             def __init__(self, xmax, xmin):
                 self.xmax = np.array(xmax)
@@ -401,12 +443,31 @@ class EISFrame:
                 tmin = bool(np.all(x >= self.xmin))
                 return tmax and tmin
 
-        opt_result = basinhopping(
-                opt_func,
-                fit_guess,
-                # accept_test=MyBounds(*fit_bounds),
-                minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
-                disp=True, niter=100)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                    "ignore",
+                    message="divide by zero encountered in true_divide"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="invalid value encountered in true_divide"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="overflow encountered in tanh"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="divide by zero encountered in double_scalars"
+                    )
+
+            opt_result = basinhopping(
+                    opt_func,
+                    fit_guess,
+                    # accept_test=MyBounds(*fit_bounds),
+                    minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
+                    disp=True, niter=100
+                    )
 
         param_values = opt_result.x
         # print the fitting parameters to the console
@@ -436,17 +497,17 @@ class EISFrame:
         return line, parameters
 
     def plot_lifecycle(
-            self, ax: axes.Axes = None, plot_xrange=None, plot_yrange=None
+            self,
+            ax: axes.Axes = None,
+            plot_xrange=None,
+            plot_yrange=None,
+            label=None,
+            ls='-',
+            **plotkwargs
             ):
-        # TODO plot lifecycle
         if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
             warnings.warn('Wrong data for a lifecycle Plot', RuntimeWarning)
             return
-
-        ls = '-'
-        marker = None
-        label = None
-        size = 8
 
         # label for the plot
         x_label = r"Time/h"
@@ -465,10 +526,9 @@ class EISFrame:
         line = ax.plot(
                 x_data,
                 y_data,
-                marker=marker,
                 ls=ls,
                 label=label,
-                markersize=size
+                **plotkwargs
                 )
 
         # additional configuration for the plot
@@ -607,6 +667,12 @@ class EISFrame:
         # if n%2 == 0 -> draw elements moved by 0.5 (maybe 0.25?) up and down
         return
 
+    def _create_subframe(self, df):
+        subframe = EISFrame(df)
+        subframe.mark_points = self.mark_points
+        subframe._params = self._params
+        return subframe
+
 
 def create_fig(
         nrows: int = 1,
@@ -617,7 +683,7 @@ def create_fig(
         subplot_kw=None,
         gridspec_kw=None,
         **fig_kw
-        ) -> tuple[figure.Figure, Union[list[axes.Axes], axes.Axes]]:
+        ) -> tuple[figure.Figure, list[axes.Axes]]:
     """ Creates the figure, axes for the plots and set the style of the plot
 
     Parameters
@@ -646,7 +712,7 @@ def create_fig(
     elif gridspec_kw.get("hspace") is None:
         gridspec_kw["hspace"] = 0
 
-    return plt.subplots(
+    fig, axs = plt.subplots(
             nrows,
             ncols,
             figsize=figsize,
@@ -656,6 +722,8 @@ def create_fig(
             subplot_kw=subplot_kw,
             **fig_kw
             )
+
+    return fig, axs
 
 
 def save_fig(
@@ -800,48 +868,60 @@ def load_csv_to_df(path: str, sep='\t'):
     return pd.read_csv(path, sep=sep, encoding='unicode_escape')
 
 
-def _load_mpr(path: str) -> pd.DataFrame:
-    """
-    OLD
-    Parameters
-    ----------
-    path
-
-    Returns
-    -------
-
-    """
-    mpr = ecf.parse(path)
-    # look for settings file
-    # technique = None
-    # for part in mpr:
-    #     if b'Set' not in part['header']['short_name']:
-    #         continue
-    #     # check for technique and load data
-    #     technique = part['data']['technique']
-    #     break
-
-    mpr_records = mpr[1]['data']['datapoints']
-    data = pd.DataFrame.from_dict(mpr_records)
-    print(data.columns)
-    return data
-
-
 def _get_default_data_param(columns):
     r = re.compile(
             r"Ewe|I/mA|Re\(Z(ce)?\)|-Im\(Z(ce)?\)|time|(z )?cycle( number)?"
             )
     params = list(filter(r.match, columns))
-    print(params)
+    return params
+
+
+def _get_default_data_param2(columns):
+    params = {}
+    for col in columns:
+        if match := re.match(r'Ewe[^|]*', col):
+            params['voltage'] = match.group()
+        elif match := re.match(r'I/mA[^|]*', col):
+            params['current'] = match.group()
+        elif match := re.match(r'Re\(Z(ce)?\)[^|]*', col):
+            params['real'] = match.group()
+        elif match := re.match(r'-Im\(Z(ce)?\)[^|]*', col):
+            params['imag'] = match.group()
+        elif match := re.match(r'time[^|]*', col):
+            params['time'] = match.group()
+        elif match := re.match(r'(z )?cycle( number)?[^|]*', col):
+            params['cycle'] = match.group()
     return params
 
 
 def load_data(
-        path: str, data_param: list[str] = None, sep='\t'
-        ) -> Union[EISFrame, list['EISFrame']]:
+        path: str,
+        file: Union[str, list[str]] = None,
+        sep='\t',
+        cont_time: bool = True,
+        data_param: dict = None,
+        ) -> Union[EISFrame, list[EISFrame]]:
     """
         TODO: WIP
     """
+    if isinstance(file, list):
+        end_time = 0
+        data = []
+        for f in file:
+            d = load_data(path + f, sep=sep, data_param=data_param)
+            if cont_time:
+                start_time = d[0].time.iloc[0]
+                for c in d:
+                    c.time += end_time - start_time
+                end_time = d[-1].time.iloc[-1]
+
+            data += d
+
+        return data
+
+    if file is not None:
+        path = path + file
+
     __, ext = os.path.splitext(path)
 
     if ".csv" in path or ".txt" in ext:
@@ -861,7 +941,7 @@ def load_data(
     # check if all the parameters are available
     if data_param is None:
         # TODO: Catch errors if columns not available
-        data_param = _get_default_data_param(data.columns)
+        data_param = _get_default_data_param2(data.columns)
     else:
         for param in data_param:
             if param not in data:
@@ -872,24 +952,22 @@ def load_data(
                 logging.info("File location: " + path)
                 return []
 
-    if "cycle number" in data_param:
-        cycle_param = "cycle number"
-    elif "z cycle" in data_param:
-        cycle_param = "z cycle"
-    else:
+    print(data_param)
+    if (cycle_param := data_param.get('cycle')) is None:
         print("No cycles detected")
-        return EISFrame(data)
+        return EISFrame(data, params=data_param)
 
     cycles = []
 
     max_cyclenumber = int(max(data[cycle_param]))
+    min_cyclenumber = int(min(data[cycle_param]))
 
-    if max_cyclenumber == 1 or max_cyclenumber == 0:
-        return [EISFrame(data)]
+    if max_cyclenumber == min_cyclenumber:
+        return [EISFrame(data, params=data_param)]
 
-    for i in range(1, max_cyclenumber):
+    for i in range(min_cyclenumber, max_cyclenumber):
         cycle = data[data[cycle_param] == i].reset_index()
-        cycles.append(EISFrame(cycle))  # [data_param]))
+        cycles.append(EISFrame(cycle, params=data_param))
 
     # TODO: Sort MB by technique
     # cycles = [mb[mb['cycle number'] == i] for i in range(int(max(mb['cycle
