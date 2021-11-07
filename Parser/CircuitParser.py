@@ -58,15 +58,4 @@ def parse_circuit(circ):
 
     __, equation = circuit(circ)
 
-    def evaluate(params, omega):
-        params["omega"] = omega
-        # TODO: Maybe safety check?
-        # print([isinstance(s, (complex, float, int)) for s in params.values()])
-        # print(params.values())
-        params["np"] = np
-        result = eval(equation, params)
-        
-        
-        return result
-
-    return evaluate, param_names, equation
+    return param_names, equation

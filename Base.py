@@ -416,7 +416,10 @@ class EISFrame:
         # calculate rmse
         def rmse(y_predicted, y_actual):
             """ Calculates the root mean squared error between two vectors """
-            return np.sqrt(np.square(np.subtract(y_actual, y_predicted)).mean())
+            e = np.abs(np.subtract(y_actual, y_predicted))
+            se = np.square(e)
+            mse = np.nansum(se)
+            return np.sqrt(mse)
 
         # create the circuit and start the fitting still
         # circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
@@ -424,24 +427,17 @@ class EISFrame:
 
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
-        eval_func, param_names, eqn = parse_circuit(fit_circuit)
-
+        param_names, eqn = parse_circuit(fit_circuit)
+        print(eqn)
         # prepare optimizing function:
         def opt_func(x):
             params = dict(zip(param_names, x))
-            predict = eval_func(params, frequencies)
+            params["np"] = np
+            params['omega'] = frequencies
+            predict = eval(eqn, params)
             return rmse(predict, z)
-
-        class MyBounds:
-            def __init__(self, xmax, xmin):
-                self.xmax = np.array(xmax)
-                self.xmin = np.array(xmin)
-
-            def __call__(self, **kwargs):
-                x = kwargs["x_new"]
-                tmax = bool(np.all(x <= self.xmax))
-                tmin = bool(np.all(x >= self.xmin))
-                return tmax and tmin
+        
+        print(opt_func(fit_guess))
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -464,8 +460,7 @@ class EISFrame:
             opt_result = basinhopping(
                     opt_func,
                     fit_guess,
-                    # accept_test=MyBounds(*fit_bounds),
-                    minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
+                    #minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                     disp=True, niter=100
                     )
 
@@ -473,10 +468,12 @@ class EISFrame:
         # print the fitting parameters to the console
 
         parameters = dict(zip(param_names, param_values))
+        parameters['omega'] = frequencies
+        parameters['np'] = np
         print(parameters)
         # plot the fitting result
         f_pred = np.logspace(-2, 7, 200)
-        custom_circuit_fit = eval_func(parameters, f_pred)
+        custom_circuit_fit = eval(eqn, parameters)
         line = ax.plot(
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
