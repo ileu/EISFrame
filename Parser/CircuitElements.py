@@ -1,3 +1,5 @@
+import numpy as np
+
 initial_state = set(globals().copy())
 non_element_functions = ['Component', 'initial_state', 'non_element_functions',
                          'Circuit']
@@ -23,6 +25,9 @@ class Component:
     def __call__(self):
         raise NotImplementedError
 
+    def calc(self, params):
+        raise  NotImplementedError
+
     @staticmethod
     def get_symbol():
         raise NotImplementedError
@@ -32,9 +37,14 @@ class Component:
         raise NotImplementedError
 
 
+
 class Resistor(Component):
     def __call__(self):
         return self.key
+
+    def calc(self, params):
+        value = params.get(self.key)
+        return value
 
     @staticmethod
     def get_symbol():
@@ -45,9 +55,18 @@ class Resistor(Component):
         return 'Ohm'
 
 
+
+
+
+
 class Capacitor(Component):
     def __call__(self):
         return f"1.0 / (1j * omega * {self.key})"
+
+    def calc(self, params):
+        value = params.get(self.key)
+        omega = params.get('omega')
+        return 1.0 / (1j * omega * value)
 
     @staticmethod
     def get_symbol():
@@ -66,6 +85,13 @@ class CPE(Component):
     def __call__(self):
         return f"(1j * omega * {self.key[0]}) ** -{self.key[1]}"
 
+    def calc(self, params):
+        values = []
+        for k in self.key:
+            values.append(params.get(k))
+        omega = params.get('omega')
+        return (1j * omega * values[0]) ** -values[1]
+
     @staticmethod
     def get_symbol():
         return 'CPE'
@@ -80,6 +106,11 @@ class Warburg(Component):
 
     def __call__(self):
         return f"{self.key} * (1 - 1j) / np.sqrt(omega)"
+
+    def calc(self, params):
+        value = params.get(self.key)
+        omega = params.get('omega')
+        return value * (1 - 1j) / np.sqrt(omega)
 
     @staticmethod
     def get_symbol():
@@ -100,6 +131,13 @@ class WarburgOpen(Component):
     def __call__(self):
         return f"{self.key[0]} / np.sqrt(1j * omega) / np.tanh({self.key[1]} * np.sqrt(1j * omega))"
 
+    def calc(self, params):
+        values = []
+        for k in self.key:
+            values.append(params.get(k))
+        alpha = np.sqrt(1j * params.get('omega'))
+        return values[0] / alpha / np.tanh(values[1] * alpha)
+
     @staticmethod
     def get_symbol():
         return 'Wo'
@@ -118,6 +156,13 @@ class WarburgShort(Component):
 
     def __call__(self):
         return f"{self.key[0]} / np.sqrt(1j * omega) * np.tanh({self.key[1]} * np.sqrt(1j * omega))"
+
+    def calc(self, params):
+        values = []
+        for k in self.key:
+            values.append(params.get(k))
+        alpha = np.sqrt(1j * params.get('omega'))
+        return values[0] / alpha * np.tanh(values[1] * alpha)
 
     @staticmethod
     def get_symbol():
