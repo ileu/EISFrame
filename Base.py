@@ -27,6 +27,9 @@ from Parser.CircuitParser import parse_circuit
 
 # TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
 #  -a-python-script-standalone-executable-to-run-without-any-dependen
+from Parser.CircuitParserCalc import calc_circuit
+
+
 class MarkPoint:
     """ Special point to mark during plotting.
 
@@ -235,7 +238,7 @@ class EISFrame:
             marker='o',
             plot_range=None,
             label=None,
-            size=8,
+            size=12,
             scale=1.5
             ):
         """ Plots a Nyquist plot with the internal dataframe
@@ -368,6 +371,7 @@ class EISFrame:
             fit_guess: list[float] = None,
             fit_bounds: tuple = None,
             global_opt: bool = False,
+            cell: Cell = None,
             draw_circle: bool = True,
             draw_circuit: bool = False
             ) -> tuple[list, dict]:
@@ -397,8 +401,8 @@ class EISFrame:
 
         """
         # load and prepare data
-        frequencies = self.df["freq/Hz"]
-        z = self.df["Re(Z)/Ohm"] - 1j * self.df["-Im(Z)/Ohm"]
+        frequencies = self.df["freq/Hz"].copy()
+        z = self.df["Re(Z)/Ohm"].copy() - 1j * self.df["-Im(Z)/Ohm"].copy()
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
         frequencies = np.array(frequencies)
         z = np.array(z)
@@ -428,6 +432,7 @@ class EISFrame:
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
         param_names, eqn = parse_circuit(fit_circuit)
+        eqn2 = calc_circuit(dict(zip(param_names, fit_guess)), fit_circuit, frequencies)
         print(eqn)
         # prepare optimizing function:
         def opt_func(x):
@@ -437,7 +442,8 @@ class EISFrame:
             predict = eval(eqn, params)
             return rmse(predict, z)
         
-        print(opt_func(fit_guess))
+        print("eval:",opt_func(fit_guess))
+        print("calc:",rmse(eqn2, z))
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -456,6 +462,10 @@ class EISFrame:
                     "ignore",
                     message="divide by zero encountered in double_scalars"
                     )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="overflow encountered in power"
+                    )
 
             opt_result = basinhopping(
                     opt_func,
@@ -468,12 +478,17 @@ class EISFrame:
         # print the fitting parameters to the console
 
         parameters = dict(zip(param_names, param_values))
-        parameters['omega'] = frequencies
-        parameters['np'] = np
-        print(parameters)
-        # plot the fitting result
         f_pred = np.logspace(-2, 7, 200)
+        print(parameters)
+        parameters['omega'] = f_pred
+        parameters['np'] = np
+        # plot the fitting result
         custom_circuit_fit = eval(eqn, parameters)
+
+        # adjust impedance if a cell is given
+        if cell is not None:
+            custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
+
         line = ax.plot(
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
@@ -516,6 +531,7 @@ class EISFrame:
 
         # remove all data points with (0,0)
         df = self.df[self.df["Ewe/V"] != 0].copy().reset_index()
+        # df = df[df["Ewe/V"] > 0.05].reset_index()
 
         x_data = df["time/s"] / 60.0 / 60.0
         y_data = df["Ewe/V"]
@@ -525,6 +541,7 @@ class EISFrame:
                 y_data,
                 ls=ls,
                 label=label,
+                color='black',
                 **plotkwargs
                 )
 
@@ -546,16 +563,17 @@ class EISFrame:
         else:
             ax.set_ylim(*plot_yrange)
 
-        ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.locator_params(nbins=4)
+        # ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
+        # ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
+        ax.locator_params(axis='x', nbins=8)
+        ax.locator_params(axis='y', nbins=4, prune='both')
 
         if label is not None:
             _plot_legend(ax)
 
         return line
 
-    def _plot_semis(self, circuit: CustomCircuit, ax: axes.Axes = None):
+    def _plot_semis(self, circuit: str, ax: axes.Axes = None):
         """
         plots the semicircles to the corresponding circuit elements.
 
@@ -779,7 +797,7 @@ def predict_warburg_shot(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
 def set_plot_params() -> None:
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
-    rcParams['font.size'] = 14
+    rcParams['font.size'] = 22
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 4.0
     plot_color_cycle = cycler(
@@ -824,7 +842,7 @@ def _plot_legend(
         loc='upper left',
         fontsize='small',
         frameon=False,
-        markerscale=0.5,
+        markerscale=1,
         handletextpad=0.1,
         mode='expand',
         **kwargs
@@ -949,7 +967,6 @@ def load_data(
                 logging.info("File location: " + path)
                 return []
 
-    print(data_param)
     if (cycle_param := data_param.get('cycle')) is None:
         print("No cycles detected")
         return EISFrame(data, params=data_param)
@@ -959,10 +976,10 @@ def load_data(
     max_cyclenumber = int(max(data[cycle_param]))
     min_cyclenumber = int(min(data[cycle_param]))
 
-    if max_cyclenumber == min_cyclenumber:
-        return [EISFrame(data, params=data_param)]
+    # if max_cyclenumber == min_cyclenumber:
+    #     return [EISFrame(data, params=data_param)]
 
-    for i in range(min_cyclenumber, max_cyclenumber):
+    for i in range(min_cyclenumber, max_cyclenumber+1):
         cycle = data[data[cycle_param] == i].reset_index()
         cycles.append(EISFrame(cycle, params=data_param))
 
