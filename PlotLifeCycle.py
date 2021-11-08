@@ -15,7 +15,7 @@ def main():
     files = [[file1, file2, file3], file4, file5, file6]
     names = ["Hexane", "Water 1 week RT", "Water 1 week 50 °C", "Water 4 weeks RT"]
 
-    fig, axs = Base.create_fig(4, 1)
+    fig, axs = Base.create_fig(4, 1, top_ticks=True)
     for i, file in enumerate(files):
         print(file)
         data = Base.load_data(path, file)
@@ -30,7 +30,7 @@ def main():
         for n, cycle in enumerate(data):
             cycle.plot_lifecycle(
                     axs[i],
-                    plot_yrange=(-0.05, 0.05),
+                    plot_yrange=(-0.05, 0.05)
                     )
             print(f"cycle {n}")
 

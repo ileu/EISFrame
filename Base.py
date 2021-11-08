@@ -20,11 +20,9 @@ from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import basinhopping, Bounds
+from scipy.optimize import dual_annealing, shgo, differential_evolution
 
 from Parser.CircuitParser import parse_circuit
-
-
 # TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
 #  -a-python-script-standalone-executable-to-run-without-any-dependen
 from Parser.CircuitParserCalc import calc_circuit
@@ -388,6 +386,7 @@ class EISFrame:
             initial values for the fitting
         fit_bounds : tuple
         global_opt : bool
+        cell : Cell
         draw_circle : bool
             if the corresponding circles should be drawn or not
         draw_circuit : bool
@@ -416,6 +415,9 @@ class EISFrame:
         if fit_bounds is None:
             fit_bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0],
                           [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
+        fit_bounds2 = [(1e-4, 100), (1e-4, 100), (1e-6, 10),
+                       (1e-4, 100), (1e-4, 100), (1e-6, 1e9),
+                       (1e-6, 100)]
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
@@ -432,8 +434,13 @@ class EISFrame:
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
         param_names, eqn = parse_circuit(fit_circuit)
-        eqn2 = calc_circuit(dict(zip(param_names, fit_guess)), fit_circuit, frequencies)
+        eqn2 = calc_circuit(
+                dict(zip(param_names, fit_guess)),
+                fit_circuit,
+                frequencies
+                )
         print(eqn)
+
         # prepare optimizing function:
         def opt_func(x):
             params = dict(zip(param_names, x))
@@ -441,9 +448,9 @@ class EISFrame:
             params['omega'] = frequencies
             predict = eval(eqn, params)
             return rmse(predict, z)
-        
-        print("eval:",opt_func(fit_guess))
-        print("calc:",rmse(eqn2, z))
+
+        print("eval:", opt_func(fit_guess))
+        print("calc:", rmse(eqn2, z))
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -467,18 +474,18 @@ class EISFrame:
                     message="overflow encountered in power"
                     )
 
-            opt_result = basinhopping(
+            opt_result = differential_evolution(
                     opt_func,
-                    fit_guess,
-                    #minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
-                    disp=True, niter=100
+                    fit_bounds2,
+                    # fit_guess,
+                    # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                     )
 
         param_values = opt_result.x
         # print the fitting parameters to the console
 
         parameters = dict(zip(param_names, param_values))
-        f_pred = np.logspace(-2, 7, 200)
+        f_pred = np.logspace(-7, 9, 400)
         print(parameters)
         parameters['omega'] = f_pred
         parameters['np'] = np
@@ -515,6 +522,8 @@ class EISFrame:
             plot_yrange=None,
             label=None,
             ls='-',
+            nbinsx=6,
+            nbinsy=4,
             **plotkwargs
             ):
         if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
@@ -565,8 +574,8 @@ class EISFrame:
 
         # ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         # ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.locator_params(axis='x', nbins=8)
-        ax.locator_params(axis='y', nbins=4, prune='both')
+        ax.locator_params(axis='x', nbins=nbinsx)
+        ax.locator_params(axis='y', nbins=nbinsy, prune='both')
 
         if label is not None:
             _plot_legend(ax)
@@ -697,6 +706,7 @@ def create_fig(
         figsize=None,
         subplot_kw=None,
         gridspec_kw=None,
+        top_ticks=False,
         **fig_kw
         ) -> tuple[figure.Figure, list[axes.Axes]]:
     """ Creates the figure, axes for the plots and set the style of the plot
@@ -712,6 +722,7 @@ def create_fig(
     figsize
     subplot_kw
     gridspec_kw
+    top_ticks
     fig_kw
 
     Returns
@@ -737,6 +748,9 @@ def create_fig(
             subplot_kw=subplot_kw,
             **fig_kw
             )
+
+    if top_ticks:
+        axs[0].xaxis.set_tick_params(which="both", labeltop=True)
 
     return fig, axs
 
@@ -979,7 +993,7 @@ def load_data(
     # if max_cyclenumber == min_cyclenumber:
     #     return [EISFrame(data, params=data_param)]
 
-    for i in range(min_cyclenumber, max_cyclenumber+1):
+    for i in range(min_cyclenumber, max_cyclenumber + 1):
         cycle = data[data[cycle_param] == i].reset_index()
         cycles.append(EISFrame(cycle, params=data_param))
 
