@@ -20,7 +20,7 @@ from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import dual_annealing, shgo, differential_evolution
+from scipy.optimize import minimize
 
 from Parser.CircuitParser import parse_circuit
 # TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
@@ -402,7 +402,7 @@ class EISFrame:
         """
         # load and prepare data
         frequencies = self.df["freq/Hz"].copy()
-        z = self.df["Re(Z)/Ohm"].copy() - 1j * self.df["-Im(Z)/Ohm"].copy()
+        z = self.df["Re(Zce)/Ohm"].copy() - 1j * self.df["-Im(Zce)/Ohm"].copy()
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
         frequencies = np.array(frequencies)
         z = np.array(z)
@@ -416,9 +416,9 @@ class EISFrame:
         if fit_bounds is None:
             fit_bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0],
                           [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
-        fit_bounds2 = [(1e-4, 100), (1e-4, 100), (1e-6, 10),
-                       (1e-4, 100), (1e-4, 100), (1e-6, 1e9),
-                       (1e-6, 100)]
+        fit_bounds2 = [(0.1, 100), (800, 3000), (1e-11, 1e-9),
+                       (0, 1), (1500, 2500), (1e-9, 1e-7),
+                       (0, 1), (1000, 2000), (0, 10)]
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
@@ -475,9 +475,11 @@ class EISFrame:
                     message="overflow encountered in power"
                     )
             if fit_values is None:
-                opt_result = differential_evolution(
+                opt_result = minimize(
                         opt_func,
-                        fit_bounds2,
+                        np.array(fit_guess),
+                        bounds=fit_bounds2,
+                        callback=lambda x: print(x)
                         # fit_guess,
                         # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                         )
@@ -717,7 +719,7 @@ def create_fig(
         gridspec_kw=None,
         top_ticks=False,
         **fig_kw
-        ) -> tuple[figure.Figure, list[axes.Axes]]:
+        ) -> tuple[figure.Figure, Union[axes.Axes,list[axes.Axes]]]:
     """ Creates the figure, axes for the plots and set the style of the plot
 
     Parameters

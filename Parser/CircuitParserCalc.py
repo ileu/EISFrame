@@ -51,6 +51,6 @@ def calc_circuit(param, circ, omega):
         return c, tot_eq
 
     param['omega'] = omega
-    __, equation = circuit(circ)
+    __, equation = circuit(circ.replace(" ", ""))
 
     return equation
