@@ -155,7 +155,7 @@ class WarburgShort(Component):
         self.key = [self.key + "_0", self.key + "_1"]
 
     def __call__(self):
-        return f"{self.key[0]} / np.sqrt(1j * omega) * np.tanh({self.key[1]} * np.sqrt(1j * omega))"
+        return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) * np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
 
     def calc(self, params):
         values = []

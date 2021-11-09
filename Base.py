@@ -371,7 +371,8 @@ class EISFrame:
             global_opt: bool = False,
             cell: Cell = None,
             draw_circle: bool = True,
-            draw_circuit: bool = False
+            draw_circuit: bool = False,
+            fit_values = None
             ) -> tuple[list, dict]:
         """
         Fitting for the nyquist TODO: add all options to the function
@@ -473,15 +474,18 @@ class EISFrame:
                     "ignore",
                     message="overflow encountered in power"
                     )
+            if fit_values is None:
+                opt_result = differential_evolution(
+                        opt_func,
+                        fit_bounds2,
+                        # fit_guess,
+                        # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
+                        )
+                param_values = opt_result.x
+            else:
+                param_values = np.array(fit_values)
 
-            opt_result = differential_evolution(
-                    opt_func,
-                    fit_bounds2,
-                    # fit_guess,
-                    # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
-                    )
 
-        param_values = opt_result.x
         # print the fitting parameters to the console
 
         parameters = dict(zip(param_names, param_values))
@@ -495,7 +499,11 @@ class EISFrame:
         # adjust impedance if a cell is given
         if cell is not None:
             custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
-
+        # plt.figure()
+        # print(custom_circuit_fit)
+        # plt.plot(np.real(custom_circuit_fit),
+        #         -np.imag(custom_circuit_fit))
+        # plt.show()
         line = ax.plot(
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
@@ -507,10 +515,10 @@ class EISFrame:
         self.lines["fit"] = line
         # check if circle needs to be drawn
         if draw_circle:
-            self._plot_semis(param_values, ax)
+            self._plot_semis(fit_circuit, param_names, param_values, cell, ax)
 
         if draw_circuit:
-            self._plot_circuit(param_values, ax)
+            self._plot_circuit(fit_circuit, ax)
 
         _plot_legend(ax)
         return line, parameters
@@ -582,7 +590,7 @@ class EISFrame:
 
         return line
 
-    def _plot_semis(self, circuit: str, ax: axes.Axes = None):
+    def _plot_semis(self, circuit: str, param_names: list[str], param_values, cell, ax: axes.Axes = None):
         """
         plots the semicircles to the corresponding circuit elements.
 
@@ -606,8 +614,8 @@ class EISFrame:
             ax = plt.gca()
 
         # read out details about circuit
-        circuit_string = circuit.circuit
-        names = circuit.get_param_names()[0]
+        circuit_string = circuit
+        names = param_names
         resistors = [names.index(name) for name in names if "R" in name]
 
         # split the circuit in to elements connected through series
@@ -633,8 +641,8 @@ class EISFrame:
                               resistor < min(components_index)]
 
             # get the fitted values
-            components_values = circuit.parameters_[components_index]
-            resistors_values = circuit.parameters_[prev_resistors]
+            components_values = param_values[components_index]
+            resistors_values = param_values[prev_resistors]
 
             # calculate the data of the circle
             circle_data = predict_circle(*components_values) + np.sum(
@@ -657,6 +665,7 @@ class EISFrame:
                             ).color
                     break
             # draw circle
+            circle_data = circle_data * cell.area_mm2 * 1e-2
             ax.fill_between(
                     np.real(circle_data),
                     -np.imag(circle_data),
@@ -668,7 +677,7 @@ class EISFrame:
 
         return
 
-    def _plot_circuit(self, circuit: CustomCircuit, ax: axes.Axes = None):
+    def _plot_circuit(self, circuit: str, ax: axes.Axes = None):
         # TODO: Look at SchemDraw to draw circuit and color with different
         #  mark  points
 

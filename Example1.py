@@ -4,7 +4,7 @@ from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
-
+from Parser.CircuitParserCalc import calc_circuit
 from Base import load_data, create_fig
 
 
@@ -51,12 +51,22 @@ def main():
 
 
 def main2():
-    data = load_data(r"Examples\ExampleData1.csv", sep=',')
-    print(data.df.columns)
-    fig, ax = create_fig()
-    data.plot_nyquist(ax)
-    data.fit_nyquist(ax, draw_circle=False, draw_circuit=False)
+    # data = load_data(r"Examples\ExampleData1.csv", sep=',')
+    # print(data.df.columns)
+    # fig, ax = create_fig()
+    # data.plot_nyquist(ax)
+    # data.fit_nyquist(ax, draw_circle=False, draw_circuit=False)
 
+    circuit = "R0-p(R1,CPE1)"
+
+    circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1',
+    param = {"R0" : 100, "R1": 100, "R2": 100, "CPE1_0": 1e-9, "CPE1_1": 0.9}
+    param2 = [10, 1853.9, 3.6e-10, 1, 2012.5, 1.085e-8, 0.93477, 1507.7, 1.9347]
+    freq = np.logspace(-4, 9, 200)
+    res = calc_circuit(param, circuit, freq)
+
+    print(res)
+    plt.plot(res.real, -res.imag)
     plt.show()
 
 
