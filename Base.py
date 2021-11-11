@@ -76,9 +76,13 @@ class MarkPoint:
     def __repr__(self):
         return self.__str__()
 
-    def label(self):
+    def label(self, freq=None):
         ureg = pint.UnitRegistry()
-        label = self.freq * ureg.Hz
+        if freq is None:
+            f = self.freq
+        else:
+            f = freq[self.index]
+        label = f * ureg.Hz
         return f"{label.to_compact():~.0f}"
 
 
@@ -86,7 +90,7 @@ class MarkPoint:
 grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
 hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e3)
 lxlzo = MarkPoint('LxLZO', 'lime', freq=2e3, delta_f=5e2)
-interface = MarkPoint('Interfacial resistance', 'magenta', freq=50, delta_f=5)
+interface = MarkPoint('Interphase', 'magenta', freq=50, delta_f=5)
 ecr_tail = MarkPoint('ECR', 'darkgreen', freq=0.5, delta_f=1)
 
 
@@ -288,7 +292,7 @@ class EISFrame:
         # get the x,y data for plotting
         x_data = df["Re(Z)/Ohm"]
         y_data = df["-Im(Z)/Ohm"]
-
+        frequency = df["freq/Hz"]
         # adjust impedance if a cell is given
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
@@ -300,7 +304,7 @@ class EISFrame:
         # find indices of mark points. Take first point in freq range
         for mark in self.mark_points:
             mark.index = -1  # TODO: check if unnecessary
-            subsequent = (idx for idx, freq in enumerate(df["freq/Hz"]) if
+            subsequent = (idx for idx, freq in enumerate(frequency) if
                           mark.left < freq < mark.right)
             mark.index = next(subsequent, -1)
 
@@ -318,7 +322,7 @@ class EISFrame:
         for mark in self.mark_points:
             if mark.index < 0:
                 continue
-            mark_label = f"{mark.name} @ {mark.label()}"
+            mark_label = f"{mark.name} @ {mark.label(frequency)}"
             line = ax.plot(
                     x_data[mark.index],
                     y_data[mark.index],
@@ -450,6 +454,11 @@ class EISFrame:
             predict = eval(eqn, params)
             return rmse(predict, z)
 
+        def opt_func2(x):
+            params = dict(zip(param_names, x))
+            predict = calc_circuit(params, fit_circuit, frequencies)
+            return rmse(predict, z)
+
         print("eval:", opt_func(fit_guess))
         print("calc:", rmse(eqn2, z))
 
@@ -479,7 +488,9 @@ class EISFrame:
                         opt_func,
                         np.array(fit_guess),
                         bounds=fit_bounds2,
-                        callback=lambda x: print(x)
+                        callback=lambda x: print(x),
+                        tol=1e-13,
+                        options={'maxiter':1e5}
                         # fit_guess,
                         # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                         )

@@ -68,8 +68,8 @@ def main2():
             "R2": 100,
             "CPE1_0": 1e-9,
             "CPE1_1": 0.9,
-            "Ws1_0": 200,
-            "Ws1_1": 0.001 * 100 ** i
+            "Ws1_R": 200,
+            "Ws1_T": 0.001 * 100 ** i
             }
         param2 = {'R0': 9.575122642822812, 'R1': 1853.4740741785354, 'CPE1_0': 1e-09, 'CPE1_1': 0.9985045295858299, 'R2': 2012.1396639033137, 'CPE2_0': 1e-07, 'CPE2_1': 1.0, 'Ws1_0': 1507.6154921209086, 'Ws1_1': 10.0}
 
@@ -96,14 +96,13 @@ def main2():
 
 def main3():
     data = load_data(
-            r"C:\Users\ueli\Desktop\Sauter "
-            r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
+            r"G:\Collaborators\Sauter Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
             sep=','
             )[-1]
     print("LOADED")
     circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
-    param2 = [10.0, 1853.9, 3.6e-10, 1.0, 2012.5, 1.085e-8, 0.93477, 1507.7,
-              1.9347]
+    param2 = [0.0, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.920, 743.7,
+              2.78]
     fig, ax = create_fig()
     data.plot_nyquist(ax)
     data.fit_nyquist(
@@ -118,5 +117,5 @@ def main3():
 
 if __name__ == "__main__":
     print("start")
-    main2()
+    main3()
     print("end")

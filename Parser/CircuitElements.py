@@ -126,7 +126,7 @@ class WarburgOpen(Component):
 
     def __init__(self, key):
         super().__init__(key)  # not necessary but I guess good code??
-        self.key = [self.key + "_0", self.key + "_1"]
+        self.key = [self.key + "_R", self.key + "_T"]
 
     def __call__(self):
         return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) / np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
@@ -152,7 +152,7 @@ class WarburgShort(Component):
 
     def __init__(self, key):
         super().__init__(key)  # not necessary but I guess good code??
-        self.key = [self.key + "_0", self.key + "_1"]
+        self.key = [self.key + "_R", self.key + "_T"]
 
     def __call__(self):
         return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) * np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
@@ -167,6 +167,33 @@ class WarburgShort(Component):
     @staticmethod
     def get_symbol():
         return 'Ws'
+
+    @staticmethod
+    def get_unit():
+        return 'Ohm sec^-1/2'
+
+
+class WarburgShort2(Component):
+    """ defines a semi-infinite Warburg element    """
+
+    def __init__(self, key):
+        super().__init__(key)  # not necessary but I guess good code??
+        self.key = [self.key + "_R", self.key + "_T"]
+
+    def __call__(self):
+        return f"{self.key[0]} / np.sqrt(1j * omega) * " \
+               f"np.tanh({self.key[1]} * np.sqrt(1j  * omega))"
+
+    def calc(self, params):
+        values = []
+        for k in self.key:
+            values.append(params.get(k))
+        alpha = np.sqrt(1j * params.get('omega'))
+        return values[0] / alpha * np.tanh(values[1] * alpha)
+
+    @staticmethod
+    def get_symbol():
+        return 'Wss'
 
     @staticmethod
     def get_unit():
