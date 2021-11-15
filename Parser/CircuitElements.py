@@ -26,7 +26,11 @@ class Component:
         raise NotImplementedError
 
     def calc(self, params):
-        raise  NotImplementedError
+        raise NotImplementedError
+
+    @staticmethod
+    def get_bounds():
+        return 0, 2000
 
     @staticmethod
     def get_symbol():
@@ -35,7 +39,6 @@ class Component:
     @staticmethod
     def get_unit():
         raise NotImplementedError
-
 
 
 class Resistor(Component):
@@ -53,10 +56,6 @@ class Resistor(Component):
     @staticmethod
     def get_unit():
         return 'Ohm'
-
-
-
-
 
 
 class Capacitor(Component):
@@ -129,7 +128,8 @@ class WarburgOpen(Component):
         self.key = [self.key + "_R", self.key + "_T"]
 
     def __call__(self):
-        return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) / np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
+        return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) / " \
+               f"np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
 
     def calc(self, params):
         values = []
@@ -155,7 +155,8 @@ class WarburgShort(Component):
         self.key = [self.key + "_R", self.key + "_T"]
 
     def __call__(self):
-        return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) * np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
+        return f"{self.key[0]} / np.sqrt(1j * {self.key[1]} * omega) * " \
+               f"np.tanh(np.sqrt(1j * {self.key[1]} * omega))"
 
     def calc(self, params):
         values = []

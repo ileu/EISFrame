@@ -1,19 +1,17 @@
 import glob
 import os
 import re
+
 import Base
 
 
 def main():
-    path = r"TestData/Test1.mpr"
-    peis_mpr_files = glob.glob(path + r"\*.mpr")
-    peis_mpr_files = [path]
+    path = r"C:\Users\ueli\Desktop\Sauter Ulrich\Solvent Impact"
+    peis_mpr_files = glob.glob(path + r"\*EIS*.mpr")
 
     cell_3mm = Base.Cell(3, 0.7)
 
     print(f"Found {len(peis_mpr_files)} files")
-
-    peis_mpr_files = peis_mpr_files[:3]
 
     for file in peis_mpr_files:
         image_name = '_'.join(re.split("[_.]", file)[-5:-1])
@@ -23,6 +21,13 @@ def main():
         for i, cycle in enumerate(data):
             fig, ax = Base.create_fig()
             cycle.plot_nyquist(ax, cell=cell_3mm)
+            cycle.fit_nyquist(
+                    ax,
+                    'R0-p(R1,CPE1)-p(R2,CPE2)',
+                    [10, 500, 1e-8, 0.9, 200, 1e-8, 1.5],
+                    cell=cell_3mm,
+                    draw_circle=True,
+                    )
             Base.save_fig(
                     os.path.join(
                             os.path.dirname(file),
@@ -31,6 +36,7 @@ def main():
                             f"cycle_{i}.png"
                             )
                     )
+        break
 
 
 if __name__ == "__main__":

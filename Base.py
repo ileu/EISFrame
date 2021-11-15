@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 import pint
 from impedance import preprocessing
-from impedance.models.circuits import CustomCircuit
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import minimize
@@ -123,28 +122,6 @@ class Cell:
         return "Cell with " + self.__repr__()
 
 
-class NyquistData:
-    """
-        WIP
-    """
-
-    def __init__(self, real, imag, freq):
-        self.real = real
-        self.imag = imag
-        self.freq = freq
-
-
-class CycleData:
-    """
-        WIP
-    """
-
-    def __init__(self, time, vol, cur):
-        self.time = time
-        self.vol = vol
-        self.cur = cur
-
-
 class EISFrame:
     """
         EISFrame used to store the data and plot/fit the data.
@@ -173,7 +150,7 @@ class EISFrame:
 
     @property
     def time(self) -> pd.DataFrame:
-        return self.df[self._params['time']]
+        return self.df[self._params['time']].copy()
 
     @time.setter
     def time(self, value):
@@ -181,23 +158,33 @@ class EISFrame:
 
     @property
     def impedance(self) -> pd.DataFrame:
-        return self.df[self._params['impedance']]
+        value = self.df[self._params['real']].copy()
+        value += -1j * self.df[self._params['real']].copy()
+        return value
+
+    @property
+    def real(self) -> pd.DataFrame:
+        return self.df[self._params['real']].copy()
+
+    @property
+    def imag(self) -> pd.DataFrame:
+        return self.df[self._params['imag']].copy()
 
     @property
     def frequency(self) -> pd.DataFrame:
-        return self.df[self._params['frequency']]
+        return self.df[self._params['frequency']].copy()
 
     @property
     def current(self) -> pd.DataFrame:
-        return self.df[self._params['current']]
+        return self.df[self._params['current']].copy()
 
     @property
     def voltage(self) -> pd.DataFrame:
-        return self.df[self._params['voltage']]
+        return self.df[self._params['voltage']].copy()
 
     @property
     def cycle(self) -> pd.DataFrame:
-        return self.df['cycle']
+        return self.df['cycle'].copy()
 
     def __str__(self):
         return self.df.__str__()
@@ -269,30 +256,21 @@ class EISFrame:
         dictionary
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
-        # check if the necessary data is available for a Nyquist plot
-        # TODO: Redo with subclass maybe?
-        if not {"freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm"}.issubset(
-                self.df.columns
-                ):
-            warnings.warn('Wrong data for a Nyquist Plot', RuntimeWarning)
-            return
-
         # label for the plot
         x_label = r"Re(Z)/$\Omega$"
         y_label = r"-Im(Z)/$\Omega$"
+        # only look at measurements with frequency data
+        mask = self.frequency != 0
 
         # check if any axes is given, if not GetCurrentAxis from matplotlib
         if ax is None:
             ax = plt.gca()
 
-        # remove all data points with (0,0) and adjust dataframe
-        df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
-        df = df.reset_index()[exclude_start:exclude_end]
-
         # get the x,y data for plotting
-        x_data = df["Re(Z)/Ohm"]
-        y_data = df["-Im(Z)/Ohm"]
-        frequency = df["freq/Hz"]
+        x_data = self.real[mask][exclude_start:exclude_end]
+        y_data = self.imag[mask][exclude_start:exclude_end]
+        frequency = self.frequency[mask][exclude_start:exclude_end]
+
         # adjust impedance if a cell is given
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
@@ -303,7 +281,7 @@ class EISFrame:
 
         # find indices of mark points. Take first point in freq range
         for mark in self.mark_points:
-            mark.index = -1  # TODO: check if unnecessary
+            # mark.index = -1
             subsequent = (idx for idx, freq in enumerate(frequency) if
                           mark.left < freq < mark.right)
             mark.index = next(subsequent, -1)
@@ -371,12 +349,12 @@ class EISFrame:
             ax: axes.Axes,
             fit_circuit: str = None,
             fit_guess: list[float] = None,
-            fit_bounds: tuple = None,
+            fit_bounds: dict = None,
             global_opt: bool = False,
             cell: Cell = None,
             draw_circle: bool = True,
             draw_circuit: bool = False,
-            fit_values = None
+            fit_values=None
             ) -> tuple[list, dict]:
         """
         Fitting for the nyquist TODO: add all options to the function
@@ -405,8 +383,8 @@ class EISFrame:
 
         """
         # load and prepare data
-        frequencies = self.df["freq/Hz"].copy()
-        z = self.df["Re(Zce)/Ohm"].copy() - 1j * self.df["-Im(Zce)/Ohm"].copy()
+        frequencies = self.frequency
+        z = self.real - 1j * self.imag
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
         frequencies = np.array(frequencies)
         z = np.array(z)
@@ -416,13 +394,18 @@ class EISFrame:
         if fit_circuit is None:
             fit_circuit = 'R0-p(R1,C1)-p(R2-Wo1,C2)'
 
+        param_names, eqn = parse_circuit(fit_circuit)
         # bounds for the fitting
-        if fit_bounds is None:
-            fit_bounds = ([0, 0, 1e-15, 0, 0, 1e-15, 0],
-                          [np.inf, np.inf, 1e12, 1, np.inf, 1e12, 1])
-        fit_bounds2 = [(0.1, 100), (800, 3000), (1e-11, 1e-9),
-                       (0, 1), (1500, 2500), (1e-9, 1e-7),
-                       (0, 1), (1000, 2000), (0, 10)]
+        bounds = []
+        for name in param_names:
+            if b := fit_bounds.get('name') is not None:
+                bounds.append(b)
+            else:
+                # TODO: Get default bounds
+                bounds.append((0.1, 2000))
+        fit_bounds2 = [(0.1, 5000), (0, 3000), (1e-11, 1e-5),
+                       (0, 1), (0, 2500), (1e-12, 1e-7),
+                       (0, 1)]
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
@@ -438,7 +421,7 @@ class EISFrame:
 
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
-        param_names, eqn = parse_circuit(fit_circuit)
+
         eqn2 = calc_circuit(
                 dict(zip(param_names, fit_guess)),
                 fit_circuit,
@@ -457,7 +440,8 @@ class EISFrame:
         def opt_func2(x):
             params = dict(zip(param_names, x))
             predict = calc_circuit(params, fit_circuit, frequencies)
-            return rmse(predict, z)
+            err = rmse(predict, z)
+            return err
 
         print("eval:", opt_func(fit_guess))
         print("calc:", rmse(eqn2, z))
@@ -485,12 +469,11 @@ class EISFrame:
                     )
             if fit_values is None:
                 opt_result = minimize(
-                        opt_func,
+                        opt_func2,
                         np.array(fit_guess),
                         bounds=fit_bounds2,
-                        callback=lambda x: print(x),
                         tol=1e-13,
-                        options={'maxiter':1e5}
+                        options={'maxiter': 1e5}
                         # fit_guess,
                         # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                         )
@@ -498,11 +481,10 @@ class EISFrame:
             else:
                 param_values = np.array(fit_values)
 
-
         # print the fitting parameters to the console
 
         parameters = dict(zip(param_names, param_values))
-        f_pred = np.logspace(-7, 9, 400)
+        f_pred = np.logspace(-9, 9, 400)
         print(parameters)
         parameters['omega'] = f_pred
         parameters['np'] = np
@@ -522,7 +504,7 @@ class EISFrame:
                 -np.imag(custom_circuit_fit),
                 label="fit",
                 color="red",
-                zorder=4
+                zorder=5
                 )
 
         self.lines["fit"] = line
@@ -603,7 +585,14 @@ class EISFrame:
 
         return line
 
-    def _plot_semis(self, circuit: str, param_names: list[str], param_values, cell, ax: axes.Axes = None):
+    def _plot_semis(
+            self,
+            circuit: str,
+            param_names: list[str],
+            param_values,
+            cell,
+            ax: axes.Axes = None
+            ):
         """
         plots the semicircles to the corresponding circuit elements.
 
@@ -674,7 +663,7 @@ class EISFrame:
                 if specific_freq_magnitude <= 0:
                     print("ECR")
                     color = min(
-                            self.mark_points, key=lambda x: x.magnitue
+                            self.mark_points, key=lambda x: x.magnitude
                             ).color
                     break
             # draw circle
@@ -730,7 +719,7 @@ def create_fig(
         gridspec_kw=None,
         top_ticks=False,
         **fig_kw
-        ) -> tuple[figure.Figure, Union[axes.Axes,list[axes.Axes]]]:
+        ) -> tuple[figure.Figure, Union[axes.Axes, list[axes.Axes]]]:
     """ Creates the figure, axes for the plots and set the style of the plot
 
     Parameters
@@ -920,28 +909,22 @@ def load_csv_to_df(path: str, sep='\t'):
 
 
 def _get_default_data_param(columns):
-    r = re.compile(
-            r"Ewe|I/mA|Re\(Z(ce)?\)|-Im\(Z(ce)?\)|time|(z )?cycle( number)?"
-            )
-    params = list(filter(r.match, columns))
-    return params
-
-
-def _get_default_data_param2(columns):
     params = {}
     for col in columns:
         if match := re.match(r'Ewe[^|]*', col):
             params['voltage'] = match.group()
         elif match := re.match(r'I/mA[^|]*', col):
             params['current'] = match.group()
-        elif match := re.match(r'Re\(Z(ce)?\)[^|]*', col):
+        elif match := re.match(r'Re\(Z\)[^|]*', col):
             params['real'] = match.group()
-        elif match := re.match(r'-Im\(Z(ce)?\)[^|]*', col):
+        elif match := re.match(r'-Im\(Z\)[^|]*', col):
             params['imag'] = match.group()
         elif match := re.match(r'time[^|]*', col):
             params['time'] = match.group()
         elif match := re.match(r'(z )?cycle( number)?[^|]*', col):
             params['cycle'] = match.group()
+        elif match := re.match(r'freq[^|]*', col):
+            params['frequency'] = match.group()
     return params
 
 
@@ -953,7 +936,7 @@ def load_data(
         data_param: dict = None,
         ) -> Union[EISFrame, list[EISFrame]]:
     """
-        TODO: WIP
+        loads the data from the given path into an EISFrame
     """
     if isinstance(file, list):
         end_time = 0
@@ -991,8 +974,7 @@ def load_data(
 
     # check if all the parameters are available
     if data_param is None:
-        # TODO: Catch errors if columns not available
-        data_param = _get_default_data_param2(data.columns)
+        data_param = _get_default_data_param(data.columns)
     else:
         for param in data_param:
             if param not in data:
@@ -1018,12 +1000,4 @@ def load_data(
     for i in range(min_cyclenumber, max_cyclenumber + 1):
         cycle = data[data[cycle_param] == i].reset_index()
         cycles.append(EISFrame(cycle, params=data_param))
-
-    # TODO: Sort MB by technique
-    # cycles = [mb[mb['cycle number'] == i] for i in range(int(max(mb['cycle
-    # number'])))]
-    # sequences = []
-    # for cycle in cycles:
-    #     sequences.append([cycle[cycle['Ns'] == i] for i in range(int(max(
-    #     cycle['Ns'])))])
     return cycles

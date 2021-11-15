@@ -9,8 +9,8 @@ from Base import load_data, create_fig
 from Parser.CircuitParserCalc import calc_circuit
 
 
-def main():
-    frequencies, z = preprocessing.readCSV(r".\ExampleData1.csv")
+def main1():
+    frequencies, z = preprocessing.readCSV(r".\Examples\ExampleData1.csv")
     frequencies, z = preprocessing.ignoreBelowX(frequencies, z)
 
     circuit = CustomCircuit(
@@ -117,5 +117,5 @@ def main3():
 
 if __name__ == "__main__":
     print("start")
-    main3()
+    main1()
     print("end")
