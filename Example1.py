@@ -5,7 +5,7 @@ from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
 
-from Base import load_data, create_fig
+from Base import load_data, create_fig, Cell
 from Parser.CircuitParserCalc import calc_circuit
 
 
@@ -104,12 +104,13 @@ def main3():
     param2 = [0.0, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.920, 743.7,
               2.78]
     fig, ax = create_fig()
-    data.plot_nyquist(ax)
+    data.plot_nyquist(ax, cell=Cell(3,0.7))
     data.fit_nyquist(
             ax,
             fit_circuit=circuit2,
             fit_guess=param2,
-            draw_circle=False,
+            draw_circle=True,
+            cell=Cell(3,0.7)
             )
     print(param2)
     plt.show()
@@ -117,5 +118,5 @@ def main3():
 
 if __name__ == "__main__":
     print("start")
-    main1()
+    main3()
     print("end")

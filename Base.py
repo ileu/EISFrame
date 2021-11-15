@@ -267,9 +267,9 @@ class EISFrame:
             ax = plt.gca()
 
         # get the x,y data for plotting
-        x_data = self.real[mask][exclude_start:exclude_end]
-        y_data = self.imag[mask][exclude_start:exclude_end]
-        frequency = self.frequency[mask][exclude_start:exclude_end]
+        x_data = self.real[mask].reset_index()[exclude_start:exclude_end]
+        y_data = self.imag[mask].reset_index()[exclude_start:exclude_end]
+        frequency = self.frequency[mask].reset_index()[exclude_start:exclude_end]
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -349,7 +349,7 @@ class EISFrame:
             ax: axes.Axes,
             fit_circuit: str = None,
             fit_guess: list[float] = None,
-            fit_bounds: dict = None,
+            fit_bounds=None,
             global_opt: bool = False,
             cell: Cell = None,
             draw_circle: bool = True,
@@ -383,6 +383,7 @@ class EISFrame:
 
         """
         # load and prepare data
+
         frequencies = self.frequency
         z = self.real - 1j * self.imag
         frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
@@ -397,6 +398,8 @@ class EISFrame:
         param_names, eqn = parse_circuit(fit_circuit)
         # bounds for the fitting
         bounds = []
+        if fit_bounds is None:
+            fit_bounds = {}
         for name in param_names:
             if b := fit_bounds.get('name') is not None:
                 bounds.append(b)
@@ -405,7 +408,7 @@ class EISFrame:
                 bounds.append((0.1, 2000))
         fit_bounds2 = [(0.1, 5000), (0, 3000), (1e-11, 1e-5),
                        (0, 1), (0, 2500), (1e-12, 1e-7),
-                       (0, 1)]
+                       (0, 1), (0, 2000), (1e-10, 1000)]
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
@@ -473,7 +476,8 @@ class EISFrame:
                         np.array(fit_guess),
                         bounds=fit_bounds2,
                         tol=1e-13,
-                        options={'maxiter': 1e5}
+                        options={'maxiter': 1e5},
+                        method='Nelder-Mead'
                         # fit_guess,
                         # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                         )
@@ -655,6 +659,7 @@ class EISFrame:
             color = 'black'
             # check with which mark point the circle is associated by
             # comparing magnitudes
+            print(specific_freq_magnitude)
             for mark in self.mark_points:
                 if specific_freq_magnitude == mark.magnitude:
                     print(mark.name)
@@ -915,9 +920,9 @@ def _get_default_data_param(columns):
             params['voltage'] = match.group()
         elif match := re.match(r'I/mA[^|]*', col):
             params['current'] = match.group()
-        elif match := re.match(r'Re\(Z\)[^|]*', col):
+        elif match := re.match(r'Re\(Z(we-ce)?\)[^|]*', col):
             params['real'] = match.group()
-        elif match := re.match(r'-Im\(Z\)[^|]*', col):
+        elif match := re.match(r'-Im\(Z(we-ce)?\)[^|]*', col):
             params['imag'] = match.group()
         elif match := re.match(r'time[^|]*', col):
             params['time'] = match.group()
