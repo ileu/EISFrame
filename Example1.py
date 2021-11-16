@@ -55,48 +55,13 @@ def main1():
 
 
 def main2():
-    circuit = "R0-p(R1-Ws1,CPE1)"
-    circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
-    freq = np.logspace(-4, 9, 500)
-    symbols = ['o', 'd', 'x', 's']
-
-    plt.plot()
-    for i in range(4):
-        param = {
-            "R0": 100,
-            "R1": 100,
-            "R2": 100,
-            "CPE1_0": 1e-9,
-            "CPE1_1": 0.9,
-            "Ws1_R": 200,
-            "Ws1_T": 0.001 * 100 ** i
-            }
-        param2 = {'R0': 9.575122642822812, 'R1': 1853.4740741785354, 'CPE1_0': 1e-09, 'CPE1_1': 0.9985045295858299, 'R2': 2012.1396639033137, 'CPE2_0': 1e-07, 'CPE2_1': 1.0, 'Ws1_0': 1507.6154921209086, 'Ws1_1': 10.0}
-
-        res = calc_circuit(param2, circuit2, freq)
-        plt.scatter(
-                res.real,
-                -res.imag + 100 * i,
-                c=freq * param2["Ws1_1"] / 2 / np.pi,
-                marker=symbols[i],
-                cmap='bwr',
-                vmin=0,
-                vmax=2,
-                label=rf"$\tau$={10 ** i}s"
-                )
-        break
-    plt.colorbar(label=r"$\omega\cdot\tau$ in multiples of $2\pi$")
-    ax = plt.gca()
-    ax.set_aspect('equal')
-    ax.set_xlim(-10, 6000)
-    ax.set_ylim(ax.get_xlim())
-    plt.legend()
-    plt.show()
+    pass
 
 
 def main3():
     data = load_data(
-            r"G:\Collaborators\Sauter Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
+            r"G:\Collaborators\Sauter "
+            r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
             sep=','
             )[-1]
     print("LOADED")
@@ -104,15 +69,17 @@ def main3():
     param2 = [0.0, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.920, 743.7,
               2.78]
     fig, ax = create_fig()
-    data.plot_nyquist(ax, cell=Cell(3,0.7))
+    data.plot_nyquist(ax, cell=Cell(3, 0.7))
+    print("PLOTTED")
     data.fit_nyquist(
             ax,
             fit_circuit=circuit2,
             fit_guess=param2,
-            draw_circle=True,
-            cell=Cell(3,0.7)
+            draw_circle=False,
+            cell=Cell(3, 0.7)
             )
     print(param2)
+    plt.scatter
     plt.show()
 
 

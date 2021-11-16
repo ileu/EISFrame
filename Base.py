@@ -267,9 +267,18 @@ class EISFrame:
             ax = plt.gca()
 
         # get the x,y data for plotting
-        x_data = self.real[mask].reset_index()[exclude_start:exclude_end]
-        y_data = self.imag[mask].reset_index()[exclude_start:exclude_end]
-        frequency = self.frequency[mask].reset_index()[exclude_start:exclude_end]
+        x_data = self.real[mask][exclude_start:exclude_end]
+        y_data = self.imag[mask][exclude_start:exclude_end]
+        frequency = self.frequency[mask][exclude_start:exclude_end]
+        
+        #  # remove all data points with (0,0) and adjust dataframe
+        # df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
+        # df = df.reset_index()[exclude_start:exclude_end]
+
+        # # get the x,y data for plotting
+        # x_data = df["Re(Z)/Ohm"]
+        # y_data = df["-Im(Z)/Ohm"]
+        # frequency = df["freq/Hz"]
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -325,7 +334,7 @@ class EISFrame:
         ax.set_ylim(*ax.get_xlim())
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.locator_params(nbins=4)
+        ax.locator_params(nbins=4, prune='upper')
         ax.set_aspect('equal')
         if len(self.mark_points) != 0 or label is not None:
             _plot_legend(ax)
@@ -471,6 +480,8 @@ class EISFrame:
                     message="overflow encountered in power"
                     )
             if fit_values is None:
+                print(fit_guess)
+                print(fit_bounds2)
                 opt_result = minimize(
                         opt_func2,
                         np.array(fit_guess),
@@ -661,6 +672,7 @@ class EISFrame:
             # comparing magnitudes
             print(specific_freq_magnitude)
             for mark in self.mark_points:
+                print(mark.name, mark.magnitude)
                 if specific_freq_magnitude == mark.magnitude:
                     print(mark.name)
                     color = mark.color
