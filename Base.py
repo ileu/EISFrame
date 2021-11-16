@@ -36,7 +36,11 @@ class MarkPoint:
     """
 
     def __init__(
-            self, name: str, color: str, freq: float, delta_f: float = -1
+            self,
+            name: str,
+            color: str,
+            freq: float,
+            delta_f: float = -1
             ) -> None:
         """
         Special point in the EIS spectrum
@@ -270,7 +274,7 @@ class EISFrame:
         x_data = self.real[mask][exclude_start:exclude_end]
         y_data = self.imag[mask][exclude_start:exclude_end]
         frequency = self.frequency[mask][exclude_start:exclude_end]
-        
+
         #  # remove all data points with (0,0) and adjust dataframe
         # df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
         # df = df.reset_index()[exclude_start:exclude_end]
@@ -302,7 +306,8 @@ class EISFrame:
                 marker=marker,
                 ls=ls,
                 label=label,
-                markersize=size, )
+                markersize=size,
+                )
         lines = {"Data": line}  # store all the lines inside lines
 
         # plot each mark point with corresponding color and name
@@ -377,6 +382,7 @@ class EISFrame:
         fit_guess : list[float]
             initial values for the fitting
         fit_bounds : tuple
+        fit_values
         global_opt : bool
         cell : Cell
         draw_circle : bool
@@ -1010,9 +1016,6 @@ def load_data(
 
     max_cyclenumber = int(max(data[cycle_param]))
     min_cyclenumber = int(min(data[cycle_param]))
-
-    # if max_cyclenumber == min_cyclenumber:
-    #     return [EISFrame(data, params=data_param)]
 
     for i in range(min_cyclenumber, max_cyclenumber + 1):
         cycle = data[data[cycle_param] == i].reset_index()

@@ -136,7 +136,7 @@ class WarburgOpen(Component):
         for k in self.key:
             values.append(params.get(k))
         alpha = np.sqrt(1j * values[1] * params.get('omega'))
-        return values[0] / alpha / np.tanh(values[1] * alpha)
+        return values[0] / alpha / np.tanh(alpha)
 
     @staticmethod
     def get_symbol():
