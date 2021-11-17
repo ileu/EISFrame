@@ -24,7 +24,7 @@ def parse_circuit(circ):
 
         param_names.extend(comp.get_paramnames())
         param_units.append(comp.get_unit())
-        return c, comp()
+        return c, comp
 
     def parallel(c: str):
         c = c[2:]

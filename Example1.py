@@ -78,8 +78,6 @@ def main3():
             draw_circle=False,
             cell=Cell(3, 0.7)
             )
-    print(param2)
-    plt.scatter
     plt.show()
 
 

@@ -421,7 +421,7 @@ class EISFrame:
             else:
                 # TODO: Get default bounds
                 bounds.append((0.1, 2000))
-        fit_bounds2 = [(0.1, 5000), (0, 3000), (1e-11, 1e-5),
+        fit_bounds2 = [(0.0, 5000), (0, 3000), (1e-11, 1e-5),
                        (0, 1), (0, 2500), (1e-12, 1e-7),
                        (0, 1), (0, 2000), (1e-10, 1000)]
 
@@ -493,7 +493,7 @@ class EISFrame:
                         np.array(fit_guess),
                         bounds=fit_bounds2,
                         tol=1e-13,
-                        options={'maxiter': 1e5},
+                        options={'maxiter': 1e3},
                         method='Nelder-Mead'
                         # fit_guess,
                         # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
