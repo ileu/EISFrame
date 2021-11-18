@@ -152,42 +152,42 @@ class EISFrame:
         self.lines = {}
 
     @property
-    def time(self) -> pd.DataFrame:
-        return self.df[self._params['time']].copy()
+    def time(self) -> np.array:
+        return self.df[self._params['time']].values
 
     @time.setter
     def time(self, value):
         self.df[self._params['time']] = value
 
     @property
-    def impedance(self) -> pd.DataFrame:
-        value = self.df[self._params['real']].copy()
-        value += -1j * self.df[self._params['real']].copy()
+    def impedance(self) -> np.array:
+        value = self.df[self._params['real']].values
+        value += -1j * self.df[self._params['real']].values
         return value
 
     @property
-    def real(self) -> pd.DataFrame:
-        return self.df[self._params['real']].copy()
+    def real(self) -> np.array:
+        return self.df[self._params['real']].values
 
     @property
-    def imag(self) -> pd.DataFrame:
-        return self.df[self._params['imag']].copy()
+    def imag(self) -> np.array:
+        return self.df[self._params['imag']].values
 
     @property
-    def frequency(self) -> pd.DataFrame:
-        return self.df[self._params['frequency']].copy()
+    def frequency(self) -> np.array:
+        return self.df[self._params['frequency']].values
 
     @property
-    def current(self) -> pd.DataFrame:
-        return self.df[self._params['current']].copy()
+    def current(self) -> np.array:
+        return self.df[self._params['current']].values
 
     @property
-    def voltage(self) -> pd.DataFrame:
-        return self.df[self._params['voltage']].copy()
+    def voltage(self) -> np.array:
+        return self.df[self._params['voltage']].values
 
     @property
-    def cycle(self) -> pd.DataFrame:
-        return self.df['cycle'].copy()
+    def cycle(self) -> np.array:
+        return self.df['cycle'].values()
 
     def __str__(self):
         return self.df.__str__()
@@ -501,11 +501,7 @@ class EISFrame:
         # adjust impedance if a cell is given
         if cell is not None:
             custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
-        # plt.figure()
-        # print(custom_circuit_fit)
-        # plt.plot(np.real(custom_circuit_fit),
-        #         -np.imag(custom_circuit_fit))
-        # plt.show()
+
         line = ax.plot(
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
@@ -582,8 +578,6 @@ class EISFrame:
         else:
             ax.set_ylim(*plot_yrange)
 
-        # ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
-        # ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.locator_params(axis='x', nbins=nbinsx)
         ax.locator_params(axis='y', nbins=nbinsy, prune='both')
 

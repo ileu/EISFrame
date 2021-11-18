@@ -6,7 +6,7 @@ import Base
 
 def main():
     path = r"G:\Collaborators\Sauter Ulrich\polishing-FC"
-    file1 = r"\20201022_Li_3mm_LLZOB4_HT400C_Li3mm_EIS_01_PEIS_C07.mpr"
+    file1 = r"\20201021_Rabeb_LLZTO_Batch4_NOHT_Li300C_3mm_0p7th_EIS_01_PEIS_C16_01_PEIS_C02.mpr"
     file2 = r"\20201126_Rabeb_LLZTO_Batch4_polished_0p55mm_HT400C_Li300C_3mm_0p55th_EIS_01_PEIS_C12.mpr"
     file3 = r"\20201217_Rabeb_LLZTO_Batch4_polished_0p33mm_HT400C_Li300C_3mm_0p33th_FC_C16.mpr"
     #file4 = r"\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr"

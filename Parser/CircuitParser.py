@@ -1,15 +1,52 @@
 import re
-
+from typing import Callable
 import numpy as np
+from Parser.CircuitComponents import circuit_components
 
-from Parser.CircuitElements import circuit_components
 
+def parse_circuit(circ: str) -> tuple[dict, Callable[[dict], np.array]]:
+    """ EBNF parser for a circuit string.
 
-def parse_circuit(circ):
+    Implements an extended Backus–Naur form to parse a string that descirbes
+    a circuit.
+    Already implemented circuit elements are locacted in CircuitComponents.py
+
+    To put elements in series connect them through -.
+    Parallel elements are created by p(Elm1, Elm2,...)
+
+    The syntax of the EBNF is given by:
+
+    circuit = element | element-circuit
+    element = component | parallel
+    parallel = p(circuit, {circuit})
+    component = a circuit component
+
+    Parameters
+    ----------
+    circ : str
+        String that descirbes a circuit
+
+    Returns
+    -------
+    param_info : dict
+    calculate : Callable
+
+    """
     param_names = []
     param_units = []
 
     def component(c: str):
+        """ process component and remove from circuit string c
+
+        Parameters
+        ----------
+        c : str
+            circuit string
+
+        Returns
+        -------
+
+        """
         index = re.match(r'([a-zA-Z]+)_?\d?', c)
         name = c[:index.end()]
         c = c[index.end():]
