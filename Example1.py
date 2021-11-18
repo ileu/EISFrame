@@ -1,11 +1,13 @@
 import timeit
 
 import matplotlib.pyplot as plt
+import numpy as np
 from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
 
+import Base
 from Base import load_data, create_fig, Cell
 from Parser.CircuitElements import circuit_components
 from Parser.CircuitParser import parse_circuit
@@ -101,11 +103,17 @@ def main3():
             draw_circle=False,
             cell=Cell(3, 0.7)
             )
+    info, calc = parse_circuit(circuit2)
+    param = dict(zip(info.keys(), param2))
+    param["omega"] = np.logspace(-9,9, 400)
+    res = calc(param)
+    res = res * Cell(3,0.7).area_mm2 * 1e-2
+    plt.plot(np.real(res), -np.imag(res), label="Initial Values")
+    Base._plot_legend()
     plt.show()
 
 
 if __name__ == "__main__":
     print("start")
-    for _ in range(50):
-        main2()
+    main3()
     print("end")
