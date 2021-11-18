@@ -24,7 +24,6 @@ from scipy.optimize import minimize
 from Parser.CircuitParser import parse_circuit
 # TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
 #  -a-python-script-standalone-executable-to-run-without-any-dependen
-from Parser.CircuitParserCalc import calc_circuit
 
 
 class MarkPoint:
@@ -410,7 +409,8 @@ class EISFrame:
         if fit_circuit is None:
             fit_circuit = 'R0-p(R1,C1)-p(R2-Wo1,C2)'
 
-        param_names, eqn = parse_circuit(fit_circuit)
+        param_info, circ_calc = parse_circuit(fit_circuit)
+        param_names = param_info.keys()
         # bounds for the fitting
         bounds = []
         if fit_bounds is None:
@@ -440,29 +440,15 @@ class EISFrame:
         # parse circuit nad get circuit equation, evaluation function and
         # parameter names
 
-        eqn2 = calc_circuit(
-                dict(zip(param_names, fit_guess)),
-                fit_circuit,
-                frequencies
-                )
-        print(eqn)
-
         # prepare optimizing function:
         def opt_func(x):
             params = dict(zip(param_names, x))
-            params["np"] = np
             params['omega'] = frequencies
-            predict = eval(eqn, params)
-            return rmse(predict, z)
-
-        def opt_func2(x):
-            params = dict(zip(param_names, x))
-            predict = calc_circuit(params, fit_circuit, frequencies)
+            predict = circ_calc(params)
             err = rmse(predict, z)
             return err
 
         print("eval:", opt_func(fit_guess))
-        print("calc:", rmse(eqn2, z))
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -489,7 +475,7 @@ class EISFrame:
                 print(fit_guess)
                 print(fit_bounds2)
                 opt_result = minimize(
-                        opt_func2,
+                        opt_func,
                         np.array(fit_guess),
                         bounds=fit_bounds2,
                         tol=1e-13,
@@ -510,7 +496,7 @@ class EISFrame:
         parameters['omega'] = f_pred
         parameters['np'] = np
         # plot the fitting result
-        custom_circuit_fit = eval(eqn, parameters)
+        custom_circuit_fit = circ_calc(parameters)
 
         # adjust impedance if a cell is given
         if cell is not None:

@@ -58,7 +58,6 @@ def main1():
 
 
 def main2():
-    from Parser.CircuitParserCalc import calc_circuit
     import numpy as np
     tries = int(1e4)
     circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
@@ -73,18 +72,13 @@ def main2():
     p2["param"] = p
 
     res1 = timeit.timeit('calc(p)', number=tries, globals=locals())
-    res3 = timeit.timeit(
-        'calc_circuit(p, circuit, 1)',
-        number=tries,
-        globals=locals()
-        )
     res4 = timeit.timeit(
             'custom_circuit.predict(np.array([1]),True)',
             number=tries,
             globals=locals()
             )
 
-    print(str(res1) + "\t" + str(res3) + "\t" + str(res4))
+    print(str(res1) + "\t" + str(res4))
 
 
 def main3():
