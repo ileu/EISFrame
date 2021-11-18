@@ -9,18 +9,17 @@ def calc_circuit(param, circ, omega):
 
     def component(c: str):
         index = re.match(r'([a-zA-Z]+)_?\d?', c)
-        key = c[:index.end()]
+        name = c[:index.end()]
         c = c[index.end():]
 
         for comp in circuit_components.values():
-            symbol = re.match('[A-Za-z]+', key).group()
+            symbol = re.match('[A-Za-z]+', name).group()
             if comp.get_symbol() == symbol:
-                comp = comp(key)
                 break
         else:
             return c, 1
 
-        return c, comp.calc(param)
+        return c, comp.calc(param, name)
 
     def parallel(c: str):
         c = c[2:]

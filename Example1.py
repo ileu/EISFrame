@@ -1,12 +1,15 @@
+import timeit
+
 import matplotlib.pyplot as plt
-import numpy as np
 from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
 
 from Base import load_data, create_fig, Cell
-from Parser.CircuitParserCalc import calc_circuit
+from Parser.CircuitElements import circuit_components
+from Parser.CircuitParser import parse_circuit
+
 
 
 def main1():
@@ -25,7 +28,7 @@ def main1():
             minimizer_kwargs={"bounds": Bounds(*bounds), "method": 'L-BFGS-B'},
             niter=10
             )
-
+    circuit.predict()
     print(circuit)
 
     # low_res = results.lowest_optimization_result
@@ -55,7 +58,33 @@ def main1():
 
 
 def main2():
-    pass
+    from Parser.CircuitParserCalc import calc_circuit
+    import numpy as np
+    tries = int(1e4)
+    circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
+    names, calc = parse_circuit(circuit)
+    p = {key: 1 for key in names.keys()}
+    custom_circuit = CustomCircuit(
+            circuit,
+            initial_guess=p.values()
+            )
+    p["omega"] = 1
+    p2 = circuit_components
+    p2["param"] = p
+
+    res1 = timeit.timeit('calc(p)', number=tries, globals=locals())
+    res3 = timeit.timeit(
+        'calc_circuit(p, circuit, 1)',
+        number=tries,
+        globals=locals()
+        )
+    res4 = timeit.timeit(
+            'custom_circuit.predict(np.array([1]),True)',
+            number=tries,
+            globals=locals()
+            )
+
+    print(str(res1) + "\t" + str(res3) + "\t" + str(res4))
 
 
 def main3():
@@ -83,5 +112,6 @@ def main3():
 
 if __name__ == "__main__":
     print("start")
-    main3()
+    for _ in range(50):
+        main2()
     print("end")

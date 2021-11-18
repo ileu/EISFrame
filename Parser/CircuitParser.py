@@ -11,20 +11,19 @@ def parse_circuit(circ):
 
     def component(c: str):
         index = re.match(r'([a-zA-Z]+)_?\d?', c)
-        key = c[:index.end()]
+        name = c[:index.end()]
         c = c[index.end():]
 
-        for comp in circuit_components.values():
-            symbol = re.match('[A-Za-z]+', key).group()
+        for key, comp in circuit_components.items():
+            symbol = re.match('[A-Za-z]+', name).group()
             if comp.get_symbol() == symbol:
-                comp = comp(key)
                 break
         else:
             return c, 1
 
-        param_names.extend(comp.get_paramnames())
-        param_units.append(comp.get_unit())
-        return c, comp
+        param_names.extend(comp.get_paramname(name))
+        param_units.extend(comp.get_unit())
+        return c, key + rf".calc(param,'{name}')"
 
     def parallel(c: str):
         c = c[2:]
@@ -56,6 +55,8 @@ def parse_circuit(circ):
             tot_eq += f" + {eq}"
         return c, tot_eq
 
-    __, equation = circuit(circ)
+    __, equation = circuit(circ.replace(" ", ""))
 
-    return param_names, equation
+    calculate = eval('lambda param: ' + equation, circuit_components)
+    param_info = dict(zip(param_names, param_units))
+    return param_info, calculate
