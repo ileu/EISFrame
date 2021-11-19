@@ -3,7 +3,7 @@ import re
 
 import imageio
 
-import Base
+from src import Base
 
 
 def main():

@@ -1,7 +1,7 @@
 import re
 from typing import Callable
 import numpy as np
-from Parser.CircuitComponents import circuit_components
+from eisplottingtool.Parser.CircuitComponents import circuit_components
 
 
 def parse_circuit(circ: str) -> tuple[dict, Callable[[dict], np.array]]:

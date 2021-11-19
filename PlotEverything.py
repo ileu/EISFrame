@@ -2,7 +2,7 @@ import glob
 import os
 import re
 
-import Base
+from src import Base
 
 
 def main():

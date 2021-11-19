@@ -12,3 +12,8 @@
 /.vscode/
 /plots/
 /TestData/plots/
+*__pycache__
+dist/
+build/
+*.egg-info
+*.egg

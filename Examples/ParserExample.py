@@ -1,6 +1,6 @@
 import numpy
 
-from Parser.CircuitParser import parse_circuit
+from src.Parser import parse_circuit
 
 circuit_str = 'R_0-p(R-R1,C)-p(R,C)-Wo'
 

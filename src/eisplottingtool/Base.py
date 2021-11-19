@@ -21,7 +21,7 @@ from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import minimize
 
-from Parser.CircuitParser import parse_circuit
+from eisplottingtool.Parser import parse_circuit
 # TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
 #  -a-python-script-standalone-executable-to-run-without-any-dependen
 
@@ -415,15 +415,15 @@ class EISFrame:
         bounds = []
         if fit_bounds is None:
             fit_bounds = {}
-        for name in param_names:
-            if b := fit_bounds.get('name') is not None:
-                bounds.append(b)
-            else:
-                # TODO: Get default bounds
-                bounds.append((0.1, 2000))
+            for name in param_names:
+                if b := fit_bounds.get(name) is not None:
+                    bounds.append(b)
+                else:
+                    # TODO: Get default bounds
+                    bounds.append((0.1, 2000))
         fit_bounds2 = [(0.0, 5000), (0, 3000), (1e-11, 1e-5),
                        (0, 1), (0, 2500), (1e-12, 1e-7),
-                       (0, 1), (0, 2000), (1e-10, 1000)]
+                       (0, 1)]#, (0, 2000), (1e-10, 1000)]
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
@@ -472,12 +472,10 @@ class EISFrame:
                     message="overflow encountered in power"
                     )
             if fit_values is None:
-                print(fit_guess)
-                print(fit_bounds2)
                 opt_result = minimize(
                         opt_func,
                         np.array(fit_guess),
-                        bounds=fit_bounds2,
+                        bounds=fit_bounds,
                         tol=1e-13,
                         options={'maxiter': 1e3},
                         method='Nelder-Mead'

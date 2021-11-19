@@ -7,10 +7,10 @@ from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
 
-import Base
-from Base import load_data, create_fig, Cell
-from Parser.CircuitComponents import circuit_components
-from Parser.CircuitParser import parse_circuit
+from src import Base
+from src.Base import load_data, create_fig, Cell
+from src.Parser import circuit_components
+from src.Parser import parse_circuit
 
 
 def main1():
@@ -59,7 +59,6 @@ def main1():
 
 
 def main2():
-    import numpy as np
     tries = int(1e4)
     circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
     names, calc = parse_circuit(circuit)

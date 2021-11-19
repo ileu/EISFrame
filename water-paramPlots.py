@@ -1,6 +1,4 @@
-import os
-
-import Base
+from src import Base
 
 
 def main():
