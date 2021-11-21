@@ -32,7 +32,7 @@ class Component:
 
     @staticmethod
     def get_bounds():
-        return 0, 2000
+        raise NotImplementedError
 
 
 class Resistor(Component):
@@ -47,6 +47,10 @@ class Resistor(Component):
     @staticmethod
     def calc(param, key):
         return param.get(key, 1)
+
+    @staticmethod
+    def get_bounds():
+        return [(0.01, 2000)]
 
 
 class Capacitor(Component):
@@ -63,6 +67,10 @@ class Capacitor(Component):
         value = param.get(key)
         omega = param.get('omega')
         return 1.0 / (1j * omega * value)
+
+    @staticmethod
+    def get_bounds():
+        return [(1e-15, 1)]
 
 
 class CPE(Component):
@@ -84,6 +92,10 @@ class CPE(Component):
         omega = param.get('omega')
         return (1j * omega * values[0]) ** -values[1]
 
+    @staticmethod
+    def get_bounds():
+        return (1e-15, 1), (0, 1)
+
 
 class Warburg(Component):
     """ defines a semi-infinite Warburg element    """
@@ -104,6 +116,10 @@ class Warburg(Component):
         value = param.get(key)
         omega = param.get('omega')
         return value * (1 - 1j) / np.sqrt(omega)
+
+    @staticmethod
+    def get_bounds():
+        return [(0, 2000)]
 
 
 class WarburgOpen(Component):
@@ -127,6 +143,10 @@ class WarburgOpen(Component):
         alpha = np.sqrt(1j * values[1] * omega)
         return values[0] / alpha / np.tanh(alpha)
 
+    @staticmethod
+    def get_bounds():
+        return (0, 2000), (1e-5, 1e4)
+
 
 class WarburgShort(Component):
     """ defines a semi-infinite Warburg element    """
@@ -148,6 +168,10 @@ class WarburgShort(Component):
         omega = param.get('omega')
         alpha = np.sqrt(1j * values[1] * omega)
         return values[0] / alpha * np.tanh(alpha)
+
+    @staticmethod
+    def get_bounds():
+        return (0, 2000), (1e2, 1e8)
 
 
 circuit_components = {key: eval(key) for key in set(globals()) - initial_state

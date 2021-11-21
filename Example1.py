@@ -7,10 +7,8 @@ from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds
 
-from src import Base
-from src.Base import load_data, create_fig, Cell
-from src.Parser import circuit_components
-from src.Parser import parse_circuit
+from eisplottingtool import load_data, create_fig, Cell
+from eisplottingtool.parser import parse_circuit, circuit_components
 
 
 def main1():
@@ -29,7 +27,6 @@ def main1():
             minimizer_kwargs={"bounds": Bounds(*bounds), "method": 'L-BFGS-B'},
             niter=10
             )
-    circuit.predict()
     print(circuit)
 
     # low_res = results.lowest_optimization_result
@@ -107,7 +104,6 @@ def main3():
     res = calc(param)
     res = res * Cell(3, 0.7).area_mm2 * 1e-2
     plt.plot(np.real(res), -np.imag(res), label="Initial Values")
-    Base._plot_legend()
     plt.show()
 
 

@@ -28,7 +28,6 @@ setuptools.setup(
         "eclabfiles>=0.3.9",
         "pint",
         "scipy",
-        "impedance",
         "matplotlib",
     ],
     python_requires=">=3.9",

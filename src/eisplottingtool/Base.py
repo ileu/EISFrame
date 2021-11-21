@@ -16,18 +16,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
-from impedance import preprocessing
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import minimize
 
-from eisplottingtool.Parser import parse_circuit
-# TODO: look into https://stackoverflow.com/questions/5458048/how-can-i-make
-#  -a-python-script-standalone-executable-to-run-without-any-dependen
+from eisplottingtool.parser import parse_circuit
 
 
 class MarkPoint:
-    """ Special point to mark during plotting.
+    """ Special point to mark in an eis plot.
 
     A mark point is given by a specific frequency. The mark point is described
     by a color and a name. A frequency range can be given to narrow the search
@@ -400,9 +397,8 @@ class EISFrame:
 
         frequencies = self.frequency
         z = self.real - 1j * self.imag
-        frequencies, z = preprocessing.ignoreBelowX(frequencies[3:], z[3:])
-        frequencies = np.array(frequencies)
-        z = np.array(z)
+        frequencies = np.array(frequencies[np.imag(z) < 0])
+        z = np.array(z[np.imag(z) < 0])
         # only for testing purposes like this
         if fit_guess is None:
             fit_guess = [.01, .01, 100, .01, .05, 100, 1]
@@ -410,20 +406,19 @@ class EISFrame:
             fit_circuit = 'R0-p(R1,C1)-p(R2-Wo1,C2)'
 
         param_info, circ_calc = parse_circuit(fit_circuit)
-        param_names = param_info.keys()
+        param_names = param_info[:][0]
         # bounds for the fitting
         bounds = []
         if fit_bounds is None:
             fit_bounds = {}
+
+        if isinstance(fit_bounds, dict):
             for name in param_names:
                 if b := fit_bounds.get(name) is not None:
                     bounds.append(b)
                 else:
                     # TODO: Get default bounds
                     bounds.append((0.1, 2000))
-        fit_bounds2 = [(0.0, 5000), (0, 3000), (1e-11, 1e-5),
-                       (0, 1), (0, 2500), (1e-12, 1e-7),
-                       (0, 1)]#, (0, 2000), (1e-10, 1000)]
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
@@ -432,13 +427,6 @@ class EISFrame:
             se = np.square(e)
             mse = np.nansum(se)
             return np.sqrt(mse)
-
-        # create the circuit and start the fitting still
-        # circuit = CustomCircuit(initial_guess=fit_guess, circuit=fit_circuit)
-        # circuit.fit(frequencies, z, global_opt=global_opt, bounds=fit_bounds)
-
-        # parse circuit nad get circuit equation, evaluation function and
-        # parameter names
 
         # prepare optimizing function:
         def opt_func(x):
@@ -511,7 +499,7 @@ class EISFrame:
         self.lines["fit"] = line
         # check if circle needs to be drawn
         if draw_circle:
-            self._plot_semis(fit_circuit, param_names, param_values, cell, ax)
+            self._plot_semis(fit_circuit, param_info, param_values, cell, ax)
 
         if draw_circuit:
             self._plot_circuit(fit_circuit, ax)
@@ -587,7 +575,7 @@ class EISFrame:
     def _plot_semis(
             self,
             circuit: str,
-            param_names: list[str],
+            param_info: dict,
             param_values,
             cell,
             ax: axes.Axes = None
@@ -616,7 +604,7 @@ class EISFrame:
 
         # read out details about circuit
         circuit_string = circuit
-        names = param_names
+        names = list(param_info.keys())
         resistors = [names.index(name) for name in names if "R" in name]
 
         # split the circuit in to elements connected through series
@@ -668,7 +656,9 @@ class EISFrame:
                             ).color
                     break
             # draw circle
-            circle_data = circle_data * cell.area_mm2 * 1e-2
+            if cell is not None:
+                circle_data = circle_data * cell.area_mm2 * 1e-2
+
             ax.fill_between(
                     np.real(circle_data),
                     -np.imag(circle_data),
@@ -818,6 +808,14 @@ def predict_warburg_open(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
 def predict_warburg_shot(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
     x = np.sqrt(1j * w * b)
     return a * np.reciprocal(x) * np.tanh(x)
+
+
+def flat2gen(alist):
+    for item in alist:
+        if isinstance(item, list):
+            for subitem in item: yield subitem
+        else:
+            yield item
 
 
 def set_plot_params() -> None:

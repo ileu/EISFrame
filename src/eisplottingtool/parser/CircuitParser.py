@@ -1,10 +1,10 @@
 import re
 from typing import Callable
 import numpy as np
-from eisplottingtool.Parser.CircuitComponents import circuit_components
+from eisplottingtool.parser.CircuitComponents import circuit_components
 
 
-def parse_circuit(circ: str) -> tuple[dict, Callable[[dict], np.array]]:
+def parse_circuit(circ: str) -> tuple[list, Callable[[dict], np.array]]:
     """ EBNF parser for a circuit string.
 
     Implements an extended Backus–Naur form to parse a string that descirbes
@@ -34,6 +34,7 @@ def parse_circuit(circ: str) -> tuple[dict, Callable[[dict], np.array]]:
     """
     param_names = []
     param_units = []
+    param_bounds = []
 
     def component(c: str):
         """ process component and remove from circuit string c
@@ -60,6 +61,7 @@ def parse_circuit(circ: str) -> tuple[dict, Callable[[dict], np.array]]:
 
         param_names.extend(comp.get_paramname(name))
         param_units.extend(comp.get_unit())
+        param_bounds.extend(comp.get_bounds())
         return c, key + rf".calc(param,'{name}')"
 
     def parallel(c: str):
@@ -95,5 +97,5 @@ def parse_circuit(circ: str) -> tuple[dict, Callable[[dict], np.array]]:
     __, equation = circuit(circ.replace(" ", ""))
 
     calculate = eval('lambda param: ' + equation, circuit_components)
-    param_info = dict(zip(param_names, param_units))
+    param_info = list(zip(param_names, param_bounds, param_units))
     return param_info, calculate
