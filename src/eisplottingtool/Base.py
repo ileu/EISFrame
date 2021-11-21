@@ -576,8 +576,8 @@ class EISFrame:
             self,
             circuit: str,
             param_info: dict,
-            param_values,
-            cell,
+            param_values: list,
+            cell=None,
             ax: axes.Axes = None
             ):
         """
@@ -602,42 +602,39 @@ class EISFrame:
         if ax is None:
             ax = plt.gca()
 
-        # read out details about circuit
-        circuit_string = circuit
-        names = list(param_info.keys())
-        resistors = [names.index(name) for name in names if "R" in name]
+        # get all resistors in circuit
+        param_names = param_info[:][0]
+        resistors_index = [param_names.index(name) for name in param_names if
+                           name.startswith('R')]
 
         # split the circuit in to elements connected through series
-        elements = circuit_string.split('-')
+        elements = re.split(r"-(?![^\(]*\))", circuit)
         for e in elements:
-            # check if any of the elements is a parallel circuit
-            if not e.startswith('p'):
+            # check if element is p(R,CPE) or P(R,C) or Warburg if none skip to
+            # next element
+            if (e.count('R') == 1 and
+                    (e.count('CPE') == 1 or e.count('C') == 1)):
+                pass
+            elif e.count('W') == 1:
+                pass
+            else:
                 continue
-            e = e.strip('p()')
-            # TODO: Check if valid components
-            # check if element is p(R,CPE) or P(R,C) if none skip to next
-            # element
-            if not (e.count('R') == 1 and (
-                    e.count('CPE') == 1 or e.count('C') == 1)):
-                continue
-            components = e.split(',')  # get the names of both elements
 
-            # find the indices of the elements and all resistors that are in
-            # front of it
-            components_index = [names.index(name) for name in names for
-                                component in components if component in name]
-            prev_resistors = [resistor for resistor in resistors if
-                              resistor < min(components_index)]
+            # calc impedance of element
+            elem_info, elem_calc = parse_circuit(e)
+            elem_impedance = elem_calc(param_values)
 
-            # get the fitted values
-            components_values = param_values[components_index]
-            resistors_values = param_values[prev_resistors]
+            # get index of first component
+            elem_comp_index = param_names.index(elem_info[:][0])
 
-            # calculate the data of the circle
-            circle_data = predict_circle(*components_values) + np.sum(
-                    resistors_values
-                    )
-            specific_freq = calc_specific_freq(*components_values)
+            # get previous resistors
+            elem_res_index = [index for index in resistors_index if
+                              index < elem_comp_index]
+            for index in elem_res_index:
+                elem_impedance += param_values[index]
+
+
+            specific_freq = 1e5  # TODO: calc specific frequency
             specific_freq_magnitude = np.floor(np.log10(specific_freq))
             color = 'black'
             # check with which mark point the circle is associated by
@@ -655,13 +652,14 @@ class EISFrame:
                             self.mark_points, key=lambda x: x.magnitude
                             ).color
                     break
+
             # draw circle
             if cell is not None:
-                circle_data = circle_data * cell.area_mm2 * 1e-2
+                circle_data = elem_impedance * cell.area_mm2 * 1e-2
 
             ax.fill_between(
-                    np.real(circle_data),
-                    -np.imag(circle_data),
+                    np.real(elem_impedance),
+                    -np.imag(elem_impedance),
                     color=color,
                     alpha=0.5,
                     zorder=5,
@@ -785,7 +783,14 @@ def save_fig(
     plt.close(fig)
 
 
-def calc_specific_freq(r, q, n=1):
+def calc_specific_freq(params):
+    r, q, n = params
+    spec_frec = np.reciprocal(np.power(r * q, np.reciprocal(n)))
+    spec_frec *= np.reciprocal(2 * np.pi)
+    return spec_frec
+
+
+def calc_specific_freq2(r, q, n=1):
     spec_frec = np.reciprocal(np.power(r * q, np.reciprocal(n)))
     spec_frec *= np.reciprocal(2 * np.pi)
     return spec_frec

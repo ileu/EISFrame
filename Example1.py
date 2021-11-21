@@ -107,7 +107,22 @@ def main3():
     plt.show()
 
 
+def main4():
+    circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
+    param2 = [0.0, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.920, 743.7,
+              2.78]
+
+    info, calc = parse_circuit(circuit2)
+    data = load_data(
+            r"C:\Users\ueli\Desktop\Sauter "
+            r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
+            sep=','
+            )[-1]
+
+    data._plot_semis(circuit2, info, param2)
+
+
 if __name__ == "__main__":
     print("start")
-    main3()
+    main4()
     print("end")
