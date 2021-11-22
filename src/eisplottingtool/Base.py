@@ -18,7 +18,7 @@ import pandas as pd
 import pint
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import minimize
+from scipy.optimize import minimize, fminbound
 
 from eisplottingtool.parser import parse_circuit
 
@@ -603,68 +603,39 @@ class EISFrame:
             ax = plt.gca()
 
         # get all resistors in circuit
-        param_names = param_info[:][0]
-        resistors_index = [param_names.index(name) for name in param_names if
-                           name.startswith('R')]
-
-        # split the circuit in to elements connected through series
         elements = re.split(r"-(?![^\(]*\))", circuit)
+        spec_frequencies = []
         for e in elements:
-            # check if element is p(R,CPE) or P(R,C) or Warburg if none skip to
-            # next element
-            if (e.count('R') == 1 and
-                    (e.count('CPE') == 1 or e.count('C') == 1)):
-                pass
-            elif e.count('W') == 1:
-                pass
-            else:
-                continue
+            elem_info, elem_eval = parse_circuit(e)
 
-            # calc impedance of element
-            elem_info, elem_calc = parse_circuit(e)
-            elem_impedance = elem_calc(param_values)
-
-            # get index of first component
-            elem_comp_index = param_names.index(elem_info[:][0])
-
-            # get previous resistors
-            elem_res_index = [index for index in resistors_index if
-                              index < elem_comp_index]
-            for index in elem_res_index:
-                elem_impedance += param_values[index]
-
-
-            specific_freq = 1e5  # TODO: calc specific frequency
-            specific_freq_magnitude = np.floor(np.log10(specific_freq))
-            color = 'black'
-            # check with which mark point the circle is associated by
-            # comparing magnitudes
-            print(specific_freq_magnitude)
-            for mark in self.mark_points:
-                print(mark.name, mark.magnitude)
-                if specific_freq_magnitude == mark.magnitude:
-                    print(mark.name)
-                    color = mark.color
-                    break
-                if specific_freq_magnitude <= 0:
-                    print("ECR")
-                    color = min(
-                            self.mark_points, key=lambda x: x.magnitude
-                            ).color
-                    break
-
-            # draw circle
+            elem_impedance = elem_eval(
+                param_values,
+                np.linspace(-0.00001, 2621977.442685624, 4000)
+                )
             if cell is not None:
-                circle_data = elem_impedance * cell.area_mm2 * 1e-2
+                elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
 
-            ax.fill_between(
-                    np.real(elem_impedance),
-                    -np.imag(elem_impedance),
-                    color=color,
-                    alpha=0.5,
-                    zorder=5,
-                    ls='None'
+            if re.match(r'(?=.*R_?\d?\b)(?=.*C(pe)?_?\d?).*', e):
+
+                max_x = fminbound(
+                    lambda x: np.imag(elem_eval(param_values, x)),
+                    1e4,
+                    1e12
                     )
+                print("****************")
+                print(max_x)
+                print(np.imag(elem_eval(param_values, max_x)))
+                print(np.imag(elem_eval(param_values, 3296970.2039248673)))
+                print(np.imag(elem_eval(param_values, 59018.45815002072)))
+                spec_frequencies.append(1)
+                color = 'black'
+                ax.fill_between(
+                        np.real(elem_impedance),
+                        -np.imag(elem_impedance),
+                        alpha=0.5,
+                        zorder=5,
+                        ls='None'
+                        )
 
         return
 
@@ -781,38 +752,6 @@ def save_fig(
     if show:
         plt.show()
     plt.close(fig)
-
-
-def calc_specific_freq(params):
-    r, q, n = params
-    spec_frec = np.reciprocal(np.power(r * q, np.reciprocal(n)))
-    spec_frec *= np.reciprocal(2 * np.pi)
-    return spec_frec
-
-
-def calc_specific_freq2(r, q, n=1):
-    spec_frec = np.reciprocal(np.power(r * q, np.reciprocal(n)))
-    spec_frec *= np.reciprocal(2 * np.pi)
-    return spec_frec
-
-
-def predict_circle(r, q, n=1, w=np.logspace(-2, 10, 200)) -> np.array:
-    return np.reciprocal(1 / r + q * w ** n * np.exp(np.pi / 2 * n * 1j))
-
-
-def predict_warburg(a, w=np.logspace(-2, 10, 200)) -> np.array:
-    x = np.sqrt(2 * np.pi * w)
-    return a * np.reciprocal(x) * (1 - 1j)
-
-
-def predict_warburg_open(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
-    x = np.sqrt(1j * w * b)
-    return a * np.reciprocal(x * np.tanh(x))
-
-
-def predict_warburg_shot(a, b, w=np.logspace(-2, 10, 200)) -> np.array:
-    x = np.sqrt(1j * w * b)
-    return a * np.reciprocal(x) * np.tanh(x)
 
 
 def flat2gen(alist):

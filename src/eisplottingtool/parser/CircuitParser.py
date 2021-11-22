@@ -62,7 +62,7 @@ def parse_circuit(circ: str) -> tuple[list, Callable[[dict], np.array]]:
         param_names.extend(comp.get_paramname(name))
         param_units.extend(comp.get_unit())
         param_bounds.extend(comp.get_bounds())
-        return c, key + rf".calc(param,'{name}')"
+        return c, key + rf".calc(param,'{name}', omega)"
 
     def parallel(c: str):
         c = c[2:]
@@ -96,6 +96,6 @@ def parse_circuit(circ: str) -> tuple[list, Callable[[dict], np.array]]:
 
     __, equation = circuit(circ.replace(" ", ""))
 
-    calculate = eval('lambda param: ' + equation, circuit_components)
+    calculate = eval('lambda param, omega: ' + equation, circuit_components)
     param_info = list(zip(param_names, param_bounds, param_units))
     return param_info, calculate

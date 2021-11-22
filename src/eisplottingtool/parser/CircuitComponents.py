@@ -27,7 +27,7 @@ class Component:
         return [name]
 
     @staticmethod
-    def calc(param, key):
+    def calc(param, key, omega):
         raise NotImplementedError
 
     @staticmethod
@@ -45,7 +45,7 @@ class Resistor(Component):
         return ['Ohm']
 
     @staticmethod
-    def calc(param, key):
+    def calc(param, key, omega):
         return param.get(key, 1)
 
     @staticmethod
@@ -63,9 +63,8 @@ class Capacitor(Component):
         return ['F']
 
     @staticmethod
-    def calc(param, key):
+    def calc(param, key, omega):
         value = param.get(key)
-        omega = param.get('omega')
         return 1.0 / (1j * omega * value)
 
     @staticmethod
@@ -87,9 +86,8 @@ class CPE(Component):
         return name + "_Q", name + "_n"
 
     @classmethod
-    def calc(cls, param, key):
+    def calc(cls, param, key, omega):
         values = [param[name] for name in cls.get_paramname(key)]
-        omega = param.get('omega')
         return (1j * omega * values[0]) ** -values[1]
 
     @staticmethod
@@ -112,9 +110,8 @@ class Warburg(Component):
         return name + "_R", name + "_R"
 
     @staticmethod
-    def calc(param, key):
+    def calc(param, key, omega):
         value = param.get(key)
-        omega = param.get('omega')
         return value * (1 - 1j) / np.sqrt(omega)
 
     @staticmethod
@@ -137,9 +134,8 @@ class WarburgOpen(Component):
         return name + "_R", name + "_T"
 
     @classmethod
-    def calc(cls, param, key):
+    def calc(cls, param, key, omega):
         values = [param[name] for name in cls.get_paramname(key)]
-        omega = param.get('omega')
         alpha = np.sqrt(1j * values[1] * omega)
         return values[0] / alpha / np.tanh(alpha)
 
@@ -163,9 +159,8 @@ class WarburgShort(Component):
         return name + "_R", name + "_T"
 
     @classmethod
-    def calc(cls, param, key):
+    def calc(cls, param, key, omega):
         values = [param[name] for name in cls.get_paramname(key)]
-        omega = param.get('omega')
         alpha = np.sqrt(1j * values[1] * omega)
         return values[0] / alpha * np.tanh(alpha)
 

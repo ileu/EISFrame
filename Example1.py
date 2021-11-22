@@ -113,13 +113,18 @@ def main4():
               2.78]
 
     info, calc = parse_circuit(circuit2)
+    names = [inf[0] for inf in info]
+    pars = dict(zip(names, param2))
+    print(1.0 / np.power(pars['R1'] * pars['CPE1_Q'], 1.0 / pars['CPE1_n']))
+    print(1.0 / np.power(pars['R2'] * pars['CPE2_Q'], 1.0 / pars['CPE2_n']))
     data = load_data(
             r"C:\Users\ueli\Desktop\Sauter "
             r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
             sep=','
             )[-1]
-
-    data._plot_semis(circuit2, info, param2)
+    fig, axs = create_fig()
+    data._plot_semis(circuit2, info, pars, ax=axs)
+    plt.show()
 
 
 if __name__ == "__main__":
