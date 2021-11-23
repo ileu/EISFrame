@@ -2,24 +2,24 @@ import glob
 import os
 import re
 
-from src import Base
+import eisplottingtool as ept
 
 
 def main():
     path = r"G:\Collaborators\Sauter Ulrich\Solvent Impact"
     peis_mpr_files = glob.glob(path + r"\*EIS*.mpr")
 
-    cell_3mm = Base.Cell(3, 0.7)
+    cell_3mm = ept.Cell(3, 0.7)
 
     print(f"Found {len(peis_mpr_files)} files")
 
     for file in peis_mpr_files:
         image_name = '_'.join(re.split("[_.]", file)[-5:-1])
         print(file, image_name)
-        data = Base.load_data(file)
+        data = ept.load_data(file)
         print("Cycles: ", len(data))
         for i, cycle in enumerate(data):
-            fig, ax = Base.create_fig()
+            fig, ax = ept.create_fig()
             cycle.plot_nyquist(ax, cell=cell_3mm)
             cycle.fit_nyquist(
                     ax,
@@ -28,7 +28,7 @@ def main():
                     cell=cell_3mm,
                     draw_circle=True,
                     )
-            Base.save_fig(
+            ept.save_fig(
                     os.path.join(
                             os.path.dirname(file),
                             "plots",

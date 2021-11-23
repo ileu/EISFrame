@@ -610,18 +610,15 @@ class EISFrame:
         spec_frequencies = []
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
-            print(param_values)
-            print(elem_eval(param_values, 1))
 
             if match := re.match(r'(?=.*C(pe)?_?\d?)(?=.*R_?\d?).*', e):
                 pass
-            freq =  np.logspace(0, 5, 20)
+            freq = np.logspace(0, 5, 20)
             elem_impedance = elem_eval(
                     param_values,
                     freq
                     )
-            for index, eimp in enumerate(elem_impedance):
-                print(eimp, freq[index])
+
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
 
@@ -634,10 +631,6 @@ class EISFrame:
                         1,
                         1e12
                         )
-
-                print("****************")
-                print(max_x)
-                print(np.imag(elem_eval(param_values, max_x)))
                 spec_frequencies.append(1)
                 color = 'black'
                 freq = np.logspace(1, 12, 200)

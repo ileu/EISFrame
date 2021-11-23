@@ -1,6 +1,6 @@
 import os
 
-from src import Base
+import eisplottingtool as ept
 
 
 def main():
@@ -26,10 +26,10 @@ def main():
     indices_begin = [1, 0]
     indices_end = [-14, None]
 
-    fig, axs = Base.create_fig(2, 1, top_ticks=True)
+    fig, axs = ept.create_fig(2, 1, top_ticks=True)
     for i, file in enumerate(files):
         print(file)
-        data = Base.load_data(path, file)
+        data = ept.load_data(path, file)
         print("Cycles: ", len(data))
         axs[i].text(
             .5,
@@ -50,7 +50,7 @@ def main():
             )
             print(f"cycle {n}")
 
-    Base.save_fig(os.path.join(path, "plots", f"Thermal.png"))
+    ept.save_fig(os.path.join(path, "plots", f"Thermal.png"))
 
 
 if __name__ == "__main__":

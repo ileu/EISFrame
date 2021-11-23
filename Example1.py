@@ -5,7 +5,7 @@ import numpy as np
 from impedance import preprocessing
 from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
-from scipy.optimize import Bounds
+from scipy.optimize import Bounds, fminbound
 
 from eisplottingtool import load_data, create_fig, Cell
 from eisplottingtool.parser import parse_circuit, circuit_components
@@ -111,8 +111,7 @@ def main4():
     circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
     param2 = [0.0, 1037.9, 3.416e-10, 0.9, 1512.9, 2.697e-8, 0.9, 743.7,
               2.78]
-
-    info, calc = parse_circuit(circuit2)
+    info, __ = parse_circuit(circuit2)
     names = [inf[0] for inf in info]
     pars = dict(zip(names, param2))
     print(pars)
@@ -132,7 +131,26 @@ def main4():
     plt.show()
 
 
+def main5():
+    circuit = 'p(R1,CPE1)'
+    param = {'R1': 1037.9, 'CPE1_Q': 3.416e-10, 'CPE1_n': 1}
+    w_max = (param['R1']) ** (- 1.0 / param['CPE1_n']) / param['CPE1_Q']
+    f_max = w_max / 2 / np.pi
+
+    elem_info, elem_eval = parse_circuit(circuit)
+    max_x = fminbound(
+            lambda x: np.imag(elem_eval(param, x)),
+            1,
+            1e12
+            )
+    print(10 * '*')
+    print(f_max)
+    print(elem_eval(param, f_max))
+    print(10 * '*')
+    print(max_x)
+    print(elem_eval(param, max_x))
+
 if __name__ == "__main__":
     print("start")
-    main4()
+    main5()
     print("end")
