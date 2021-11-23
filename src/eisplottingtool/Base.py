@@ -628,14 +628,14 @@ class EISFrame:
             if re.match(r'(?=.*R_?\d?\b)(?=.*C(pe)?_?\d?).*', e):
                 max_x = fminbound(
                         lambda x: np.imag(elem_eval(param_values, x)),
-                        1e4,
+                        1,
                         1e12
                         )
                 print("****************")
                 print(max_x)
                 print(np.imag(elem_eval(param_values, max_x)))
-                print(np.imag(elem_eval(param_values, 3296970.2039248673)))
-                print(np.imag(elem_eval(param_values, 59018.45815002072)))
+                print(np.imag(elem_eval(param_values, 448897.0565110851)))
+                print(np.imag(elem_eval(param_values, 9393.079348237954)))
                 spec_frequencies.append(1)
                 color = 'black'
                 ax.fill_between(
