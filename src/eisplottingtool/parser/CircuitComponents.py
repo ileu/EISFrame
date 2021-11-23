@@ -27,7 +27,7 @@ class Component:
         return [name]
 
     @staticmethod
-    def calc(param, key, omega):
+    def calc(param, key, freq):
         raise NotImplementedError
 
     @staticmethod
@@ -45,8 +45,8 @@ class Resistor(Component):
         return ['Ohm']
 
     @staticmethod
-    def calc(param, key, omega):
-        return param.get(key, 1)
+    def calc(param, key, freq):
+        return np.full_like(freq, param.get(key, 1))
 
     @staticmethod
     def get_bounds():
@@ -63,9 +63,9 @@ class Capacitor(Component):
         return ['F']
 
     @staticmethod
-    def calc(param, key, omega):
+    def calc(param, key, freq):
         value = param.get(key)
-        return 1.0 / (1j * omega * value)
+        return 1.0 / (1j * 2 * np.pi * freq * value)
 
     @staticmethod
     def get_bounds():
@@ -86,9 +86,9 @@ class CPE(Component):
         return name + "_Q", name + "_n"
 
     @classmethod
-    def calc(cls, param, key, omega):
+    def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
-        return (1j * omega * values[0]) ** -values[1]
+        return (1j * 2 * np.pi * freq * values[0]) ** -values[1]
 
     @staticmethod
     def get_bounds():
@@ -110,9 +110,9 @@ class Warburg(Component):
         return name + "_R", name + "_R"
 
     @staticmethod
-    def calc(param, key, omega):
+    def calc(param, key, freq):
         value = param.get(key)
-        return value * (1 - 1j) / np.sqrt(omega)
+        return value * (1 - 1j) / np.sqrt(2 * np.pi * freq)
 
     @staticmethod
     def get_bounds():
@@ -134,9 +134,9 @@ class WarburgOpen(Component):
         return name + "_R", name + "_T"
 
     @classmethod
-    def calc(cls, param, key, omega):
+    def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
-        alpha = np.sqrt(1j * values[1] * omega)
+        alpha = np.sqrt(1j * values[1] * 2 * np.pi * freq)
         return values[0] / alpha / np.tanh(alpha)
 
     @staticmethod
@@ -159,9 +159,9 @@ class WarburgShort(Component):
         return name + "_R", name + "_T"
 
     @classmethod
-    def calc(cls, param, key, omega):
+    def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
-        alpha = np.sqrt(1j * values[1] * omega)
+        alpha = np.sqrt(1j * values[1] * 2 * np.pi * freq)
         return values[0] / alpha * np.tanh(alpha)
 
     @staticmethod

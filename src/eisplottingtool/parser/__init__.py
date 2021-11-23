@@ -1,2 +1,2 @@
-from eisplottingtool.parser.CircuitParser import parse_circuit, \
-    circuit_components
+from eisplottingtool.parser.CircuitParser import parse_circuit
+from eisplottingtool.parser.CircuitComponents import circuit_components

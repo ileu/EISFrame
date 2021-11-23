@@ -1,8 +1,8 @@
 /.ipynb_checkpoints/
 /.idea/
 /Images/
-/Testing/.ipynb_checkpoints/
-/Testing/Untitled.ipynb
+/tests/.ipynb_checkpoints/
+/tests/Untitled.ipynb
 /Thumbs.db
 /Examples/Introduction.ipynb
 /Testing/*.ipynb
@@ -17,3 +17,5 @@ dist/
 build/
 *.egg-info
 *.egg
+/PDF/
+/.pytest_cache/

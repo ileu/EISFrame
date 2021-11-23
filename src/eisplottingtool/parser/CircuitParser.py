@@ -4,7 +4,7 @@ import numpy as np
 from eisplottingtool.parser.CircuitComponents import circuit_components
 
 
-def parse_circuit(circ: str) -> tuple[list, Callable[[dict], np.array]]:
+def parse_circuit(circ: str) -> tuple[list, Callable]:
     """ EBNF parser for a circuit string.
 
     Implements an extended Backus–Naur form to parse a string that descirbes
