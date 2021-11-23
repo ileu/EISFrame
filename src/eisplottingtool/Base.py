@@ -610,15 +610,18 @@ class EISFrame:
         spec_frequencies = []
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
+            print(param_values)
+            print(elem_eval(param_values, 1))
 
-            if match := re.match(r'(?=.*C(pe)?_?\d?)(?=.*R_?\d?)', e):
-                print(match)
+            if match := re.match(r'(?=.*C(pe)?_?\d?)(?=.*R_?\d?).*', e):
                 pass
-
+            freq =  np.logspace(0, 5, 20)
             elem_impedance = elem_eval(
                     param_values,
-                    np.linspace(-0.00001, 2621977.442685624, 4000)
+                    freq
                     )
+            for index, eimp in enumerate(elem_impedance):
+                print(eimp, freq[index])
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
 
@@ -631,54 +634,56 @@ class EISFrame:
                         1,
                         1e12
                         )
+
                 print("****************")
                 print(max_x)
                 print(np.imag(elem_eval(param_values, max_x)))
-                print(np.imag(elem_eval(param_values, 448897.0565110851)))
-                print(np.imag(elem_eval(param_values, 9393.079348237954)))
                 spec_frequencies.append(1)
                 color = 'black'
-                ax.fill_between(
-                        np.real(elem_impedance),
-                        -np.imag(elem_impedance),
-                        alpha=0.5,
-                        zorder=5,
-                        ls='None'
-                        )
+                freq = np.logspace(1, 12, 200)
+                # ax.semilogx(
+                #         freq,
+                #         -np.imag(elem_eval(param_values, freq)),
+                #         alpha=1,
+                #         zorder=5,
+                #         ls='-'
+                #         )
+                # ax.vlines([207500, 1729],0, 700)
+                ax.plot(np.real(elem_impedance), -np.imag(elem_impedance))
 
-        elem_infos.sort(key=lambda x: x[1])
-        # check with which mark point the circle is associated by
-        # comparing magnitudes
-        for index, elem_info in enumerate(elem_infos):
-            elem_impedance = elem_info[0]
-            elem_spec_freq = elem_info[1]
-            color = 'black'
-            specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-            for mark in self.mark_points:
-                print(mark.name, mark.magnitude)
-                if specific_freq_magnitude == mark.magnitude:
-                    print(mark.name)
-                    color = mark.color
-                    break
-                if specific_freq_magnitude <= 0:
-                    print("ECR")
-                    color = min(
-                            self.mark_points, key=lambda x: x.magnitude
-                            ).color
-                    break
-
-            # draw circle
-            if cell is not None:
-                elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
-
-            ax.fill_between(
-                    np.real(elem_impedance),
-                    -np.imag(elem_impedance),
-                    color=color,
-                    alpha=0.5,
-                    zorder=5,
-                    ls='None'
-                    )
+        # elem_infos.sort(key=lambda x: x[1])
+        # # check with which mark point the circle is associated by
+        # # comparing magnitudes
+        # for index, elem_info in enumerate(elem_infos):
+        #     elem_impedance = elem_info[0]
+        #     elem_spec_freq = elem_info[1]
+        #     color = 'black'
+        #     specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
+        #     for mark in self.mark_points:
+        #         print(mark.name, mark.magnitude)
+        #         if specific_freq_magnitude == mark.magnitude:
+        #             print(mark.name)
+        #             color = mark.color
+        #             break
+        #         if specific_freq_magnitude <= 0:
+        #             print("ECR")
+        #             color = min(
+        #                     self.mark_points, key=lambda x: x.magnitude
+        #                     ).color
+        #             break
+        #
+        #     # draw circle
+        #     if cell is not None:
+        #         elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
+        #
+        #     ax.fill_between(
+        #             np.real(elem_impedance),
+        #             -np.imag(elem_impedance),
+        #             color=color,
+        #             alpha=0.5,
+        #             zorder=5,
+        #             ls='None'
+        #             )
 
         return
 

@@ -1,14 +1,15 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_array_almost_equal
+
 from eisplottingtool.parser.CircuitComponents import Resistor, Capacitor, \
     CPE, Warburg, WarburgOpen, WarburgShort
-from numpy.testing import assert_array_equal
 
 param_values = {
     'R': 1,
     'C': 1,
     'CPE_Q': 1,
-    'CPE_n': 1,
+    'CPE_n': 0.9,
     'W': 1,
     'Ws_R': 1,
     'Ws_T': 1,
@@ -29,8 +30,7 @@ component_tests = [
     pytest.param(
             CPE,
             'CPE',
-            (1j * 2 * np.pi * freq * param_values['CPE_Q']) ** -param_values[
-                'CPE_n'],
+            0.0299206180239438 - 0.188911347368689j,
             id="CPE"
             ),
     pytest.param(
@@ -64,4 +64,4 @@ component_tests = [
 def test_calc(comp, symbol, expected):
     actual = comp.calc(param_values, symbol, freq)
     # print('\n', f"Calculated value: {actual}")
-    assert_array_equal(actual, expected)
+    assert_array_almost_equal(actual, expected)

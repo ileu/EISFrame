@@ -109,22 +109,26 @@ def main3():
 
 def main4():
     circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
-    param2 = [0.0, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.92, 743.7,
+    param2 = [0.0, 1037.9, 3.416e-10, 0.9, 1512.9, 2.697e-8, 0.9, 743.7,
               2.78]
 
     info, calc = parse_circuit(circuit2)
     names = [inf[0] for inf in info]
     pars = dict(zip(names, param2))
     print(pars)
-    print(1.0 / np.power(pars['R1'] * pars['CPE1_Q'], 1.0 / pars['CPE1_n']) / 2 / np.pi)
-    print(1.0 / np.power(pars['R2'] * pars['CPE2_Q'], 1.0 / pars['CPE2_n']) / 2 / np.pi)
+    circuit3 = 'p(R1,CPE1)'
+    __, calc2 = parse_circuit(circuit3)
+    # print((pars['R1'] * pars['CPE1_Q']) ** (- 1.0 / pars['CPE1_n']) / 2 / np.pi)
+    # print((pars['R2'] * pars['CPE2_Q']) ** (- 1.0 / pars['CPE2_n']) / 2 / np.pi)
+    # print((1.0 / pars['R1'] + (1j * 4 * np.pi * pars['CPE1_Q']) ** pars['CPE1_n']) ** -1.0)
+    # print(calc2(pars, 2))
     data = load_data(
-            r"G:\Collaborators\Sauter "
+            r"C:\Users\ueli\Desktop\Sauter "
             r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
             sep=','
             )[-1]
     fig, axs = create_fig()
-    data._plot_semis(circuit2, info, pars, ax=axs)
+    data._plot_semis(circuit3, info, pars, ax=axs)
     plt.show()
 
 

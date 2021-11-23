@@ -88,7 +88,7 @@ class CPE(Component):
     @classmethod
     def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
-        return (1j * 2 * np.pi * freq * values[0]) ** -values[1]
+        return (1j * 2 * np.pi * freq * values[0]) ** (-values[1])
 
     @staticmethod
     def get_bounds():
