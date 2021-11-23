@@ -114,41 +114,35 @@ def main4():
     info, __ = parse_circuit(circuit2)
     names = [inf[0] for inf in info]
     pars = dict(zip(names, param2))
-    print(pars)
-    circuit3 = 'p(R1,CPE1)'
-    __, calc2 = parse_circuit(circuit3)
-    # print((pars['R1'] * pars['CPE1_Q']) ** (- 1.0 / pars['CPE1_n']) / 2 / np.pi)
-    # print((pars['R2'] * pars['CPE2_Q']) ** (- 1.0 / pars['CPE2_n']) / 2 / np.pi)
-    # print((1.0 / pars['R1'] + (1j * 4 * np.pi * pars['CPE1_Q']) ** pars['CPE1_n']) ** -1.0)
-    # print(calc2(pars, 2))
     data = load_data(
             r"C:\Users\ueli\Desktop\Sauter "
             r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
             sep=','
             )[-1]
     fig, axs = create_fig()
-    data._plot_semis(circuit3, info, pars, ax=axs)
+    data._plot_semis(circuit2, info, pars, ax=axs)
     plt.show()
 
 
 def main5():
     circuit = 'p(R1,CPE1)'
-    param = {'R1': 1037.9, 'CPE1_Q': 3.416e-10, 'CPE1_n': 1}
-    w_max = (param['R1']) ** (- 1.0 / param['CPE1_n']) / param['CPE1_Q']
+    param = {'R1': 1037.9, 'CPE1_Q': 3.416e-10, 'CPE1_n': 0.9}
+    w_max = (param['R1'] * param['CPE1_Q']) ** (- 1.0 / param['CPE1_n'])
     f_max = w_max / 2 / np.pi
 
     elem_info, elem_eval = parse_circuit(circuit)
     max_x = fminbound(
             lambda x: np.imag(elem_eval(param, x)),
             1,
-            1e12
+            1e12, xtol=1e-9, maxfun=1000,
             )
-    print(10 * '*')
+    print(5 * '*', " Calc ", 5 * '*')
     print(f_max)
     print(elem_eval(param, f_max))
-    print(10 * '*')
+    print(5 * '*', " Maximize  ", 5 * '*')
     print(max_x)
     print(elem_eval(param, max_x))
+
 
 if __name__ == "__main__":
     print("start")
