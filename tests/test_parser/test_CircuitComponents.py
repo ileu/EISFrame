@@ -5,6 +5,7 @@ from numpy.testing import assert_array_almost_equal
 from eisplottingtool.parser.CircuitComponents import Resistor, Capacitor, \
     CPE, Warburg, WarburgOpen, WarburgShort
 
+# TODO: change every 1 to 2
 param_values = {
     'R': 1,
     'C': 1,
