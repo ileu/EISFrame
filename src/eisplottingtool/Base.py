@@ -633,16 +633,6 @@ class EISFrame:
                         )
                 spec_frequencies.append(1)
                 color = 'black'
-                freq = np.logspace(1, 12, 200)
-                # ax.semilogx(
-                #         freq,
-                #         -np.imag(elem_eval(param_values, freq)),
-                #         alpha=1,
-                #         zorder=5,
-                #         ls='-'
-                #         )
-                # ax.vlines([207500, 1729],0, 700)
-                ax.plot(np.real(elem_impedance), -np.imag(elem_impedance))
 
         # elem_infos.sort(key=lambda x: x[1])
         # # check with which mark point the circle is associated by

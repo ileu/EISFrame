@@ -46,7 +46,8 @@ class Resistor(Component):
 
     @staticmethod
     def calc(param, key, freq):
-        return np.full_like(freq, param.get(key, 1))
+        result = np.full_like(freq, param.get(key), dtype=float)
+        return result
 
     @staticmethod
     def get_bounds():
@@ -88,7 +89,9 @@ class CPE(Component):
     @classmethod
     def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
-        return (1j * 2 * np.pi * freq) ** (-values[1]) / values[0]
+        result = (1j * 2 * np.pi * freq) ** (-values[1]) / values[0]
+        print("CPE", result)
+        return result
 
     @staticmethod
     def get_bounds():

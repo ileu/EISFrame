@@ -12,7 +12,7 @@ from eisplottingtool.parser import parse_circuit, circuit_components
 
 
 def main1():
-    frequencies, z = preprocessing.readCSV(r".\Examples\ExampleData1.csv")
+    frequencies, z = preprocessing.readCSV(r"../Examples/ExampleData1.csv")
     frequencies, z = preprocessing.ignoreBelowX(frequencies, z)
 
     circuit = CustomCircuit(
@@ -136,12 +136,15 @@ def main5():
             1,
             1e12, xtol=1e-9, maxfun=1000,
             )
-    print(5 * '*', " Calc ", 5 * '*')
-    print(f_max)
-    print(elem_eval(param, f_max))
-    print(5 * '*', " Maximize  ", 5 * '*')
-    print(max_x)
-    print(elem_eval(param, max_x))
+#     print(5 * '*', " Calc ", 5 * '*')
+#     print(f_max)
+#     print(elem_eval(param, f_max))
+#     print(5 * '*', " Maximize  ", 5 * '*')
+#     print(max_x)
+#     print(elem_eval(param, max_x))
+    print(5 * '*', " WTF  ", 5 * '*')
+    print(elem_eval(param, 1))
+    print(elem_eval(param, 1.0))
 
 
 if __name__ == "__main__":
