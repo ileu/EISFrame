@@ -1,6 +1,5 @@
 import re
 from typing import Callable
-import numpy as np
 from eisplottingtool.parser.CircuitComponents import circuit_components
 
 
@@ -18,7 +17,7 @@ def parse_circuit(circ: str) -> tuple[list, Callable]:
 
     circuit = element | element-circuit
     element = component | parallel
-    parallel = p(circuit, {circuit})
+    parallel = p(circuit {,circuit})
     component = a circuit component
 
     Parameters

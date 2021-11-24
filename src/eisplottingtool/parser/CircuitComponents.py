@@ -66,7 +66,8 @@ class Capacitor(Component):
     @staticmethod
     def calc(param, key, freq):
         value = param.get(key)
-        return 1.0 / (1j * 2 * np.pi * freq * value)
+        result = 1.0 / (1j * 2 * np.pi * freq * value)
+        return np.array(result)
 
     @staticmethod
     def get_bounds():
@@ -90,8 +91,7 @@ class CPE(Component):
     def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
         result = (1j * 2 * np.pi * freq) ** (-values[1]) / values[0]
-        print("CPE", result)
-        return result
+        return np.array(result)
 
     @staticmethod
     def get_bounds():
@@ -100,6 +100,7 @@ class CPE(Component):
 
 class Warburg(Component):
     """ defines a semi-infinite Warburg element    """
+
     @staticmethod
     def get_symbol():
         return 'W'
@@ -115,7 +116,8 @@ class Warburg(Component):
     @staticmethod
     def calc(param, key, freq):
         value = param.get(key)
-        return value * (1 - 1j) / np.sqrt(2 * np.pi * freq)
+        result = value * (1 - 1j) / np.sqrt(2 * np.pi * freq)
+        return np.array(result)
 
     @staticmethod
     def get_bounds():
@@ -124,6 +126,7 @@ class Warburg(Component):
 
 class WarburgOpen(Component):
     """ defines a semi-infinite Warburg element    """
+
     @staticmethod
     def get_symbol():
         return 'Wo'
@@ -140,7 +143,8 @@ class WarburgOpen(Component):
     def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
         alpha = np.sqrt(1j * values[1] * 2 * np.pi * freq)
-        return values[0] / alpha / np.tanh(alpha)
+        result = values[0] / alpha / np.tanh(alpha)
+        return np.array(result)
 
     @staticmethod
     def get_bounds():
@@ -149,6 +153,7 @@ class WarburgOpen(Component):
 
 class WarburgShort(Component):
     """ defines a semi-infinite Warburg element    """
+
     @staticmethod
     def get_symbol():
         return 'Ws'
@@ -165,7 +170,8 @@ class WarburgShort(Component):
     def calc(cls, param, key, freq):
         values = [param[name] for name in cls.get_paramname(key)]
         alpha = np.sqrt(1j * values[1] * 2 * np.pi * freq)
-        return values[0] / alpha * np.tanh(alpha)
+        result = values[0] / alpha * np.tanh(alpha)
+        return np.array(result)
 
     @staticmethod
     def get_bounds():
