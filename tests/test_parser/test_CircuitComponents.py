@@ -5,20 +5,19 @@ from numpy.testing import assert_array_almost_equal
 from eisplottingtool.parser.CircuitComponents import Resistor, Capacitor, \
     CPE, Warburg, WarburgOpen, WarburgShort
 
-# TODO: change every 1 to 2
 param_values = {
-    'R': 1,
-    'C': 1,
-    'CPE_Q': 1,
+    'R': 2,
+    'C': 2,
+    'CPE_Q': 2,
     'CPE_n': 0.9,
-    'W': 1,
-    'Ws_R': 1,
-    'Ws_T': 1,
-    'Wo_R': 1,
-    'Wo_T': 1,
+    'W': 2,
+    'Ws_R': 2,
+    'Ws_T': 2,
+    'Wo_R': 2,
+    'Wo_T': 2,
     }
 
-freq = 1
+freq = 2
 
 component_tests = [
     pytest.param(Resistor, 'R', np.full_like(freq, param_values['R'])),
@@ -31,7 +30,7 @@ component_tests = [
     pytest.param(
             CPE,
             'CPE',
-            0.0299206180239438 - 0.188911347368689j,
+            0.00801703 - 0.0506175j,
             id="CPE"
             ),
     pytest.param(

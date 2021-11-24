@@ -4,7 +4,6 @@ from numpy.testing import assert_array_almost_equal
 
 from eisplottingtool.parser import parse_circuit
 
-# TODO: change every 1 to 2
 param_values = {
     'R': 1,
     'C': 1,
