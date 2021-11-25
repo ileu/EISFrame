@@ -51,7 +51,7 @@ class Resistor(Component):
 
     @staticmethod
     def get_bounds():
-        return [(0.01, 2000)]
+        return [(1e-6, 2000)]
 
 
 class Capacitor(Component):
@@ -175,7 +175,7 @@ class WarburgShort(Component):
 
     @staticmethod
     def get_bounds():
-        return (0, 2000), (1e2, 1e8)
+        return (0, 2000), (1e-3, 1e8)
 
 
 circuit_components = {key: eval(key) for key in set(globals()) - initial_state

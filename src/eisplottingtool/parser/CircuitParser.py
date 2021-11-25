@@ -95,9 +95,6 @@ def parse_circuit(circ: str) -> tuple[list, Callable]:
 
     __, equation = circuit(circ.replace(" ", ""))
 
-    print(equation)
-    print('lambda param, omega: ' + equation)
-    print(circuit_components)
     calculate = eval('lambda param, omega: ' + equation, circuit_components)
     param_info = list(zip(param_names, param_bounds, param_units))
     return param_info, calculate

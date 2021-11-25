@@ -3,7 +3,7 @@ import re
 
 import imageio
 
-from src import Base
+import eisplottingtool as ept
 
 
 def main():
@@ -17,18 +17,18 @@ def main():
     filepath2 = path + filename2
     data_params = ["time/s", "Ewe/V", "freq/Hz", "Re(Z)/Ohm", "-Im(Z)/Ohm",
                    "cycle number"]
-    data = Base.load_data(filepath1, data_param=data_params)
+    data = ept.load_data(filepath1, data_param=data_params)
     data_switch = len(data)
-    data = data + Base.load_data(filepath2, data_param=data_params)
+    data = data + ept.load_data(filepath2, data_param=data_params)
     image_name = re.split(r"\\", filepath1)[-1][:-4]
     print("Animating")
-    cell = Base.Cell(3, 0.7)
+    cell = ept.Cell(3, 0.7)
     print(f"Cell: {cell}")
     with imageio.get_writer(
             r'Images\tail_animation_wMark.gif', mode='I'
             ) as writer:
         for i, cycle in enumerate(data):
-            fig, ax = Base.create_fig()
+            fig, ax = ept.create_fig()
             fig.suptitle("LLZTO_Batch4_rAcetonitryle-3days")
             label = f"Cycle {i + 1}"
             print(label)
@@ -49,7 +49,7 @@ def main():
                     f"{image_name}",
                     f"cycle_{i}.png"
                     )
-            Base.save_fig(img_path)
+            ept.save_fig(img_path)
             image = imageio.imread(img_path)
             writer.append_data(image)
 

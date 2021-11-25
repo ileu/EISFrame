@@ -359,8 +359,8 @@ class EISFrame:
             ax: axes.Axes,
             fit_circuit: str = None,
             fit_guess: list[float] = None,
-            fit_bounds=None,
-            global_opt: bool = False,
+            fit_bounds: dict[str, tuple] = None,
+            path=None,
             cell: Cell = None,
             draw_circle: bool = True,
             draw_circuit: bool = False,
@@ -377,9 +377,9 @@ class EISFrame:
             equivalence circuit for the fitting
         fit_guess : list[float]
             initial values for the fitting
-        fit_bounds : tuple
+        fit_bounds : dict[tuple]
         fit_values
-        global_opt : bool
+        path : str
         cell : Cell
         draw_circle : bool
             if the corresponding circles should be drawn or not
@@ -413,31 +413,30 @@ class EISFrame:
             fit_bounds = {}
 
         if isinstance(fit_bounds, dict):
-            for name in param_names:
+            for i, name in enumerate(param_names):
                 if b := fit_bounds.get(name) is not None:
                     bounds.append(b)
                 else:
                     # TODO: Get default bounds
-                    bounds.append((0.1, 2000))
+                    bounds.append(param_info[i][1])
 
         # calculate rmse
-        def rmse(y_predicted, y_actual):
+        def rmse(y_predicted, y_actual, weight=1):
             """ Calculates the root mean squared error between two vectors """
             e = np.abs(np.subtract(y_actual, y_predicted))
             se = np.square(e)
-            mse = np.nansum(se)
+            wse = se / weight
+            mse = np.nansum(wse)
             return np.sqrt(mse)
 
         # prepare optimizing function:
         def opt_func(x):
             params = dict(zip(param_names, x))
-            params['omega'] = frequencies
-            predict = circ_calc(params)
-            err = rmse(predict, z)
+            predict = circ_calc(params, frequencies)
+            err = rmse(predict, z, np.abs(predict))
             return err
 
-        print("eval:", opt_func(fit_guess))
-
+        print(param_info)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                     "ignore",
@@ -463,26 +462,49 @@ class EISFrame:
                 opt_result = minimize(
                         opt_func,
                         np.array(fit_guess),
-                        bounds=fit_bounds,
+                        bounds=bounds,
                         tol=1e-13,
-                        options={'maxiter': 1e3},
+                        options={'maxiter': 1e4, 'ftol': 1e-9},
                         method='Nelder-Mead'
-                        # fit_guess,
-                        # minimizer_kwargs={"bounds": Bounds(*fit_bounds)},
                         )
                 param_values = opt_result.x
             else:
                 param_values = np.array(fit_values)
 
         # print the fitting parameters to the console
-
         parameters = dict(zip(param_names, param_values))
+        print(f"Parameters: {parameters}")
+
+        if path is not None:
+            with open(path, 'w') as f:
+                f.write(f"parameter, value\n")
+                for key in parameters.keys():
+                    f.write(f"{key}, {parameters[key]}\n")
+
         f_pred = np.logspace(-9, 9, 400)
-        print(parameters)
-        parameters['omega'] = f_pred
-        parameters['np'] = np
         # plot the fitting result
-        custom_circuit_fit = circ_calc(parameters)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                    "ignore",
+                    message="divide by zero encountered in true_divide"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="invalid value encountered in true_divide"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="overflow encountered in tanh"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="divide by zero encountered in double_scalars"
+                    )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="overflow encountered in power"
+                    )
+            custom_circuit_fit = circ_calc(parameters, f_pred)
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -499,7 +521,7 @@ class EISFrame:
         self.lines["fit"] = line
         # check if circle needs to be drawn
         if draw_circle:
-            self._plot_semis(fit_circuit, param_info, param_values, cell, ax)
+            self._plot_semis(fit_circuit, param_info, parameters, cell, ax)
 
         if draw_circuit:
             self._plot_circuit(fit_circuit, ax)
@@ -602,7 +624,6 @@ class EISFrame:
         if ax is None:
             ax = plt.gca()
 
-        param_names = [info[0] for info in param_info]
         elem_infos = []
 
         # split the circuit in to elements connected through series
@@ -610,63 +631,79 @@ class EISFrame:
         spec_frequencies = []
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
+            elem_names = [info[0] for info in elem_info]
 
-            if match := re.match(r'(?=.*C(pe)?_?\d?)(?=.*R_?\d?).*', e):
-                pass
-            freq = np.logspace(0, 5, 20)
-            elem_impedance = elem_eval(
-                    param_values,
-                    freq
-                    )
+            if match := re.match(r'(?=.*(R_?\d?))(?=.*(C(?:PE)?_?\d?))', e):
+                res = param_values.get(match.group(1))
+                cap = [param_values.get(key) for key in param_values if
+                       match.group(2) in key]
+
+                def calc_specific_freq(r, c, n=1):
+                    return 1.0 / (r * c) ** n / 2 / np.pi
+
+                specific_frequency = calc_specific_freq(res, *cap)
+
+                # max_x = fminbound(
+                #         lambda x: np.imag(elem_eval(param_values, x)),
+                #         1,
+                #         1e12
+                #         )
+
+            elif match := re.match(r'(W[os]?_?\d?)', e):
+                war = [param_values.get(match.group(1))]
+                if len(war) == 2:
+                    specific_frequency = 1.0 / war[1]
+                else:
+                    specific_frequency = 1e-2
+            else:
+                continue
+
+            freq = np.logspace(-9, 9, 180)
+            elem_impedance = elem_eval(param_values, freq)
 
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
 
-            specific_frequency = 1e5  # TODO: calc specific frequency
             elem_infos.append((elem_impedance, specific_frequency))
             # get previous resistors
-            if re.match(r'(?=.*R_?\d?\b)(?=.*C(pe)?_?\d?).*', e):
-                max_x = fminbound(
-                        lambda x: np.imag(elem_eval(param_values, x)),
-                        1,
-                        1e12
-                        )
-                spec_frequencies.append(1)
-                color = 'black'
+        color = 'black'
 
-        # elem_infos.sort(key=lambda x: x[1])
-        # # check with which mark point the circle is associated by
-        # # comparing magnitudes
-        # for index, elem_info in enumerate(elem_infos):
-        #     elem_impedance = elem_info[0]
-        #     elem_spec_freq = elem_info[1]
-        #     color = 'black'
-        #     specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-        #     for mark in self.mark_points:
-        #         print(mark.name, mark.magnitude)
-        #         if specific_freq_magnitude == mark.magnitude:
-        #             print(mark.name)
-        #             color = mark.color
-        #             break
-        #         if specific_freq_magnitude <= 0:
-        #             print("ECR")
-        #             color = min(
-        #                     self.mark_points, key=lambda x: x.magnitude
-        #                     ).color
-        #             break
-        #
-        #     # draw circle
-        #     if cell is not None:
-        #         elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
-        #
-        #     ax.fill_between(
-        #             np.real(elem_impedance),
-        #             -np.imag(elem_impedance),
-        #             color=color,
-        #             alpha=0.5,
-        #             zorder=5,
-        #             ls='None'
-        #             )
+        elem_infos.sort(key=lambda x: x[1], reverse=True)
+        # check with which mark point the circle is associated by
+        # comparing magnitudes
+        prev_imp = 0
+        for index, elem_info in enumerate(elem_infos):
+            elem_impedance = elem_info[0]
+            elem_spec_freq = elem_info[1]
+            color = 'black'
+            specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
+            print(10 * "*")
+            print(specific_freq_magnitude)
+            for mark in self.mark_points:
+                print(mark.name, mark.magnitude)
+                if specific_freq_magnitude == mark.magnitude:
+                    color = mark.color
+                    break
+                if specific_freq_magnitude <= 0:
+                    color = min(
+                            self.mark_points, key=lambda x: x.magnitude
+                            ).color
+                    break
+
+            # draw circle
+            if cell is not None:
+                elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
+
+            ax.fill_between(
+                    np.real(elem_impedance) + prev_imp,
+                    -np.imag(elem_impedance),
+                    color=color,
+                    alpha=0.5,
+                    zorder=0,
+                    ls='None'
+                    )
+            print(prev_imp)
+            prev_imp += np.real(elem_impedance)[0]
 
         return
 
@@ -788,7 +825,8 @@ def save_fig(
 def flat2gen(alist):
     for item in alist:
         if isinstance(item, list):
-            for subitem in item: yield subitem
+            for subitem in item:
+                yield subitem
         else:
             yield item
 

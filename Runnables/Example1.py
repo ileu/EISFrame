@@ -86,7 +86,7 @@ def main3():
             )[-1]
     print("LOADED")
     circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
-    param2 = [0.0, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.920, 743.7,
+    param2 = [0.1, 1037.9, 3.416e-10, 0.9896, 1512.9, 2.697e-8, 0.920, 743.7,
               2.78]
     fig, ax = create_fig()
     data.plot_nyquist(ax, cell=Cell(3, 0.7))
@@ -99,9 +99,9 @@ def main3():
             cell=Cell(3, 0.7)
             )
     info, calc = parse_circuit(circuit2)
-    param = dict(zip(info.keys(), param2))
-    param["omega"] = np.logspace(-9, 9, 400)
-    res = calc(param)
+    names = [inf[0] for inf in info]
+    param = dict(zip(names, param2))
+    res = calc(param, np.logspace(-9, 9, 400))
     res = res * Cell(3, 0.7).area_mm2 * 1e-2
     plt.plot(np.real(res), -np.imag(res), label="Initial Values")
     plt.show()
@@ -109,18 +109,20 @@ def main3():
 
 def main4():
     circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
-    param2 = [0.0, 1037.9, 3.416e-10, 0.9, 1512.9, 2.697e-8, 0.9, 743.7,
+    param2 = [0.1, 1037.9, 3.416e-10, 0.9, 1512.9, 2.697e-8, 0.9, 743.7,
               2.78]
     info, __ = parse_circuit(circuit2)
     names = [inf[0] for inf in info]
     pars = dict(zip(names, param2))
     data = load_data(
-            r"C:\Users\ueli\Desktop\Sauter "
-            r"Ulrich\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
+            r"G:\Collaborators\Sauter Ulrich"
+            r"\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
             sep=','
             )[-1]
     fig, axs = create_fig()
-    data._plot_semis(circuit2, info, pars, ax=axs)
+    data.plot_nyquist(axs)
+    data.fit_nyquist(axs, circuit2, param2)
+    # data._plot_semis(circuit2, info, pars, ax=axs)
     plt.show()
 
 
@@ -136,18 +138,15 @@ def main5():
             1,
             1e12, xtol=1e-9, maxfun=1000,
             )
-#     print(5 * '*', " Calc ", 5 * '*')
-#     print(f_max)
-#     print(elem_eval(param, f_max))
-#     print(5 * '*', " Maximize  ", 5 * '*')
-#     print(max_x)
-#     print(elem_eval(param, max_x))
-    print(5 * '*', " WTF  ", 5 * '*')
-    print(elem_eval(param, 1))
-    print(elem_eval(param, 1.0))
+    print(5 * '*', " Calc ", 5 * '*')
+    print(f_max)
+    print(elem_eval(param, f_max))
+    print(5 * '*', " Maximize  ", 5 * '*')
+    print(max_x)
+    print(elem_eval(param, max_x))
 
 
 if __name__ == "__main__":
     print("start")
-    main5()
+    main4()
     print("end")
