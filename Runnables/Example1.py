@@ -7,7 +7,7 @@ from impedance.models.circuits import CustomCircuit
 from impedance.visualization import plot_nyquist
 from scipy.optimize import Bounds, fminbound
 
-from eisplottingtool import load_data, create_fig, Cell
+from eisplottingtool import load_data, create_fig, Cell, save_fig
 from eisplottingtool.parser import parse_circuit, circuit_components
 
 
@@ -58,8 +58,8 @@ def main1():
 def main2():
     tries = int(1e4)
     circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
-    names, calc = parse_circuit(circuit)
-    p = {key: 1 for key in names.keys()}
+    infos, calc = parse_circuit(circuit)
+    p = {info[0]: 1 for info in infos}
     custom_circuit = CustomCircuit(
             circuit,
             initial_guess=p.values()
@@ -108,6 +108,8 @@ def main3():
 
 
 def main4():
+    path = r"G:\Collaborators\Sauter Ulrich\EIS and cycling raw data"
+    file = r"\20200422_LLZTO_polished_water21h_400C-3h_IR_01_PEIS_C04.mpr"
     circuit2 = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
     param2 = [0.1, 1037.9, 3.416e-10, 0.9, 1512.9, 2.697e-8, 0.9, 743.7,
               2.78]
@@ -115,15 +117,19 @@ def main4():
     names = [inf[0] for inf in info]
     pars = dict(zip(names, param2))
     data = load_data(
-            r"G:\Collaborators\Sauter Ulrich"
-            r"\Water-param\20210603_B6_water-4weeks-FC_01_PEIS_C03.mpr",
-            sep=','
-            )[-1]
+        path + file,
+        sep=','
+        )[-1]
     fig, axs = create_fig()
     data.plot_nyquist(axs)
-    data.fit_nyquist(axs, circuit2, param2)
-    # data._plot_semis(circuit2, info, pars, ax=axs)
-    plt.show()
+    data.fit_nyquist(
+        axs,
+        circuit2,
+        param2,
+        path=path + r"\plots\LLZTO_polished_water21h_fit.txt"
+        )
+
+    save_fig(path + r"\plots\LLZTO_polished_water21h_EIS-Plot.png")
 
 
 def main5():

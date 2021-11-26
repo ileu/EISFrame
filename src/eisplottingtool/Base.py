@@ -18,7 +18,7 @@ import pandas as pd
 import pint
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import minimize, fminbound
+from scipy.optimize import minimize
 
 from eisplottingtool.parser import parse_circuit
 
@@ -417,7 +417,6 @@ class EISFrame:
                 if b := fit_bounds.get(name) is not None:
                     bounds.append(b)
                 else:
-                    # TODO: Get default bounds
                     bounds.append(param_info[i][1])
 
         # calculate rmse
@@ -605,8 +604,7 @@ class EISFrame:
         """
         plots the semicircles to the corresponding circuit elements.
 
-        the permitted elements are p(R,CPE), p(R,C) or
-        TODO: any Warburg element
+        the permitted elements are p(R,CPE), p(R,C) or any Warburg element
         @param circuit:
         @param ax:
         Parameters
@@ -627,11 +625,9 @@ class EISFrame:
         elem_infos = []
 
         # split the circuit in to elements connected through series
-        elements = re.split(r"-(?![^\(]*\))", circuit)
-        spec_frequencies = []
+        elements = re.split(r"-(?![^(]*\))", circuit)
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
-            elem_names = [info[0] for info in elem_info]
 
             if match := re.match(r'(?=.*(R_?\d?))(?=.*(C(?:PE)?_?\d?))', e):
                 res = param_values.get(match.group(1))
@@ -643,18 +639,15 @@ class EISFrame:
 
                 specific_frequency = calc_specific_freq(res, *cap)
 
-                # max_x = fminbound(
-                #         lambda x: np.imag(elem_eval(param_values, x)),
-                #         1,
-                #         1e12
-                #         )
-
             elif match := re.match(r'(W[os]?_?\d?)', e):
-                war = [param_values.get(match.group(1))]
+                war = [param_values.get(key) for key in param_values if
+                       match.group(1) in key]
                 if len(war) == 2:
                     specific_frequency = 1.0 / war[1]
                 else:
                     specific_frequency = 1e-2
+            elif re.match(r'(R_?\d?)', e):
+                specific_frequency = 1e20
             else:
                 continue
 
@@ -665,8 +658,6 @@ class EISFrame:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
 
             elem_infos.append((elem_impedance, specific_frequency))
-            # get previous resistors
-        color = 'black'
 
         elem_infos.sort(key=lambda x: x[1], reverse=True)
         # check with which mark point the circle is associated by
@@ -675,20 +666,23 @@ class EISFrame:
         for index, elem_info in enumerate(elem_infos):
             elem_impedance = elem_info[0]
             elem_spec_freq = elem_info[1]
-            color = 'black'
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
             print(10 * "*")
-            print(specific_freq_magnitude)
-            for mark in self.mark_points:
-                print(mark.name, mark.magnitude)
-                if specific_freq_magnitude == mark.magnitude:
-                    color = mark.color
-                    break
-                if specific_freq_magnitude <= 0:
-                    color = min(
-                            self.mark_points, key=lambda x: x.magnitude
-                            ).color
-                    break
+            print(elem_spec_freq, specific_freq_magnitude)
+            if specific_freq_magnitude <= 0:
+                print("ECR")
+                color = min(
+                        self.mark_points, key=lambda x: x.magnitude
+                        ).color
+            else:
+                for mark in self.mark_points:
+                    print(mark.name, mark.magnitude)
+                    if specific_freq_magnitude == mark.magnitude:
+                        color = mark.color
+                        break
+                else:
+                    prev_imp += np.real(elem_impedance)[0]
+                    continue
 
             # draw circle
             if cell is not None:
@@ -702,7 +696,6 @@ class EISFrame:
                     zorder=0,
                     ls='None'
                     )
-            print(prev_imp)
             prev_imp += np.real(elem_impedance)[0]
 
         return
