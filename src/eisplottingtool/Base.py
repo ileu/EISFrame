@@ -435,7 +435,6 @@ class EISFrame:
             err = rmse(predict, z, np.abs(predict))
             return err
 
-        print(param_info)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                     "ignore",
@@ -579,7 +578,6 @@ class EISFrame:
 
         if plot_yrange is None:
             limits = [np.median(y_data) * 2, *ax.get_ylim()]
-            print(limits)
             yrange = max(limits)
             ax.set_ylim(-yrange, yrange)
         else:
