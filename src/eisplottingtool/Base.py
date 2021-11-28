@@ -66,14 +66,11 @@ class MarkPoint:
 
         self.magnitude = np.floor(np.log10(freq))  # magnitude of the frequency
 
-    def __str__(self):
-        out = f"{self.name} @ {self.freq} (1e{self.magnitude}), "
-        out += f"color {self.color} "
-        out += f"with index {self.index}"
-        return out
-
     def __repr__(self):
-        return self.__str__()
+        out = f"{self.name} @ {self.freq} (1e{self.magnitude}), "
+        out += f"{self.color=} "
+        out += f"with {self.index=}"
+        return out
 
     def label(self, freq=None):
         ureg = pint.UnitRegistry()
@@ -116,7 +113,7 @@ class Cell:
         self.volume_mm3 = self.area_mm2 * thickness_mm  # volume of the cell
 
     def __repr__(self):
-        return f"dia: {self.diameter_mm}, area: {self.area_mm2}"
+        return f"{self.diameter_mm=}, {self.area_mm2=}"
 
     def __str__(self):
         return "Cell with " + self.__repr__()

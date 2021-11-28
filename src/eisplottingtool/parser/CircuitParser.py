@@ -3,6 +3,25 @@ from typing import Callable
 from eisplottingtool.parser.CircuitComponents import circuit_components
 
 
+class Parameter:
+    def __init__(self, name):
+        self.name = name
+        self.value = 0
+        self.bounds = (0, 0)
+        self.unit = ''
+
+    def __str__(self):
+        return
+
+    def __repr__(self):
+        return
+
+    def __eq__(self, other):
+        if isinstance(other, Parameter):
+            return self.name == other.name
+        return False
+
+
 def parse_circuit(circ: str) -> tuple[list, Callable]:
     """ EBNF parser for a circuit string.
 

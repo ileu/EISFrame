@@ -29,6 +29,7 @@ setuptools.setup(
         "pint",
         "scipy",
         "matplotlib",
+        "schemdraw>=0.12"
     ],
     python_requires=">=3.9",
 )

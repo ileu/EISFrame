@@ -109,14 +109,14 @@ def main3():
 
 
 def main4():
-    path = r"G:\Collaborators\Sauter Ulrich\EIS and cycling raw data"
+    path = r"C:\Users\ueli\Desktop\Sauter Ulrich\EIS and cycling raw data"
     file1 = r"\20200422_LLZTO_polished_water21h_400C-3h_IR_01_PEIS_C04.mpr"
     file2 = r"\20200424_LLZTO_polished_Ethnaol-15min-600C_PEIS_C13.mpr"
     file3 = r"\20200528_LLZTO_polished_Batch3-Ampcera-acetone-2h_400C" \
             r"-Ar_01_PEIS_C14.mpr"
     circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
     param = [0.1, 1037.9, 3.416e-10, 0.9, 1512.9, 2.697e-8, 0.9, 743.7, 2.78]
-    files = [file1, file2, file3]
+    files = [file2]
     for file in files:
         print(file)
         name = re.search(r'_.*?C', file).group(0)[1:]
