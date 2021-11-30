@@ -1,28 +1,16 @@
 import re
 from typing import Callable
-from eisplottingtool.parser.CircuitComponents import circuit_components
+from eisplottingtool.parser.CircuitComponents import circuit_components, \
+    Parameter
+
+import schemdraw as sd
+import schemdraw.dsp as dsp
 
 
-class Parameter:
-    def __init__(self, name):
-        self.name = name
-        self.value = 0
-        self.bounds = (0, 0)
-        self.unit = ''
-
-    def __str__(self):
-        return
-
-    def __repr__(self):
-        return
-
-    def __eq__(self, other):
-        if isinstance(other, Parameter):
-            return self.name == other.name
-        return False
-
-
-def parse_circuit(circ: str) -> tuple[list, Callable]:
+def parse_circuit(
+        circ: str,
+        draw: bool = False
+        ) -> tuple[list[Parameter], Callable]:
     """ EBNF parser for a circuit string.
 
     Implements an extended Backus–Naur form to parse a string that descirbes
@@ -43,6 +31,8 @@ def parse_circuit(circ: str) -> tuple[list, Callable]:
     ----------
     circ : str
         String that descirbes a circuit
+    draw : bool
+        If the circuit should be drawn. Default False.
 
     Returns
     -------
@@ -50,9 +40,7 @@ def parse_circuit(circ: str) -> tuple[list, Callable]:
     calculate : Callable
 
     """
-    param_names = []
-    param_units = []
-    param_bounds = []
+    param_info: list[Parameter] = []
 
     def component(c: str):
         """ process component and remove from circuit string c
@@ -69,17 +57,15 @@ def parse_circuit(circ: str) -> tuple[list, Callable]:
         index = re.match(r'([a-zA-Z]+)_?\d?', c)
         name = c[:index.end()]
         c = c[index.end():]
+        symbol = re.match('[A-Za-z]+', name).group()
 
         for key, comp in circuit_components.items():
-            symbol = re.match('[A-Za-z]+', name).group()
             if comp.get_symbol() == symbol:
                 break
         else:
             return c, 1
 
-        param_names.extend(comp.get_paramname(name))
-        param_units.extend(comp.get_unit())
-        param_bounds.extend(comp.get_bounds())
+        param_info.extend(comp.get_parameters(name))
         return c, key + rf".calc(param,'{name}', omega)"
 
     def parallel(c: str):
@@ -115,5 +101,26 @@ def parse_circuit(circ: str) -> tuple[list, Callable]:
     __, equation = circuit(circ.replace(" ", ""))
 
     calculate = eval('lambda param, omega: ' + equation, circuit_components)
-    param_info = list(zip(param_names, param_bounds, param_units))
     return param_info, calculate
+
+
+def _draw_parallel(elements: list, drawing: sd.Drawing):
+    drawing += dsp.Line().right().length(drawing.unit / 8.0)
+    drawing.move(drawing.unit * 0.75, 0)
+    for i in range(len(elements)):
+        length = -0.25 * (len(elements) - 1.0) + 0.5 * i
+        drawing.push()
+        if length >= 0:
+            drawing += dsp.Line().up().length(drawing.unit * length)
+        else:
+            drawing += dsp.Line().down().length(drawing.unit * -length)
+        drawing += elements[i]().left().length(drawing.unit * 0.75)
+        if length < 0:
+            drawing += dsp.Line().up().length(drawing.unit * -length)
+        else:
+            drawing += dsp.Line().down().length(drawing.unit * length)
+        drawing.pop()
+
+    drawing += dsp.Line().right().length(drawing.unit / 8.0)
+
+    return drawing
