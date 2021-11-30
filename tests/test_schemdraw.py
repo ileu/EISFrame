@@ -21,7 +21,7 @@ def draw(drawer):
             pytest.param(['', '', '', ''], [-0.75, -0.25, 0.25, 0.75]),
             ]
         )
-def test_height(elem, expected):
+def test_height(elem: list, expected):
     actual = draw(elem)
     print(actual)
     assert actual == expected
