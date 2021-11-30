@@ -1,6 +1,7 @@
 import numpy as np
-import eisplottingtool.parser.SchemeElements as sElm
 from schemdraw import elements as elm
+
+import eisplottingtool.parser.SchemeElements as sElm
 
 initial_state = set(globals().copy())
 additional_functions = ['Parameter', 'Component', 'initial_state',
@@ -37,7 +38,7 @@ class Component:
 
     @staticmethod
     def draw():
-        return elm.Resistor()
+        return elm.ResistorIEC()
 
 
 class Resistor(Component):
@@ -72,6 +73,10 @@ class Capacitor(Component):
         value = param.get(key)
         result = 1.0 / (1j * 2 * np.pi * freq * value)
         return np.array(result)
+
+    @staticmethod
+    def draw():
+        return elm.Capacitor()
 
 
 class CPE(Component):
@@ -115,6 +120,10 @@ class Warburg(Component):
         result = value * (1 - 1j) / np.sqrt(2 * np.pi * freq)
         return np.array(result)
 
+    @staticmethod
+    def draw():
+        return sElm.Warburg()
+
 
 class WarburgOpen(Component):
     """ defines a finite-space Warburg element    """
@@ -137,6 +146,10 @@ class WarburgOpen(Component):
         result = r / alpha / np.tanh(alpha)
         return np.array(result)
 
+    @staticmethod
+    def draw():
+        return sElm.WarburgOpen()
+
 
 class WarburgShort(Component):
     """ defines a finite-length Warburg element    """
@@ -158,6 +171,10 @@ class WarburgShort(Component):
         alpha = np.sqrt(1j * t * 2 * np.pi * freq)
         result = r / alpha * np.tanh(alpha)
         return np.array(result)
+
+    @staticmethod
+    def draw():
+        return sElm.WarburgShort()
 
 
 circuit_components: dict[str, Component] = {key: eval(key) for key in
