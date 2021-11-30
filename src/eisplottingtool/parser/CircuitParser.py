@@ -3,9 +3,6 @@ from typing import Callable
 from eisplottingtool.parser.CircuitComponents import circuit_components, \
     Parameter
 
-import schemdraw as sd
-import schemdraw.dsp as dsp
-
 
 def parse_circuit(
         circ: str,
@@ -102,25 +99,3 @@ def parse_circuit(
 
     calculate = eval('lambda param, omega: ' + equation, circuit_components)
     return param_info, calculate
-
-
-def _draw_parallel(elements: list, drawing: sd.Drawing):
-    drawing += dsp.Line().right().length(drawing.unit / 8.0)
-    drawing.move(drawing.unit * 0.75, 0)
-    for i in range(len(elements)):
-        length = -0.25 * (len(elements) - 1.0) + 0.5 * i
-        drawing.push()
-        if length >= 0:
-            drawing += dsp.Line().up().length(drawing.unit * length)
-        else:
-            drawing += dsp.Line().down().length(drawing.unit * -length)
-        drawing += elements[i]().left().length(drawing.unit * 0.75)
-        if length < 0:
-            drawing += dsp.Line().up().length(drawing.unit * -length)
-        else:
-            drawing += dsp.Line().down().length(drawing.unit * length)
-        drawing.pop()
-
-    drawing += dsp.Line().right().length(drawing.unit / 8.0)
-
-    return drawing

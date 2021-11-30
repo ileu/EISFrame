@@ -15,7 +15,7 @@ class Parameter:
         self.unit = unit
 
     def __repr__(self):
-        return
+        return f"Parameter {self.name}"
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
@@ -40,9 +40,11 @@ class Component:
     def draw():
         return elm.ResistorIEC()
 
+    def __repr__(self):
+        return f"Component {self.get_symbol()}"
+
 
 class Resistor(Component):
-
     @staticmethod
     def get_symbol():
         return 'R'
