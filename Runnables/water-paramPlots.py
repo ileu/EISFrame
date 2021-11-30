@@ -1,4 +1,4 @@
-from src import Base
+import eisplottingtool as ept
 
 
 def main():
@@ -12,21 +12,21 @@ def main():
 
     indexes = [-1, -1, -1, -1]
 
-    cell_3mm = Base.Cell(3, 0.7)
+    cell_3mm = ept.Cell(3, 0.7)
 
-    fig, axs = Base.create_fig(4, 1)
+    fig, axs = ept.create_fig(4, 1)
 
     for i, file in enumerate(files):
         print(file)
         file_path = path + file
-        data = Base.load_data(file_path)
+        data = ept.load_data(file_path)
 
         cycle = data[indexes[i]]
 
         cycle.plot_nyquist(axs[i], cell=cell_3mm, plot_range=(-20, 300))
         print("Plotted")
 
-    Base.save_fig(path + r"\plot1.png")
+    ept.save_fig(path + r"\plot1.png")
 
 
 if __name__ == "__main__":
