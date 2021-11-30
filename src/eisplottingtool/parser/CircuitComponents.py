@@ -37,7 +37,7 @@ class Component:
 
     @staticmethod
     def draw():
-        return elm.Resistor
+        return elm.Resistor()
 
 
 class Resistor(Component):
@@ -94,7 +94,7 @@ class CPE(Component):
 
     @staticmethod
     def draw():
-        return sElm.CPE
+        return sElm.CPE()
 
 
 class Warburg(Component):
