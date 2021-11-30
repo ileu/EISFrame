@@ -1,17 +1,8 @@
 /.ipynb_checkpoints/
 /.idea/
 /Images/
-/tests/.ipynb_checkpoints/
-/tests/Untitled.ipynb
 /Thumbs.db
-/Examples/Introduction.ipynb
-/Testing/*.ipynb
-/TestData/Test1.mpr
-/TestData/Test2.mpr
-/TestData/Test3.txt
 /.vscode/
-/plots/
-/TestData/plots/
 *__pycache__
 dist/
 build/
