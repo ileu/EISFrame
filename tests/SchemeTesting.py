@@ -151,22 +151,6 @@ def draw_parallel(elements: list[sd.Drawing], d: sd.Drawing):
 
 
 def main():
-    # d1 = sd.Drawing()
-    # d1 += elm.Resistor().length(d1.unit * 0.75).label('R1')
-    # d2 = sd.Drawing()
-    # d2 += elm.Capacitor().length(d1.unit * 0.75).label('R1')
-    # d3 = sd.Drawing()
-    # d3 += elm.CPE().length(d1.unit * 0.75).label('R1')
-    # d3 = sd.Drawing()
-    # d3 += elm.Resistor().length(d1.unit * 0.75).label('R1')
-    # draw_parallel([d1, d1], d3)
-    # d = sd.Drawing(fontsize=14)
-    # d += elm.Resistor().right().length(d1.unit * 0.75).label('R1')
-    # draw_parallel([d1, d2, d2], d)
-    # d += elm.Capacitor().right()
-    # draw_parallel([d1, d3], d)
-    # d.draw()
-
     circuit = 'R-p(R-p(p(p(R,R),C-R-CPE),R),R,R,R,R,R,R,R,CPE)-R-R-R-R-R-R-R-p(R,R,C)'
     info, calc, d = parse_circuit3(circuit, draw=True)
     d += elm.Resistor().right()

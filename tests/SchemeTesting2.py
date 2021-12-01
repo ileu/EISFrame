@@ -2,6 +2,7 @@ import re
 from typing import Callable
 
 import matplotlib.axes
+import numpy as np
 import schemdraw as sd
 
 from eisplottingtool.parser import circuit_components
@@ -111,36 +112,46 @@ def parse_circuit3(
     return param_info, calculate, drawing
 
 
-def drawer(drawing, d, s=1.0, direction=1):
-    for i, draw in enumerate(drawing):
-        if not isinstance(draw, list):
-            d += draw.draw().right().scale(s)
-            continue
-
-        d.push()
-        if direction > 0:
-            d += dsp.Line().up().scale(s)
-        else:
-            d += dsp.Line().down().scale(s)
-        drawer(draw, d, s, -direction)
-        if direction > 0:
-            d += dsp.Line().down().scale(s)
-        else:
-            d += dsp.Line().up().scale(s)
-        d.pop()
-
-
 def main():
     matplotlib.use('TkAgg')
     circuit = 'R-p(C,Ws-p(R,R))-R'
     circuit2 = 'R-p(CPE,CPE)-p(R-R,Ws-p(R,R-p(R,R)),R)-p(C,C,C,C)-R'
     info, calc, drawing = parse_circuit3(circuit, draw=True)
+    print(drawing)
 
-    d = sd.Drawing()
+    schemdrawing = sd.Drawing()
+    scale = 0.5
+    for draw in drawing:
+        if isinstance(draw, list):
+            n = len(draw)
+            print(f"parallel {n=}")
+            for i, d in enumerate(draw):
+                height = -(n - 1) * scale + 2 * scale * i
+                if isinstance(d, list):
+                    n_inner = len(d)
+                    print(f"\t inside {n_inner=}, {height=}")
+                    for test in d:
+                        if isinstance(test, list):
+                            print("\t\t leckme")
+                        else:
+                            schemdrawing += test().draw().label(str(height))
+                else:
+                    print(f"\t inside {height=}")
 
-    drawer(drawing, d)
+        else:
+            print("series")
+            schemdrawing += draw().draw()
 
-    d.draw()
+    schemdrawing.draw()
+
+    # a = 0.25
+    # for i in range(1, 7):
+    #     height = -a * (i - 1.0)
+    #     for n in range(i):
+    #         print(f"\t test: {-(i - 1) * a + 2 * a * n}")
+    #     heights = np.linspace(-height, height, i)
+    #     print(f"{i}: {heights=}")
+    #     print(f"lowest: {-(i - 1) * a}, stepsize={2 * a}")
 
     # d = sd.Drawing()
     # d.push()
