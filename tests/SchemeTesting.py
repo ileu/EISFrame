@@ -122,6 +122,8 @@ def parse_circuit3(
 def draw_parallel(elements: list[sd.Drawing], d: sd.Drawing):
     d += dsp.Line().right().length(d.unit / 8.0)
     max_length = max(element.get_bbox().xmax for element in elements)
+    if max_length % d.unit:
+        max_length = max_length + (d.unit - max_length % d.unit)
     for i in range(len(elements)):
         height = -0.25 * (len(elements) - 1.0) + 0.5 * i
         d.push()
@@ -165,7 +167,7 @@ def main():
     # draw_parallel([d1, d3], d)
     # d.draw()
 
-    circuit = 'R-p(R-p(R,R),CPE)'
+    circuit = 'R-p(R-p(p(p(R,R),C-R-CPE),R),R,R,R,R,R,R,R,CPE)-R-R-R-R-R-R-R-p(R,R,C)'
     info, calc, d = parse_circuit3(circuit, draw=True)
     d += elm.Resistor().right()
     d.draw()

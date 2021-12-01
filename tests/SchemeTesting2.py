@@ -2,9 +2,11 @@ import re
 from typing import Callable
 
 import matplotlib.axes
+import schemdraw as sd
 
 from eisplottingtool.parser import circuit_components
 from eisplottingtool.parser.CircuitComponents import Parameter
+from schemdraw import dsp
 
 
 def parse_circuit3(
@@ -109,25 +111,36 @@ def parse_circuit3(
     return param_info, calculate, drawing
 
 
+def drawer(drawing, d, s=1.0, direction=1):
+    for i, draw in enumerate(drawing):
+        if not isinstance(draw, list):
+            d += draw.draw().right().scale(s)
+            continue
+
+        d.push()
+        if direction > 0:
+            d += dsp.Line().up().scale(s)
+        else:
+            d += dsp.Line().down().scale(s)
+        drawer(draw, d, s, -direction)
+        if direction > 0:
+            d += dsp.Line().down().scale(s)
+        else:
+            d += dsp.Line().up().scale(s)
+        d.pop()
+
+
 def main():
     matplotlib.use('TkAgg')
     circuit = 'R-p(C,Ws-p(R,R))-R'
     circuit2 = 'R-p(CPE,CPE)-p(R-R,Ws-p(R,R-p(R,R)),R)-p(C,C,C,C)-R'
-    info, calc, d = parse_circuit3(circuit, draw=True)
+    info, calc, drawing = parse_circuit3(circuit, draw=True)
 
-    print(info)
-    print(d)
+    d = sd.Drawing()
 
-    for ds in d:
-        if isinstance(ds, list):
-            print(len(ds))
-            for dss in ds:
-                if isinstance(dss, list):
-                    print(' ', len(dss))
-                    continue
-                print(' ', 0)
-            continue
-        print(0)
+    drawer(drawing, d)
+
+    d.draw()
 
     # d = sd.Drawing()
     # d.push()
