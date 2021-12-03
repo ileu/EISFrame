@@ -403,7 +403,7 @@ class EISFrame:
             fit_circuit = 'R0-p(R1,C1)-p(R2-Wo1,C2)'
 
         param_info, circ_calc = parse_circuit(fit_circuit)
-        param_names = [info[0] for info in param_info]
+        param_names = [info.name for info in param_info]
         # bounds for the fitting
         bounds = []
         if fit_bounds is None:
@@ -414,7 +414,7 @@ class EISFrame:
                 if b := fit_bounds.get(name) is not None:
                     bounds.append(b)
                 else:
-                    bounds.append(param_info[i][1])
+                    bounds.append(param_info[i].bounds)
 
         # calculate rmse
         def rmse(y_predicted, y_actual, weight=1):
