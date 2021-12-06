@@ -138,8 +138,26 @@ class EISFrame:
         """
         if params is None:
             params = {}
-        self._params = params
+        self._params = params.copy()
         self.df = df
+
+        print(f"{params=}")
+
+        if 'real' not in params:
+            if 'phase' in params and 'abs' in params:
+                print("Used")
+                self.df['real'] = df[params['abs']] * np.cos(
+                    df[params['phase']] / 360.0 * 2 * np.pi
+                    )
+                self._params['real'] = 'real'
+
+        if 'imag' not in params:
+            if 'phase' in params and 'abs' in params:
+                self.df['imag'] = -df[params['abs']] * np.sin(
+                    df[params['phase']] / 360.0 * 2 * np.pi
+                    )
+                self._params['imag'] = 'imag'
+
         self._default_mark_points = [grain_boundaries, hllzo, lxlzo, interface,
                                      ecr_tail]
         self.mark_points = self._default_mark_points
@@ -351,6 +369,114 @@ class EISFrame:
 
         return lines
 
+    def plot_bode(
+            self,
+            ax: axes.Axes = None,
+            cell: Cell = None,
+            exclude_start: int = None,
+            exclude_end: int = None,
+            ls='None',
+            marker='o',
+            plot_range=None,
+            label=None,
+            size=12,
+            ):
+        """ Plots a Nyquist plot with the internal dataframe
+
+        Plots a Nyquist plot with the internal dataframe. Will also mark the
+        different markpoints on the plot.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            axes to plot to
+        image : str
+             path to image to include in plot
+        cell
+        exclude_start
+        exclude_end
+        ls
+        marker
+        plot_range
+        label
+        size
+        scale
+
+        Returns
+        -------
+        dictionary
+            Contains all the matplotlib.lines.Line2D of the drawn plots
+        """
+        # label for the plot
+        x_label = r"Impedance/$\Omega$"
+        y_label = r"Frequency/log(Hz)"
+        # only look at measurements with frequency data
+        mask = self.frequency != 0
+
+        # check if any axes is given, if not GetCurrentAxis from matplotlib
+        if ax is None:
+            ax = plt.gca()
+
+        # get the x,y data for plotting
+        real_data = self.real[mask][exclude_start:exclude_end]
+        imag_data = self.imag[mask][exclude_start:exclude_end]
+        frequency = self.frequency[mask][exclude_start:exclude_end]
+
+        #  # remove all data points with (0,0) and adjust dataframe
+        # df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
+        # df = df.reset_index()[exclude_start:exclude_end]
+
+        # adjust impedance if a cell is given
+        if cell is not None:
+            real_data = real_data * cell.area_mm2 * 1e-2
+            x_label = r"Re(Z)/$\Omega$.cm$^2$"
+
+            imag_data = imag_data * cell.area_mm2 * 1e-2
+            y_label = r"-Im(Z)/$\Omega$.cm$^2$"
+
+        # plot the data
+        line_real = ax.semilogx(
+                real_data,
+                frequency,
+                marker=marker,
+                ls=ls,
+                color='red',
+                label="Re(Z)",
+                markersize=size,
+                )
+
+        line_imag = ax.semilogx(
+                imag_data,
+                frequency,
+                marker=marker,
+                ls=ls,
+                color='blue',
+                label="-Im(Z)",
+                markersize=size,
+                )
+
+        lines = {
+            "Real Data": line_real,
+            "Imag Data": line_imag
+            }  # store all the lines inside lines
+
+        # additional configuration for the plot
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+
+        if plot_range is None:
+            ax.set_xlim(-max(real_data) * 0.05, max(real_data) * 1.05)
+        else:
+            ax.set_xlim(*plot_range)
+
+        ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
+        ax.locator_params(nbins=4, prune='upper')
+
+        _plot_legend(ax)
+
+        return lines
+
     def fit_nyquist(
             self,
             ax: axes.Axes,
@@ -499,7 +625,7 @@ class EISFrame:
                     "ignore",
                     message="overflow encountered in power"
                     )
-            custom_circuit_fit = circ_calc(parameters, f_pred)
+            custom_circuit_fit = circ_calc(parameters, frequencies)
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -510,7 +636,8 @@ class EISFrame:
                 -np.imag(custom_circuit_fit),
                 label="fit",
                 color="red",
-                zorder=5
+                zorder=5,
+                marker='x'
                 )
 
         self.lines["fit"] = line
@@ -919,6 +1046,10 @@ def _get_default_data_param(columns):
             params['real'] = match.group()
         elif match := re.match(r'-Im\(Z(we-ce)?\)[^|]*', col):
             params['imag'] = match.group()
+        elif match := re.match(r'Phase\(Z(we-ce)?\)[^|]*', col):
+            params['phase'] = match.group()
+        elif match := re.match(r'\|Z(we-ce)?\|[^|]*', col):
+            params['abs'] = match.group()
         elif match := re.match(r'time[^|]*', col):
             params['time'] = match.group()
         elif match := re.match(r'(z )?cycle( number)?[^|]*', col):
