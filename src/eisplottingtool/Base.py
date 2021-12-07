@@ -141,11 +141,10 @@ class EISFrame:
         self._params = params.copy()
         self.df = df
 
-        print(f"{params=}")
+        logging.debug(f"{params=}")
 
         if 'real' not in params:
             if 'phase' in params and 'abs' in params:
-                print("Used")
                 self.df['real'] = df[params['abs']] * np.cos(
                     df[params['phase']] / 360.0 * 2 * np.pi
                     )
@@ -378,7 +377,7 @@ class EISFrame:
             ls='None',
             marker='o',
             plot_range=None,
-            label=None,
+            param=None,
             size=12,
             ):
         """ Plots a Nyquist plot with the internal dataframe
@@ -408,8 +407,8 @@ class EISFrame:
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
         # label for the plot
-        x_label = r"Impedance/$\Omega$"
-        y_label = r"Frequency/log(Hz)"
+        x_label = r"Frequency/log(Hz)"
+        y_label = r"Impedance/$\Omega$"
         # only look at measurements with frequency data
         mask = self.frequency != 0
 
@@ -436,8 +435,8 @@ class EISFrame:
 
         # plot the data
         line_real = ax.semilogx(
-                real_data,
                 frequency,
+                real_data,
                 marker=marker,
                 ls=ls,
                 color='red',
@@ -446,8 +445,8 @@ class EISFrame:
                 )
 
         line_imag = ax.semilogx(
-                imag_data,
                 frequency,
+                imag_data,
                 marker=marker,
                 ls=ls,
                 color='blue',
@@ -465,13 +464,65 @@ class EISFrame:
         ax.set_ylabel(y_label)
 
         if plot_range is None:
-            ax.set_xlim(-max(real_data) * 0.05, max(real_data) * 1.05)
+            ax.set_xlim(-max(frequency) * 0.05, max(frequency) * 1.05)
         else:
             ax.set_xlim(*plot_range)
 
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.locator_params(nbins=4, prune='upper')
+        # ax.locator_params(nbins=4, prune='upper')
+
+        if param:
+            param = {
+                'R0': 1.000000165581512e-06,
+                'R1': 1504.0352714972184,
+                'CPE1_Q': 3.2342851302198605e-10,
+                'CPE1_n': 1.0,
+                'Ws1_R': 394.8670567451571,
+                'Ws1_T': 2.206562218443595
+                }
+            param_info, circ_calc = parse_circuit('R0-p(R1,CPE1)-Ws1')
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                        "ignore",
+                        message="divide by zero encountered in true_divide"
+                        )
+                warnings.filterwarnings(
+                        "ignore",
+                        message="invalid value encountered in true_divide"
+                        )
+                warnings.filterwarnings(
+                        "ignore",
+                        message="overflow encountered in tanh"
+                        )
+                warnings.filterwarnings(
+                        "ignore",
+                        message="divide by zero encountered in double_scalars"
+                        )
+                warnings.filterwarnings(
+                        "ignore",
+                        message="overflow encountered in power"
+                        )
+                custom_circuit_fit = circ_calc(param, frequency)
+                real_fit = np.real(custom_circuit_fit)
+                imag_fit = np.imag(custom_circuit_fit)
+                line_real = ax.semilogx(
+                        frequency,
+                        real_fit,
+                        ls='-',
+                        color='black',
+                        label="Re(Z)",
+                        markersize=size,
+                        )
+
+                line_imag = ax.semilogx(
+                        frequency,
+                        -imag_fit,
+                        ls='-',
+                        color='black',
+                        label="-Im(Z)",
+                        markersize=size,
+                        )
 
         _plot_legend(ax)
 
@@ -526,7 +577,7 @@ class EISFrame:
         if fit_guess is None:
             fit_guess = [.01, .01, 100, .01, .05, 100, 1]
         if fit_circuit is None:
-            fit_circuit = 'R0-p(R1,C1)-p(R2-Wo1,C2)'
+            fit_circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
 
         param_info, circ_calc = parse_circuit(fit_circuit)
         param_names = [info.name for info in param_info]
@@ -594,7 +645,7 @@ class EISFrame:
 
         # print the fitting parameters to the console
         parameters = dict(zip(param_names, param_values))
-        print(f"Parameters: {parameters}")
+        logging.info(f"Parameters: {parameters}")
 
         if path is not None:
             with open(path, 'w') as f:
@@ -789,16 +840,12 @@ class EISFrame:
             elem_impedance = elem_info[0]
             elem_spec_freq = elem_info[1]
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-            print(10 * "*")
-            print(elem_spec_freq, specific_freq_magnitude)
             if specific_freq_magnitude <= 0:
-                print("ECR")
                 color = min(
                         self.mark_points, key=lambda x: x.magnitude
                         ).color
             else:
                 for mark in self.mark_points:
-                    print(mark.name, mark.magnitude)
                     if specific_freq_magnitude == mark.magnitude:
                         color = mark.color
                         break
@@ -1113,11 +1160,11 @@ def load_data(
                         f"Not valid data file since column {param} is missing"
                         )
                 print(f"Availible parameters are {data.columns}")
-                logging.info("File location: " + path)
+                logging.debug("File location: " + path)
                 return []
 
     if (cycle_param := data_param.get('cycle')) is None:
-        print("No cycles detected")
+        logging.info("No cycles detected")
         return EISFrame(data, params=data_param)
 
     cycles = []

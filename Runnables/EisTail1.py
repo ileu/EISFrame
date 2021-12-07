@@ -1,10 +1,12 @@
 import csv
 import glob
+import logging
 import os
 
 import eisplottingtool as ept
 import matplotlib.axes
 import pandas as pd
+import numpy as np
 from matplotlib import pyplot as plt
 
 
@@ -35,15 +37,19 @@ def cycles():
 
         for n, cycle in enumerate(data):
             fig, ax = ept.create_fig()
-            cycle.plot_nyquist(ax, cell=cell_3mm)
+            cycle.plot_nyquist(ax)
             cycle.fit_nyquist(
                     ax,
                     'R0-p(R1,CPE1)-Ws1',
                     [0.1, 1694.1, 3.2e-10, 0.9, 620, 1.6],
-                    cell=cell_3mm,
                     draw_circle=False,
                     path=path + rf"\plots\TailInvestigation\cycle_{i:02d}-{n:03d}_param.txt"
                     )
+            fig2, ax2 = ept.create_fig()
+            print(f"Current: {np.nanmean(cycle.voltage / cycle.current)}")
+            cycle.plot_bode(ax2, param=True)
+            plt.show()
+            break
             ept.save_fig(
                     os.path.join(
                             path,
@@ -81,5 +87,8 @@ def parameter():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     cycles()
     # parameter()
+    logging.info('Finished')
+
