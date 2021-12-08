@@ -46,7 +46,7 @@ def cycles():
                     path=path + rf"\plots\TailInvestigation\cycle_{i:02d}-{n:03d}_param.txt"
                     )
             fig2, ax2 = ept.create_fig()
-            print(f"Current: {np.nanmean(cycle.voltage / cycle.current)}")
+            print(f"Current: {np.nanmean(cycle.voltage / 0.007 * 1e3)}")
             cycle.plot_bode(ax2, param=True)
             plt.show()
             break
@@ -78,7 +78,7 @@ def parameter():
     print(params)
     for param in params[0]:
         fig, ax = plt.subplots()
-        ax : matplotlib.axes.Axes
+        ax: matplotlib.axes.Axes
         y = [float(p[param]) for p in params]
         ax.plot(y, 'x')
         ax.set_title(param)
