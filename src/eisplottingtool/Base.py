@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pint
 from matplotlib import rcParams, cycler, axes, figure, legend
+from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import minimize
 
@@ -360,20 +361,19 @@ class EISFrame:
             upper_label = f"{upper_freq.to_compact():~.0f}"
 
             ax.text(
-                    0.0,
-                    0.0,
-                    upper_label,
+                    0.99,
+                    0.99,
+                    f"Freq. Range:\n {lower_label} - {upper_label}",
                     horizontalalignment='right',
                     verticalalignment='top',
-                    transform=ax.transAxes
-                    )
-            ax.text(
-                    1.0,
-                    0.0,
-                    lower_label,
-                    horizontalalignment='left',
-                    verticalalignment='top',
-                    transform=ax.transAxes
+                    transform=ax.transAxes,
+                    size='xx-small',
+                    multialignment='center',
+                    bbox=dict(
+                        facecolor='white',
+                        alpha=1.0,
+                        boxstyle=BoxStyle("Round", pad=0.2)
+                        )
                     )
 
         # if a path to a image is given, also plot it
@@ -1058,7 +1058,7 @@ def set_plot_params() -> None:
 def _plot_legend(
         ax: axes.Axes = None,
         loc='upper left',
-        fontsize='small',
+        fontsize='xx-small',
         frameon=False,
         markerscale=1,
         handletextpad=0.1,
@@ -1092,6 +1092,7 @@ def _plot_legend(
             markerscale=markerscale,
             handletextpad=handletextpad,
             mode=mode,
+            borderpad=0.0,
             **kwargs
             )
     return leg
