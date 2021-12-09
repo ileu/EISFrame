@@ -146,15 +146,15 @@ class EISFrame:
         if 'real' not in params:
             if 'phase' in params and 'abs' in params:
                 self.df['real'] = df[params['abs']] * np.cos(
-                    df[params['phase']] / 360.0 * 2 * np.pi
-                    )
+                        df[params['phase']] / 360.0 * 2 * np.pi
+                        )
                 self._params['real'] = 'real'
 
         if 'imag' not in params:
             if 'phase' in params and 'abs' in params:
                 self.df['imag'] = -df[params['abs']] * np.sin(
-                    df[params['phase']] / 360.0 * 2 * np.pi
-                    )
+                        df[params['phase']] / 360.0 * 2 * np.pi
+                        )
                 self._params['imag'] = 'imag'
 
         self._default_mark_points = [grain_boundaries, hllzo, lxlzo, interface,
@@ -287,15 +287,6 @@ class EISFrame:
         y_data = self.imag[mask][exclude_start:exclude_end]
         frequency = self.frequency[mask][exclude_start:exclude_end]
 
-        #  # remove all data points with (0,0) and adjust dataframe
-        # df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
-        # df = df.reset_index()[exclude_start:exclude_end]
-
-        # # get the x,y data for plotting
-        # x_data = df["Re(Z)/Ohm"]
-        # y_data = df["-Im(Z)/Ohm"]
-        # frequency = df["freq/Hz"]
-
         # adjust impedance if a cell is given
         if cell is not None:
             x_data = x_data * cell.area_mm2 * 1e-2
@@ -359,6 +350,31 @@ class EISFrame:
 
         # add lines to the axes property
         self.lines.update(lines)
+
+        if show_freq:
+            ureg = pint.UnitRegistry()
+
+            lower_freq = frequency[-1] * ureg.Hz
+            upper_freq = frequency[0] * ureg.Hz
+            lower_label = f"{lower_freq.to_compact():~.0f}"
+            upper_label = f"{upper_freq.to_compact():~.0f}"
+
+            ax.text(
+                    0.0,
+                    0.0,
+                    upper_label,
+                    horizontalalignment='right',
+                    verticalalignment='top',
+                    transform=ax.transAxes
+                    )
+            ax.text(
+                    1.0,
+                    0.0,
+                    lower_label,
+                    horizontalalignment='left',
+                    verticalalignment='top',
+                    transform=ax.transAxes
+                    )
 
         # if a path to a image is given, also plot it
         if image:

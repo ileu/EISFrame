@@ -39,7 +39,14 @@ def main():
 
         for cycle in data:
             cycle.mark_points = []
-            cycle.plot_nyquist(ax, size=8, cell=cell_3mm, label=name)
+            cycle.plot_nyquist(
+                ax,
+                size=8,
+                cell=cell_3mm,
+                label=name,
+                show_freq=True
+                )
+        break
     plt.show()
     # ept.save_fig(os.path.join(path, "plots", f"protonated_FC.png"))
 
