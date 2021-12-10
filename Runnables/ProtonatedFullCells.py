@@ -11,6 +11,7 @@ class EPTfile:
         self.ignore = ignore
         self.name = name
         self.path = path
+        self.color = None
 
 
 def main():
@@ -35,6 +36,7 @@ def main():
     fc18 = EPTfile(fc18_deprot_nopres, "FC18 deprot no press")
     fc19 = EPTfile(fc19_prot_nopres, "FC19 prot no press")
     fc19_pres = EPTfile(fc19_prot_pres, "FC19 prot with press")
+    fc19_pres.color = 'lime'
     fc20 = EPTfile(fc20_prot_pres, "FC20 prot with press")
 
     files = [fc16, fc17, fc18, fc19, fc19_pres, fc20]
@@ -47,7 +49,7 @@ def main():
         if file.ignore:
             continue
         print(file.path)
-        file_path = path2 + file.path
+        file_path = path + file.path
         data = ept.load_data(file_path)
         print(f"Number of cycles: {len(data)}")
 
@@ -59,7 +61,8 @@ def main():
                     cell=cell_3mm,
                     label=file.name,
                     show_freq=show_freq,
-                    plot_range=(-100, 4000)
+                    plot_range=(-100, 4000),
+                    color=file.color
                     )
             show_freq = False
 

@@ -363,7 +363,7 @@ class EISFrame:
             ax.text(
                     0.99,
                     0.99,
-                    f"Freq. Range:\n {lower_label} - {upper_label}",
+                    f"Freq. Range:\n {upper_label} - {lower_label}",
                     horizontalalignment='right',
                     verticalalignment='top',
                     transform=ax.transAxes,
