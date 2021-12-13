@@ -49,7 +49,7 @@ def main():
         if file.ignore:
             continue
         print(file.path)
-        file_path = path2 + file.path
+        file_path = path + file.path
         data = ept.load_data(file_path)
         print(f"Number of cycles: {len(data)}")
 

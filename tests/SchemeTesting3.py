@@ -90,41 +90,39 @@ def parse_circuit3(
         length.append(l)
         return commas, length
 
-    def measure_circuit_2(s: str):
+    def measure_circuit_2(s: str, local=False):
         level = 0.0
         height = 1.0
-        level_length = {}
-        current_length = 0.0
-        for c in s:
+        total_length = 0.0
+        length = 0.0
+        while level >= 0.0 and s != ')':
+            s, c = s[1:], s[0]
             if c == '-':
-                current_length += 1
+                length += 1.0
             elif c == ',':
-                if level_length.get(level, 0.0) <= current_length:
-                    level_length[level] = current_length
-            elif c == 'p':
-                level_length[level] = current_length
-                current_length = 0.5
-                level += 1
+                if total_length < length:
+                    total_length = length
+                length = 1.0
+                height += 1.0
+                if local:
+                    break
+            elif c == '(':
+                length += 0.5
+                __, par_length, s = measure_circuit_2(s)
+                length += par_length
             elif c == ')':
-                if level_length.get(level, 0.0) <= current_length:
-                    level_length[level] = current_length
-                if level_length.get(level, 0.0) <= level_length.get(
-                        level + 1,
-                        0.0
-                        ):
-                    level_length[level] += level_length.get(level + 1, 0.0)
                 level -= 1
 
-            if level < 0:
-                break
-        return height, level_length[0.0]
+        if total_length < length:
+            total_length = length
+        return height, total_length, s
 
     def parallel(c: str):
         nonlocal drawing
         c = c[2:]
-        max_height, max_length = measure_circuit_2(c)
+        max_height, max_length, __ = measure_circuit_2(c)
         drawing += dsp.Line().right().length(0.25 * drawing.unit).color("magenta")
-        i = 0.0
+        i = 0
         print(f"start, {max_length=}, {max_height=}")
         while not c.startswith(')'):
             drawing.push()
@@ -132,8 +130,8 @@ def parse_circuit3(
             if c.startswith(','):
                 c = c[1:]
             height = -(max_height - 1) * scale_h + 2 * scale_h * i
-            _, length = measure_circuit_2(c)
-            i += 1.0
+            __, length, __ = measure_circuit_2(c, True)
+            i += 1
             print(f"{height=}, {length=}, {c=}")
             if height > 0:
                 drawing += dsp.Line().up().length(height * drawing.unit)
@@ -187,10 +185,11 @@ def main():
     circuit3 = 'R-p(R-R,Ws-p(R,R-p(R,R)),R)-R'  # -p(C,C,C,C)-R'
     circuit4 = 'R-p(R-p(p(p(R,R),C-R-CPE),R),R,R,R,R,R,R,R,' \
               'CPE)-R-R-R-R-R-R-R-p(R,R,C)'
-    circuits = [circuit4]
+    circuit5 = 'p(p(R,R),R)'
+    circuits = [circuit5]
 
     for circ in circuits:
-        print(10 * '-')
+        print(25 * '-')
         print(f"{circ=}")
         drawing = parse_circuit3(circ)
         drawing.draw()
