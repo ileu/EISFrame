@@ -11,3 +11,4 @@ build/
 /PDF/
 /.pytest_cache/
 /tests/.coverage
+/tests/.ipynb_checkpoints/

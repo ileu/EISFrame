@@ -1,17 +1,15 @@
 import re
-from typing import Callable
 
 import schemdraw as sd
 import schemdraw.dsp as dsp
+
 from eisplottingtool.parser import circuit_components
-from eisplottingtool.parser.CircuitComponents import Parameter
-from schemdraw import elements as elm
 
 
 def parse_circuit3(
         circ: str,
         draw: bool = False
-        ) -> tuple[list[Parameter], Callable, sd.Drawing]:
+        ) -> sd.Drawing:
     """ EBNF parser for a circuit string.
 
     Implements an extended Backus–Naur form to parse a string that descirbes
@@ -37,12 +35,12 @@ def parse_circuit3(
 
     Returns
     -------
-    param_info : dict
-    calculate : Callable
     drawing : sd.Drawing
 
     """
     scale_h = 0.25
+
+    drawing = sd.Drawing()
 
     def component(c: str):
         """ process component and remove from circuit string c
@@ -66,50 +64,101 @@ def parse_circuit3(
                 break
         else:
             return c, 1
+        nonlocal drawing
+        drawing += comp.draw().right().color('blue')
         return c
 
-    def parallel_counter(s: str):
-        par = 0
-        ser = True
-        commas = 1
-        length = 1
-        l = 1
+    def measure_circuit(s: str):
+        par = 0.0
+        commas = 1.0
+        length = []
+        l = 1.0
         for c in s:
-            if c == '-' and ser:
-                l += 1
-            elif c == ',':
-                ser = False
-                l = 1
-                if par == 0:
-                    commas += 1
+            if c == '-':
+                l += 1.0
+            elif c == ',' and par == 0.0:
+                length.append(l)
+                l = 1.0
+                commas += 1.0
             elif c == 'p':
-                ser = False
-                par += 1
+                par += 1.0
+                l += 0.5
             elif c == ')':
-                ser = False
                 par -= 1
-            else:
-                ser = True
-            if l > length:
-                length = l
-            if par < 0:
+            if par < 0.0:
                 break
+        length.append(l)
         return commas, length
 
+    def measure_circuit_2(s: str):
+        level = 0.0
+        height = 1.0
+        level_length = {}
+        current_length = 0.0
+        for c in s:
+            if c == '-':
+                current_length += 1
+            elif c == ',':
+                if level_length.get(level, 0.0) <= current_length:
+                    level_length[level] = current_length
+            elif c == 'p':
+                level_length[level] = current_length
+                current_length = 0.5
+                level += 1
+            elif c == ')':
+                if level_length.get(level, 0.0) <= current_length:
+                    level_length[level] = current_length
+                if level_length.get(level, 0.0) <= level_length.get(
+                        level + 1,
+                        0.0
+                        ):
+                    level_length[level] += level_length.get(level + 1, 0.0)
+                level -= 1
+
+            if level < 0:
+                break
+        return height, level_length[0.0]
+
     def parallel(c: str):
+        nonlocal drawing
         c = c[2:]
-        max_length, max_height = parallel_counter(c)
-        i = 0
-        print(f"s, {max_length=}, {max_height=}")
+        max_height, max_length = measure_circuit_2(c)
+        drawing += dsp.Line().right().length(0.25 * drawing.unit).color("magenta")
+        i = 0.0
+        print(f"start, {max_length=}, {max_height=}")
         while not c.startswith(')'):
-            height = -(max_height - 1) * scale_h + 2 * scale_h * i
-            i += 1
-            print(height)
+            drawing.push()
+
             if c.startswith(','):
                 c = c[1:]
+            height = -(max_height - 1) * scale_h + 2 * scale_h * i
+            _, length = measure_circuit_2(c)
+            i += 1.0
+            print(f"{height=}, {length=}, {c=}")
+            if height > 0:
+                drawing += dsp.Line().up().length(height * drawing.unit)
+            elif height < 0:
+                drawing += dsp.Line().down().length(-height * drawing.unit)
+
+            if length < max_length:
+                drawing += dsp.Line().right().length(
+                        0.5 * drawing.unit * (max_length - length)
+                        )
             c = circuit(c)
+            if length < max_length:
+                drawing += dsp.Line().right().length(
+                        0.5 * drawing.unit * (max_length - length)
+                        )
+
+            if height > 0:
+                drawing += dsp.Line().down().length(height * drawing.unit)
+            elif height < 0:
+                drawing += dsp.Line().up().length(-height * drawing.unit)
+            drawing.pop()
+        drawing.move(max_length * drawing.unit, 0)
+        drawing += dsp.Line().right().length(0.25 * drawing.unit).color('lime')
         c = c[1:]
-        print("e")
+        print("end")
         return c
 
     def element(c: str):
@@ -129,47 +178,22 @@ def parse_circuit3(
 
     circuit(circ.replace(" ", ""))
 
-
-def draw_parallel(elements: list[sd.Drawing], d: sd.Drawing):
-    d += dsp.Line().right().length(d.unit / 8.0)
-    max_length = max(element.get_bbox().xmax for element in elements)
-    if max_length % d.unit:
-        max_length = max_length + (d.unit - max_length % d.unit)
-    for i in range(len(elements)):
-        height = -0.25 * (len(elements) - 1.0) + 0.5 * i
-        d.push()
-        if height >= 0:
-            d += dsp.Line().up().length(d.unit * height)
-        else:
-            d += dsp.Line().down().length(d.unit * -height)
-        if (length := elements[i].get_bbox().xmax) != max_length:
-            length = (max_length - length) / 2.0
-            d += dsp.Line().right().length(d.unit * length / 3.0)
-            d += elm.ElementDrawing(elements[i]).right()
-            d += dsp.Line().right().length(d.unit * length / 3.0)
-        else:
-            d += elm.ElementDrawing(elements[i]).right()
-        if height < 0:
-            d += dsp.Line().up().length(d.unit * -height)
-        else:
-            d += dsp.Line().down().length(d.unit * height)
-        d.pop()
-
-    d.move(d.unit * max_length / 3, 0)
-    d += dsp.Line().right().length(d.unit / 8.0)
-
-    return d
+    return drawing
 
 
 def main():
-    circuit = 'R-p(R-p(p(p(R,R),C-R-CPE),R),R,R,R,R,R,R,R,CPE)-R-R-R-R-R-R-R-p(R,R,C)'
-    circuit1 = 'R-p(C,Ws-p(R,R))-R'
-    circuit2 = 'R-p(CPE,CPE)-p(R-R,Ws-p(R,R-p(R,R)),R)-p(C,C,C,C)-R'
-    circuits = [circuit1]
+    circuit1 = 'p(R,R,R,R)-p(R,R,R)'
+    circuit2 = 'R-p(C,Ws-p(R,R))-p(R,R,R)'
+    circuit3 = 'R-p(R-R,Ws-p(R,R-p(R,R)),R)-R'  # -p(C,C,C,C)-R'
+    circuit4 = 'R-p(R-p(p(p(R,R),C-R-CPE),R),R,R,R,R,R,R,R,' \
+              'CPE)-R-R-R-R-R-R-R-p(R,R,C)'
+    circuits = [circuit4]
 
     for circ in circuits:
-        print(10*'-')
-        parse_circuit3(circ)
+        print(10 * '-')
+        print(f"{circ=}")
+        drawing = parse_circuit3(circ)
+        drawing.draw()
     # info, calc, d = parse_circuit3(circuit, draw=True)
     # d += elm.Resistor().right()
     # d.draw()
