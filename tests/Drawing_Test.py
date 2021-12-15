@@ -185,8 +185,13 @@ def main():
         print(f"{circ=}")
         drawing = parse_circuit3(circ)
         drawing.draw(show=False)
-        mng = plt.get_current_fig_manager()
-        mng.window.state('zoomed')
+        backend = plt.get_backend()
+        if backend == "QtAgg":
+            fm = plt.get_current_fig_manager()
+            fm.window.showMaximized()
+        elif backend == "TkAgg":
+            mng = plt.get_current_fig_manager()
+            mng.window.state('zoomed')
         plt.show()
 
 

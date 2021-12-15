@@ -19,7 +19,7 @@ param_values = {
 
 freq = 2
 
-component_tests = [
+test_components = [
     pytest.param(Resistor, 'R', np.full_like(freq, param_values['R'])),
     pytest.param(
             Capacitor,
@@ -59,7 +59,7 @@ component_tests = [
 
 @pytest.mark.parametrize(
         "comp, symbol, expected",
-        component_tests
+        test_components
         )
 def test_calc(comp, symbol, expected):
     actual = comp.calc(param_values, symbol, freq)
