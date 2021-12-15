@@ -36,12 +36,13 @@ def measure_circuit(c: str, s: float, local=False):
 
 
 def main():
+    # TODO: Make tests
     test_string = 'R-p(p(p(R,R),C-R-CPE),R),R,R)-R'
     test_string2 = 'p(R,R)'
     exp_length = 5.0
 
-    height, length, __ = measure_circuit_2(test_string)
-    __, local_length, __ = measure_circuit_2(test_string, True)
+    height, length, __ = measure_circuit(test_string)
+    __, local_length, __ = measure_circuit(test_string, True)
 
     print(f"{length=}, {exp_length=}, {local_length=}")
     print(f"{height=}")

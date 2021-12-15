@@ -30,6 +30,8 @@ def main():
     fc20_prot_pres = r"\20211208_FC20_Protonated-400C" \
                      r"-3h_OneSidePolished_3mmLi_3mmLFP" \
                      r"-500um_0p16Nm_Cycling_03_PEIS_C04.mpr"
+    fc21_prot_nopres = r"\20211209_FC21_protonated-400C" \
+                       r"-3h_onesidepolished_3mmLi_3mmLFP-500um_03_PEIS_C04.mpr"
 
     fc16 = EPTfile(fc16_deprot_nopres, "FC16 deprot no press")
     fc17 = EPTfile(fc17_prot_pres, "FC17 prot with press")
@@ -38,8 +40,9 @@ def main():
     fc19_pres = EPTfile(fc19_prot_pres, "FC19 prot with press")
     fc19_pres.color = 'lime'
     fc20 = EPTfile(fc20_prot_pres, "FC20 prot with press")
+    fc21 = EPTfile(fc21_prot_nopres, "FC21 prot no press")
 
-    files = [fc16, fc17, fc18, fc19, fc19_pres, fc20]
+    files = [fc16, fc17, fc18, fc19, fc19_pres, fc20, fc21]
 
     cell_3mm = ept.Cell(3, 0.7)
     fig, ax = ept.create_fig()
