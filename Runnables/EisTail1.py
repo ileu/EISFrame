@@ -21,8 +21,7 @@ def cycles():
                 r".mpr"
     path3 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min"
     file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_04_PEIS_C03.mpr"
-    path4 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w" \
-            r"-60C_HT900C-8h_doubleMelt-2"
+    path4 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w-60C_HT900C-8h_doubleMelt-2"
     file4 = r"\20211126_B9P10_Water-1w-60C_HT900C-8h_doubleMelt" \
             r"-2_FCandPT_03_MB_C04.mpr"
     files = [file4]
@@ -46,7 +45,7 @@ def cycles():
                     path=path + rf"\plots\TailInvestigation\cycle_{i:02d}-{n:03d}_param.txt"
                     )
             fig2, ax2 = ept.create_fig()
-            print(f"Current: {np.nanmean(cycle.voltage / 0.007 * 1e3)}")
+            print(f"Total imp calc: {np.nanmean(cycle.voltage / 0.007 * 1e3)}")
             cycle.plot_bode(ax2, param=True)
             plt.show()
             break

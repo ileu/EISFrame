@@ -618,7 +618,7 @@ class EISFrame:
 
         # calculate the weight of each datapoint
         def weight(error, value):
-            square_value = np.square(value)
+            square_value = value.real ** 2 + value.imag ** 2
             return np.true_divide(error, square_value)
 
         # calculate rmse
@@ -650,7 +650,9 @@ class EISFrame:
 
         if path is not None:
             with open(path, 'w') as f:
-                json.dump(param_info, f)
+                json.dump(
+                    param_info, f, default=lambda o: o.__dict__, indent=1
+                    )
 
         f_pred = np.logspace(-9, 9, 400)
         # plot the fitting result
@@ -909,7 +911,6 @@ def _fit_routine(bounds, fit_guess, opt_func, reapeat=1):
                 message="overflow encountered in power"
                 )
 
-        print(opt_func(initial_value))
         for i in range(reapeat):
             opt_result = least_squares(
                     opt_func,
@@ -919,6 +920,7 @@ def _fit_routine(bounds, fit_guess, opt_func, reapeat=1):
                     max_nfev=1000,
                     ftol=1e-9
                     )
+            print(opt_result)
             initial_value = opt_result.x
             opt_result = minimize(
                     opt_func,
@@ -928,18 +930,20 @@ def _fit_routine(bounds, fit_guess, opt_func, reapeat=1):
                     options={'maxiter': 1e4, 'ftol': 1e-9},
                     method='Nelder-Mead'
                     )
+            print(opt_result)
             initial_value = opt_result.x
 
-    # print(opt_result.hess_inv)
-    # ftol = 2.220446049250313e-09
-    # x = opt_result.x
-    # tmp_i = np.zeros(len(x))
-    # for i in range(len(x)):
-    #     tmp_i[i] = 1.0
-    #     hess_inv_i = opt_result.hess_inv(tmp_i)[i]
-    #     uncertainty_i = np.sqrt(max(1, abs(opt_result.fun)) * ftol * hess_inv_i)
-    #     tmp_i[i] = 0.0
-    #     print('x^{0} = {1:12.4e} ± {2:.1e}'.format(i, x[i], uncertainty_i))
+    print(opt_result.hess_inv)
+    ftol = 2.220446049250313e-09
+    x = opt_result.x
+    tmp_i = np.zeros(len(x))
+    for i in range(len(x)):
+        tmp_i[i] = 1.0
+        hess_inv_i = opt_result.hess_inv(tmp_i)[i]
+        uncertainty_i = np.sqrt(max(1, abs(opt_result.fun)) * ftol *
+        hess_inv_i)
+        tmp_i[i] = 0.0
+        print('x^{0} = {1:12.4e} ± {2:.1e}'.format(i, x[i], uncertainty_i))
     return opt_result
 
 

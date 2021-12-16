@@ -20,10 +20,10 @@ class Parameter:
 
     def __init__(self, name, bounds, unit):
         self.name = name
-        self.bounds = bounds
-        self.unit = unit
         self.value = 0.0
         self.error = 0.0
+        self.unit = unit
+        self.bounds = bounds
 
     def __repr__(self):
         name = f"Parameter {self.name}"
