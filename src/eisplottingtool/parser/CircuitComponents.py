@@ -9,13 +9,26 @@ additional_functions = ['Parameter', 'Component', 'initial_state',
 
 
 class Parameter:
+    """ Parameter class to save data of parameters
+
+    A parameter consists of a name, bounds in the form of (ll, ul) with lb =
+    lower bounds and ub = upper bounds and a unit string.
+
+    Also used to store fitting results fo the paramater.
+
+    """
+
     def __init__(self, name, bounds, unit):
         self.name = name
         self.bounds = bounds
         self.unit = unit
+        self.value = 0.0
+        self.error = 0.0
 
     def __repr__(self):
-        return f"Parameter {self.name}"
+        name = f"Parameter {self.name}"
+        value = rf"{self.value} ($\pm${self.error}) [{self.unit}]"
+        return f"{name}, {value}"
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
@@ -24,6 +37,11 @@ class Parameter:
 
 
 class Component:
+    """ A component which can be used in a circuit string
+
+    A component stores information
+    """
+
     @staticmethod
     def get_symbol():
         raise NotImplementedError
