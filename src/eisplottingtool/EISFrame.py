@@ -5,6 +5,7 @@
     Date last edited: 25.10.2021
     Python Version: 3.9.7
 """
+import json
 import logging
 import os
 import re
@@ -19,7 +20,7 @@ import pint
 from matplotlib import rcParams, cycler, axes, figure, legend
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import minimize
+from scipy.optimize import minimize, least_squares
 
 from eisplottingtool.parser import parse_circuit
 
@@ -228,6 +229,8 @@ class EISFrame:
 
         The default values of the list corresponds to the markpoints for
         grain boundaries, hllzo, lzo, interfacial resistance and ECR.
+
+        ? depracted ?
         """
         self.mark_points = self._default_mark_points
 
@@ -261,6 +264,8 @@ class EISFrame:
         cell
         exclude_start
         exclude_end
+        show_freq
+        color
         ls
         marker
         plot_range
@@ -370,10 +375,10 @@ class EISFrame:
                     size='xx-small',
                     multialignment='center',
                     bbox=dict(
-                        facecolor='white',
-                        alpha=1.0,
-                        boxstyle=BoxStyle("Round", pad=0.2)
-                        )
+                            facecolor='white',
+                            alpha=1.0,
+                            boxstyle=BoxStyle("Round", pad=0.2)
+                            )
                     )
 
         # if a path to a image is given, also plot it
@@ -408,17 +413,14 @@ class EISFrame:
         ----------
         ax : matplotlib.axes.Axes
             axes to plot to
-        image : str
-             path to image to include in plot
         cell
         exclude_start
         exclude_end
         ls
         marker
         plot_range
-        label
+        param
         size
-        scale
 
         Returns
         -------
@@ -489,7 +491,6 @@ class EISFrame:
 
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-        # ax.locator_params(nbins=4, prune='upper')
 
         if param:
             param = {
@@ -525,7 +526,7 @@ class EISFrame:
                 custom_circuit_fit = circ_calc(param, frequency)
                 real_fit = np.real(custom_circuit_fit)
                 imag_fit = np.imag(custom_circuit_fit)
-                line_real = ax.semilogx(
+                fit_real = ax.semilogx(
                         frequency,
                         real_fit,
                         ls='-',
@@ -534,7 +535,7 @@ class EISFrame:
                         markersize=size,
                         )
 
-                line_imag = ax.semilogx(
+                fit_imag = ax.semilogx(
                         frequency,
                         -imag_fit,
                         ls='-',
@@ -542,6 +543,9 @@ class EISFrame:
                         label="-Im(Z)",
                         markersize=size,
                         )
+
+                lines["Real Fit"] = fit_real
+                lines["Imag Fit"] = fit_imag
 
         _plot_legend(ax)
 
@@ -558,7 +562,7 @@ class EISFrame:
             draw_circle: bool = True,
             draw_circuit: bool = False,
             fit_values=None
-            ) -> tuple[list, dict]:
+            ) -> tuple[list, list]:
         """
         Fitting for the nyquist TODO: add all options to the function
 
@@ -612,12 +616,17 @@ class EISFrame:
                 else:
                     bounds.append(param_info[i].bounds)
 
+        # calculate the weight of each datapoint
+        def weight(error, value):
+            square_value = np.square(value)
+            return np.true_divide(error, square_value)
+
         # calculate rmse
-        def rmse(y_predicted, y_actual, weight=1):
+        def rmse(y_predicted, y_actual):
             """ Calculates the root mean squared error between two vectors """
             e = np.abs(np.subtract(y_actual, y_predicted))
             se = np.square(e)
-            wse = se / weight
+            wse = weight(se, y_actual)
             mse = np.nansum(wse)
             return np.sqrt(mse)
 
@@ -625,77 +634,28 @@ class EISFrame:
         def opt_func(x):
             params = dict(zip(param_names, x))
             predict = circ_calc(params, frequencies)
-            err = rmse(predict, z, np.abs(predict))
+            err = rmse(predict, z)
             return err
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in true_divide"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="invalid value encountered in true_divide"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in tanh"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in double_scalars"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in power"
-                    )
-            if fit_values is None:
-                opt_result = minimize(
-                        opt_func,
-                        np.array(fit_guess),
-                        bounds=bounds,
-                        tol=1e-13,
-                        options={'maxiter': 1e4, 'ftol': 1e-9},
-                        method='Nelder-Mead'
-                        )
-                param_values = opt_result.x
-            else:
-                param_values = np.array(fit_values)
+        if fit_values is None:
+            opt_result = _fit_routine(bounds, fit_guess, opt_func)
+            param_values = opt_result.x
+        else:
+            param_values = np.array(fit_values)
 
         # print the fitting parameters to the console
-        parameters = dict(zip(param_names, param_values))
-        logging.info(f"Parameters: {parameters}")
+        for p_value, p_info in zip(param_values, param_info):
+            p_info.value = p_value
+        logging.info(f"Parameters: {param_info}")
 
         if path is not None:
             with open(path, 'w') as f:
-                f.write(f"parameter, value\n")
-                for key in parameters.keys():
-                    f.write(f"{key}, {parameters[key]}\n")
+                json.dump(param_info, f)
 
         f_pred = np.logspace(-9, 9, 400)
         # plot the fitting result
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in true_divide"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="invalid value encountered in true_divide"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in tanh"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in double_scalars"
-                    )
-            warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in power"
-                    )
-            custom_circuit_fit = circ_calc(parameters, frequencies)
+        parameters = {info.name: info.value for info in param_info}
+        custom_circuit_fit = circ_calc(parameters, frequencies)
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -713,13 +673,13 @@ class EISFrame:
         self.lines["fit"] = line
         # check if circle needs to be drawn
         if draw_circle:
-            self._plot_semis(fit_circuit, param_info, parameters, cell, ax)
+            self._plot_semis(fit_circuit, param_info, cell, ax)
 
         if draw_circuit:
             self._plot_circuit(fit_circuit, ax)
 
         _plot_legend(ax)
-        return line, parameters
+        return line, param_info
 
     def plot_lifecycle(
             self,
@@ -789,7 +749,6 @@ class EISFrame:
             self,
             circuit: str,
             param_info: list,
-            param_values: dict,
             cell=None,
             ax: axes.Axes = None
             ):
@@ -814,6 +773,7 @@ class EISFrame:
         if ax is None:
             ax = plt.gca()
 
+        param_values = {info.name: info.value for info in param_info}
         elem_infos = []
 
         # split the circuit in to elements connected through series
@@ -912,10 +872,75 @@ class EISFrame:
         return
 
     def _create_subframe(self, df):
+        """ ? depracted ? """
         subframe = EISFrame(df)
         subframe.mark_points = self.mark_points
         subframe._params = self._params
         return subframe
+
+
+def _fit_routine(bounds, fit_guess, opt_func, reapeat=1):
+    initial_value = np.array(fit_guess)
+
+    # why does least squares have different format for bounds ???
+    ls_bounds_lb = [bound[0] for bound in bounds]
+    ls_bounds_ub = [bound[1] for bound in bounds]
+    ls_bounds = (ls_bounds_lb, ls_bounds_ub)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+                "ignore",
+                message="divide by zero encountered in true_divide"
+                )
+        warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in true_divide"
+                )
+        warnings.filterwarnings(
+                "ignore",
+                message="overflow encountered in tanh"
+                )
+        warnings.filterwarnings(
+                "ignore",
+                message="divide by zero encountered in double_scalars"
+                )
+        warnings.filterwarnings(
+                "ignore",
+                message="overflow encountered in power"
+                )
+
+        print(opt_func(initial_value))
+        for i in range(reapeat):
+            opt_result = least_squares(
+                    opt_func,
+                    initial_value,
+                    bounds=ls_bounds,
+                    xtol=1e-13,
+                    max_nfev=1000,
+                    ftol=1e-9
+                    )
+            initial_value = opt_result.x
+            opt_result = minimize(
+                    opt_func,
+                    initial_value,
+                    bounds=bounds,
+                    tol=1e-13,
+                    options={'maxiter': 1e4, 'ftol': 1e-9},
+                    method='Nelder-Mead'
+                    )
+            initial_value = opt_result.x
+
+    # print(opt_result.hess_inv)
+    # ftol = 2.220446049250313e-09
+    # x = opt_result.x
+    # tmp_i = np.zeros(len(x))
+    # for i in range(len(x)):
+    #     tmp_i[i] = 1.0
+    #     hess_inv_i = opt_result.hess_inv(tmp_i)[i]
+    #     uncertainty_i = np.sqrt(max(1, abs(opt_result.fun)) * ftol * hess_inv_i)
+    #     tmp_i[i] = 0.0
+    #     print('x^{0} = {1:12.4e} ± {2:.1e}'.format(i, x[i], uncertainty_i))
+    return opt_result
 
 
 def create_fig(
@@ -1004,6 +1029,7 @@ def save_fig(
 
 
 def flat2gen(alist):
+    """ ? depracted ? """
     for item in alist:
         if isinstance(item, list):
             for subitem in item:
