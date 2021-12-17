@@ -41,6 +41,7 @@ def cycles():
                     ax,
                     'R0-p(R1,CPE1)-Ws1',
                     [0.1, 1694.1, 3.2e-10, 0.9, 620, 1.6],
+                    fit_bounds={"CPE1_n": (0, 2)},
                     draw_circle=False,
                     path=path + rf"\plots\TailInvestigation\cycle_{i:02d}-{n:03d}_param.txt"
                     )
