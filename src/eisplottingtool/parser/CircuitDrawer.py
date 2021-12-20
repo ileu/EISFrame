@@ -1,47 +1,38 @@
 import re
+from typing import Callable
 
 import schemdraw as sd
-from eisplottingtool.parser import circuit_components
 from schemdraw import dsp
+
+from eisplottingtool.parser import circuit_components
 
 
 def draw_circuit(
         circ: str,
+        scale_h: float = 0.25,
+        par_connector_length: float = 0.25,
+        scaling: Callable[[float], float] = None
         ) -> sd.Drawing:
-    """ EBNF parser for a circuit string.
-
-    Implements an extended Backus–Naur form to parse a string that descirbes
-    a circuit.
-    Already implemented circuit elements are locacted in CircuitComponents.py
-
-    To put elements in series connect them through -.
-    Parallel elements are created by p(Elm1, Elm2,...)
-
-    The syntax of the EBNF is given by:
-
-        - circuit = element | element-circuit
-        - element = component | parallel
-        - parallel = p(circuit {,circuit})
-        - component = a circuit component
+    """ Modified version of CircuitParser.parse_circuit to draw the circuit.
 
     Parameters
     ----------
     circ : str
         String that descirbes a circuit
-    draw : bool
-        If the circuit should be drawn. Default False.
+    scale_h: float
+    par_connector_length: float
+    scaling: Callable[[float], float]
 
     Returns
     -------
     drawing : sd.Drawing
 
     """
-    scale_h = 0.25
-    par_connector_length = 0.25
 
-    def scaling(old_s):
-        new_s = old_s * 0.025
-        return 1
+    if scaling is None:
+        def scaling(old_s):
+            new_s = old_s * 0.025
+            return 1
 
     drawing = sd.Drawing()
 
