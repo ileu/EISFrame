@@ -11,6 +11,12 @@ from scipy.optimize import Bounds, fminbound
 from eisplottingtool import load_data, create_fig, Cell, save_fig
 from eisplottingtool.parser import parse_circuit, circuit_components
 
+# https://stackoverflow.com/questions/43593592/errors-to-fit-parameters
+# -of-scipy-optimize
+# https://stats.stackexchange.com/questions/71154/when-an-analytical
+# -jacobian-is-available-is-it-better-to-approximate-the-hessia
+# https://stats.stackexchange.com/questions/350029/working-out-error-on
+# -fit-parameters-for-nonlinear-fit
 
 def main1():
     frequencies, z = preprocessing.readCSV(r"../Examples/ExampleData1.csv")
@@ -29,24 +35,6 @@ def main1():
             niter=10
             )
     print(circuit)
-
-    # low_res = results.lowest_optimization_result
-    # ftol = 2.220446049250313e-09
-    # tmp_i = np.zeros(len(low_res.x))
-    # perror = []
-    # for i in range(len(low_res.x)):
-    #     tmp_i[i] = 1.0
-    #     hess_inv_i = low_res.hess_inv(tmp_i)[i]
-    #     uncertainty_i = np.sqrt(max(1, abs(low_res.fun)) * ftol * hess_inv_i)
-    #     tmp_i[i] = 0.
-    #     perror.append(uncertainty_i)
-    # https://stackoverflow.com/questions/43593592/errors-to-fit-parameters
-    # -of-scipy-optimize
-    # https://stats.stackexchange.com/questions/71154/when-an-analytical
-    # -jacobian-is-available-is-it-better-to-approximate-the-hessia
-    # https://stats.stackexchange.com/questions/350029/working-out-error-on
-    # -fit-parameters-for-nonlinear-fit
-
     z_fit = circuit.predict(frequencies)
 
     fig, axs = plt.subplots(1, 1)

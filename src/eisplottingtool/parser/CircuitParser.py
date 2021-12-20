@@ -1,12 +1,11 @@
 import re
 from typing import Callable
-from eisplottingtool.parser.CircuitComponents import circuit_components, \
-    Parameter
+from eisplottingtool.parser.CircuitComponents import circuit_components
+from eisplottingtool.utils import Parameter
 
 
 def parse_circuit(
         circ: str,
-        draw: bool = False
         ) -> tuple[list[Parameter], Callable]:
     """ EBNF parser for a circuit string.
 
@@ -14,22 +13,19 @@ def parse_circuit(
     a circuit.
     Already implemented circuit elements are locacted in CircuitComponents.py
 
-    To put elements in series connect them through -.
+    To put elements in series connect them through -
     Parallel elements are created by p(Elm1, Elm2,...)
 
     The syntax of the EBNF is given by:
-
-    circuit = element | element-circuit
-    element = component | parallel
-    parallel = p(circuit {,circuit})
-    component = a circuit component
+        - circuit = element | element-circuit
+        - element = component | parallel
+        - parallel = p(circuit {,circuit})
+        - component = a circuit component
 
     Parameters
     ----------
     circ : str
         String that descirbes a circuit
-    draw : bool
-        If the circuit should be drawn. Default False.
 
     Returns
     -------

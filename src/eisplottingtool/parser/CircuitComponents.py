@@ -2,38 +2,11 @@ import numpy as np
 from schemdraw import elements as elm
 
 import eisplottingtool.parser.SchemeElements as sElm
+from eisplottingtool.utils import Parameter
 
 initial_state = set(globals().copy())
-additional_functions = ['Parameter', 'Component', 'initial_state',
+additional_functions = ['Component', 'initial_state',
                         'additional_functions']
-
-
-class Parameter:
-    """ Parameter class to save data of parameters
-
-    A parameter consists of a name, bounds in the form of (ll, ul) with lb =
-    lower bounds and ub = upper bounds and a unit string.
-
-    Also used to store fitting results fo the paramater.
-
-    """
-
-    def __init__(self, name, bounds, unit):
-        self.name = name
-        self.value = 0.0
-        self.error = 0.0
-        self.unit = unit
-        self.bounds = bounds
-
-    def __repr__(self):
-        name = f"Parameter {self.name}"
-        value = rf"{self.value} ($\pm${self.error}) [{self.unit}]"
-        return f"{name}, {value}"
-
-    def __eq__(self, other):
-        if isinstance(other, Parameter):
-            return self.name == other.name
-        return False
 
 
 class Component:

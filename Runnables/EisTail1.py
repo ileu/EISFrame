@@ -28,6 +28,7 @@ def cycles():
     path = path4
 
     cell_3mm = ept.Cell(3, 0.7)
+    circuit = 'R0-p(R1,CPE1)-Ws1'
 
     for i, file in enumerate(files):
         print(file)
@@ -37,9 +38,9 @@ def cycles():
         for n, cycle in enumerate(data):
             fig, ax = ept.create_fig()
             cycle.plot_nyquist(ax)
-            cycle.fit_nyquist(
+            params, __ = cycle.fit_nyquist(
                     ax,
-                    'R0-p(R1,CPE1)-Ws1',
+                    circuit,
                     [0.1, 1694.1, 3.2e-10, 0.9, 620, 1.6],
                     fit_bounds={"CPE1_n": (0, 2)},
                     draw_circle=False,
@@ -47,7 +48,7 @@ def cycles():
                     )
             fig2, ax2 = ept.create_fig()
             print(f"Total imp calc: {np.nanmean(cycle.voltage / 0.007 * 1e3)}")
-            cycle.plot_bode(ax2, param=True)
+            cycle.plot_bode(ax2, param_values=params, param_circuit=circuit)
             plt.show()
             break
             ept.save_fig(

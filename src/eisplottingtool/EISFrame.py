@@ -24,6 +24,8 @@ from scipy.optimize import minimize, least_squares
 
 from eisplottingtool.parser import parse_circuit
 
+from src.eisplottingtool.utils import Cell
+
 
 class MarkPoint:
     """ Special point to mark in an eis plot.
@@ -90,35 +92,6 @@ hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e3)
 lxlzo = MarkPoint('LxLZO', 'lime', freq=2e3, delta_f=5e2)
 interface = MarkPoint('Interphase', 'magenta', freq=50, delta_f=5)
 ecr_tail = MarkPoint('ECR', 'darkgreen', freq=0.5, delta_f=1)
-
-
-class Cell:
-    """
-        Save the characteristics of a cell. Usefull for further calculation.
-    """
-
-    def __init__(self, diameter_mm, thickness_mm):
-        """
-         Initializer of a cell
-
-        Parameters
-        ----------
-        diameter_mm : float
-            diameter of the cell in mm
-        thickness_mm height : float
-            thickness of the cell in mm
-        """
-        self.diameter_mm = diameter_mm
-        self.height_mm = thickness_mm
-
-        self.area_mm2 = (diameter_mm / 2) ** 2 * np.pi  # area of the cell
-        self.volume_mm3 = self.area_mm2 * thickness_mm  # volume of the cell
-
-    def __repr__(self):
-        return f"{self.diameter_mm=}, {self.area_mm2=}"
-
-    def __str__(self):
-        return "Cell with " + self.__repr__()
 
 
 class EISFrame:
@@ -401,7 +374,8 @@ class EISFrame:
             ls='None',
             marker='o',
             plot_range=None,
-            param=None,
+            param_values=None,
+            param_circuit=None,
             size=12,
             ):
         """ Plots a Nyquist plot with the internal dataframe
@@ -492,16 +466,8 @@ class EISFrame:
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
 
-        if param:
-            param = {
-                'R0': 1.000000165581512e-06,
-                'R1': 1504.0352714972184,
-                'CPE1_Q': 3.2342851302198605e-10,
-                'CPE1_n': 1.0,
-                'Ws1_R': 394.8670567451571,
-                'Ws1_T': 2.206562218443595
-                }
-            param_info, circ_calc = parse_circuit('R0-p(R1,CPE1)-Ws1')
+        if param_values and param_circuit:
+            param_info, circ_calc = parse_circuit(param_circuit)
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                         "ignore",
@@ -523,7 +489,7 @@ class EISFrame:
                         "ignore",
                         message="overflow encountered in power"
                         )
-                custom_circuit_fit = circ_calc(param, frequency)
+                custom_circuit_fit = circ_calc(param_values, frequency)
                 real_fit = np.real(custom_circuit_fit)
                 imag_fit = np.imag(custom_circuit_fit)
                 fit_real = ax.semilogx(
@@ -651,8 +617,8 @@ class EISFrame:
         if path is not None:
             with open(path, 'w') as f:
                 json.dump(
-                    param_info, f, default=lambda o: o.__dict__, indent=1
-                    )
+                        param_info, f, default=lambda o: o.__dict__, indent=1
+                        )
 
         f_pred = np.logspace(-9, 9, 400)
         # plot the fitting result
@@ -879,6 +845,10 @@ class EISFrame:
         subframe.mark_points = self.mark_points
         subframe._params = self._params
         return subframe
+
+
+def _area_normalizer(data, cell: Cell):
+    return data * cell.area_mm2 * 1e-2
 
 
 def _fit_routine(bounds, fit_guess, opt_func, reapeat=6):
