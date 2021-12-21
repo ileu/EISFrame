@@ -15,8 +15,8 @@ class EPTfile:
 
 
 def main():
-    path = r"G:\Collaborators\Sauter Ulrich\ProtonatedFullCells"
-    path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\ProtonatedFullCells"
+    path = r"G:\Collaborators\Sauter Ulrich\Projects\ProtonatedFullCells"
+    path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\ProtonatedFullCells"
     fc16_deprot_nopres = r"\20211126_FC16_B9_water-1w-50C_HT900C-8h_Li" \
                          r"-4mm_LFP4mm-500um_Cycling_03_PEIS_C05.mpr"
     fc17_prot_pres = r"\20211128_FC17_B9_Water-1w-50C_HT400C-3h_Li-4mm_LFP" \

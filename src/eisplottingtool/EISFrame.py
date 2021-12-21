@@ -23,8 +23,7 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import minimize, least_squares
 
 from eisplottingtool.parser import parse_circuit
-
-from src.eisplottingtool.utils import Cell
+from eisplottingtool.utils import Cell
 
 
 class MarkPoint:
@@ -221,7 +220,9 @@ class EISFrame:
             plot_range=None,
             label=None,
             size=12,
-            scale=1.5
+            scale=1.5,
+            normalize=None,
+            unit=None
             ):
         """ Plots a Nyquist plot with the internal dataframe
 
@@ -252,8 +253,16 @@ class EISFrame:
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
         # label for the plot
-        x_label = r"Re(Z)/$\Omega$"
-        y_label = r"-Im(Z)/$\Omega$"
+        if unit is None:
+            if cell is None:
+                x_label = r"Re(Z)/$\Omega$"
+                y_label = r"-Im(Z)/$\Omega$"
+            else:
+                x_label = r"Re(Z)/$\Omega$.cm$^2$"
+                y_label = r"-Im(Z)/$\Omega$.cm$^2$"
+        else:
+            x_label = rf"Re(Z)/{unit}"
+            y_label = rf"-Im(Z)/{unit}"
         # only look at measurements with frequency data
         mask = self.frequency != 0
 
@@ -267,12 +276,15 @@ class EISFrame:
         frequency = self.frequency[mask][exclude_start:exclude_end]
 
         # adjust impedance if a cell is given
-        if cell is not None:
-            x_data = x_data * cell.area_mm2 * 1e-2
-            x_label = r"Re(Z)/$\Omega$.cm$^2$"
+        if cell is None:
+            cell = Cell(1e2, 1e2)
 
-            y_data = y_data * cell.area_mm2 * 1e-2
-            y_label = r"-Im(Z)/$\Omega$.cm$^2$"
+        if normalize is None:
+            def normalize(data, c: Cell):
+                return data * c.area_mm2 * 1e-2
+
+        x_data = normalize(x_data, cell)
+        y_data = normalize(y_data, cell)
 
         # find indices of mark points. Take first point in freq range
         for mark in self.mark_points:
@@ -845,10 +857,6 @@ class EISFrame:
         subframe.mark_points = self.mark_points
         subframe._params = self._params
         return subframe
-
-
-def _area_normalizer(data, cell: Cell):
-    return data * cell.area_mm2 * 1e-2
 
 
 def _fit_routine(bounds, fit_guess, opt_func, reapeat=6):
