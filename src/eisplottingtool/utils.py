@@ -13,13 +13,14 @@ class Parameter:
 
     def __init__(self, name, bounds, unit):
         self.name = name
+        self.color = 'black'
         self.value = 0.0
         self.error = 0.0
         self.unit = unit
         self.bounds = bounds
 
     def __repr__(self):
-        name = f"Parameter {self.name}"
+        name = f"Parameter {self.name}, {self.color}"
         value = rf"{self.value} ($\pm${self.error}) [{self.unit}]"
         return f"{name}, {value}"
 
