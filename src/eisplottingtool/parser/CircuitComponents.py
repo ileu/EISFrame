@@ -1,7 +1,7 @@
 import numpy as np
 from schemdraw import elements as elm
 
-import eisplottingtool.parser.SchemeElements as sElm
+import eisplottingtool.drawing.SchemeElements as sElm
 from eisplottingtool.utils import Parameter
 
 initial_state = set(globals().copy())
@@ -16,19 +16,19 @@ class Component:
     """
 
     @staticmethod
-    def get_symbol():
+    def get_symbol() -> str:
         raise NotImplementedError
 
     @staticmethod
-    def get_parameters(name):
+    def get_parameters(name: str) -> list[Parameter]:
         raise NotImplementedError
 
     @staticmethod
-    def calc(param, key, freq):
+    def calc(param: dict, key: str, freq: np.array) -> np.array:
         raise NotImplementedError
 
     @staticmethod
-    def draw():
+    def draw() -> elm.Element:
         return elm.ResistorIEC()
 
     def __repr__(self):

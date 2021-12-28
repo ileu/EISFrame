@@ -5,13 +5,15 @@ import schemdraw as sd
 from schemdraw import dsp
 
 from eisplottingtool.parser import circuit_components
+from eisplottingtool.utils import ParameterDict
 
 
 def draw_circuit(
         circ: str,
         scale_h: float = 0.25,
         par_connector_length: float = 0.25,
-        scaling: Callable[[float], float] = None
+        scaling: Callable[[float], float] = None,
+        param_dict: ParameterDict = None,
         ) -> sd.Drawing:
     """ Modified version of CircuitParser.parse_circuit to draw the circuit.
 
@@ -19,9 +21,10 @@ def draw_circuit(
     ----------
     circ : str
         String that descirbes a circuit
-    scale_h: float
-    par_connector_length: float
-    scaling: Callable[[float], float]
+    scale_h : float
+    par_connector_length : float
+    scaling : Callable[[float], float]
+    param_dict : ParameterDict
 
     Returns
     -------
@@ -53,15 +56,21 @@ def draw_circuit(
         index = re.match(r'([a-zA-Z]+)_?\d?', c)
         name = c[:index.end()]
         c = c[index.end():]
-        symbol = re.match('[A-Za-z]+', name).group()
 
-        for key, comp in circuit_components.items():
-            if comp.get_symbol() == symbol:
-                break
+        if param_dict is not None:
+            comp = param_dict[name]
+            color = comp.color
         else:
-            return c, 1
+            symbol = re.match('[A-Za-z]+', name).group()
+            color = 'black'
+            for key, comp in circuit_components.items():
+                if comp.get_symbol() == symbol:
+                    break
+            else:
+                return c, 1
+
         nonlocal drawing
-        drawing += comp.draw().right().scale(s)
+        drawing += comp.draw().right().color(color).scale(s)
         return c
 
     def measure_circuit(c: str, s: float, local=False):
