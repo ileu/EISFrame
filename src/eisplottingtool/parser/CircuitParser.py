@@ -1,12 +1,15 @@
 import re
-from typing import Callable
+from typing import Callable, Tuple
+
+import numpy as np
+
 from eisplottingtool.parser.CircuitComponents import circuit_components
-from eisplottingtool.utils import Parameter
+from eisplottingtool.utils.UtilClass import Parameter
 
 
 def parse_circuit(
         circ: str,
-        ) -> tuple[list[Parameter], Callable]:
+        ) -> Tuple[list[Parameter], Callable[[dict, np.array], np.array]]:
     """ EBNF parser for a circuit string.
 
     Implements an extended Backus–Naur form to parse a string that descirbes
@@ -29,7 +32,7 @@ def parse_circuit(
 
     Returns
     -------
-    param_info : dict
+    param_info : list[Parameter]
     calculate : Callable
 
     """
@@ -93,5 +96,5 @@ def parse_circuit(
 
     __, equation = circuit(circ.replace(" ", ""))
 
-    calculate = eval('lambda param, omega: ' + equation, circuit_components)
+    calculate = eval('lambda param, omega: ' + equation, circuit_components.copy())
     return param_info, calculate

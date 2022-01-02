@@ -81,7 +81,3 @@ class WarburgShort(Element2Term):
                         )
                 )
         self.segments.append((SegmentText((width * 0.5, 0), 'Ws')))
-
-
-circuit_elements = {key: eval(key) for key in set(globals()) - initial_state if
-                    key not in non_element_functions}

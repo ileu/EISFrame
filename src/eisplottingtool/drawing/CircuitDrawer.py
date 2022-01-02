@@ -4,8 +4,8 @@ from typing import Callable
 import schemdraw as sd
 from schemdraw import dsp
 
-from eisplottingtool.parser import circuit_components
-from eisplottingtool.utils import ParameterDict
+from eisplottingtool.parser.CircuitComponents import circuit_components
+from eisplottingtool.utils.UtilClass import ParameterDict
 
 
 def draw_circuit(
@@ -56,18 +56,20 @@ def draw_circuit(
         index = re.match(r'([a-zA-Z]+)_?\d?', c)
         name = c[:index.end()]
         c = c[index.end():]
+        color = 'black'
 
         if param_dict is not None:
-            comp = param_dict[name]
-            color = comp.color
+            parm = param_dict[name]
+            if parm is not None:
+                color = parm.color
+
+        symbol = re.match('[A-Za-z]+', name).group()
+
+        for key, comp in circuit_components.items():
+            if comp.get_symbol() == symbol:
+                break
         else:
-            symbol = re.match('[A-Za-z]+', name).group()
-            color = 'black'
-            for key, comp in circuit_components.items():
-                if comp.get_symbol() == symbol:
-                    break
-            else:
-                return c, 1
+            return c, 1
 
         nonlocal drawing
         drawing += comp.draw().right().color(color).scale(s)

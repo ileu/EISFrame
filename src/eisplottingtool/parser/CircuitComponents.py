@@ -1,12 +1,10 @@
+from typing import Type
+
 import numpy as np
 from schemdraw import elements as elm
 
-import eisplottingtool.drawing.SchemeElements as sElm
-from eisplottingtool.utils import Parameter
-
-initial_state = set(globals().copy())
-additional_functions = ['Component', 'initial_state',
-                        'additional_functions']
+import eisplottingtool.parser.SchemeElements as sElm
+from eisplottingtool.utils.UtilClass import Parameter
 
 
 class Component:
@@ -170,6 +168,11 @@ class WarburgShort(Component):
         return sElm.WarburgShort()
 
 
-circuit_components: dict[str, Component] = {key: eval(key) for key in
-                                            set(globals()) - initial_state if
-                                            key not in additional_functions}
+circuit_components: dict[str, Type[Component]] = {
+    'Resistor': Resistor,
+    'Capacitor': Capacitor,
+    'CPE': CPE,
+    'Warburg': Warburg,
+    'WarburgShort': WarburgShort,
+    'WarburgOpen': WarburgOpen,
+}
