@@ -1,7 +1,6 @@
 /.ipynb_checkpoints/
 /.idea/
 /Images/
-/Thumbs.db
 /.vscode/
 *__pycache__
 dist/
@@ -12,3 +11,4 @@ build/
 /.pytest_cache/
 /tests/.coverage
 /tests/.ipynb_checkpoints/
+/tests/.pytest_cache/
