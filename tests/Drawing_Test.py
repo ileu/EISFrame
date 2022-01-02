@@ -1,6 +1,6 @@
-from eisplottingtool.parser import draw_circuit
 from matplotlib import pyplot as plt
 
+from eisplottingtool.drawing import draw_circuit
 
 def main():
     circuit1 = 'p(R,R,R,R)-p(R,R,R)'
