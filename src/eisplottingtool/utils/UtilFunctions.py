@@ -125,7 +125,6 @@ def save_fig(
     """
     if fig is None:
         fig = plt.gcf()
-    fig.tight_layout()
     if not os.path.isdir(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
     fig.savefig(path, bbox_inches='tight', **kwargs)

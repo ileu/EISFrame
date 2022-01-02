@@ -157,7 +157,7 @@ class EISFrame:
         show_freq: bool = False,
         color=None,
         ls='None',
-        marker='o',
+        marker=None,
         plot_range=None,
         label=None,
         size=6,
@@ -199,6 +199,10 @@ class EISFrame:
         dictionary
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
+        # initialize
+        if marker is None:
+            marker = 'o'
+
         # label for the plot
         if unit is None:
             if cell is None:
@@ -208,8 +212,8 @@ class EISFrame:
                 x_label = r"Re(Z)/$\Omega$.cm$^2$"
                 y_label = r"-Im(Z)/$\Omega$.cm$^2$"
         else:
-            x_label = rf"Re(Z)/{unit}"
-            y_label = rf"-Im(Z)/{unit}"
+            x_label = rf"Re(Z) [{unit}]"
+            y_label = rf"-Im(Z) [{unit}]"
         # only look at measurements with frequency data
         mask = self.frequency != 0
 
@@ -224,8 +228,12 @@ class EISFrame:
 
         # adjust impedance if a cell is given
         if normalize is None:
-            def normalize(data, c: Cell):
-                return data
+            if cell is None:
+                def normalize(data, c: Cell):
+                    return data
+            else:
+                def normalize(data, c: Cell):
+                    return data * c.area_mm2 * 1e-2
 
         x_data = normalize(x_data, cell)
         y_data = normalize(y_data, cell)
@@ -260,14 +268,14 @@ class EISFrame:
             line = ax.plot(
                 x_data[mark.index],
                 y_data[mark.index],
-                marker='o',
+                marker=marker,
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
                 markersize=scale * size,
                 ls='none',
                 label=mark_label
             )
-            lines[mark.name] = line
+            lines[f"MP-{mark.name}"] = line
 
         # additional configuration for the plot
         ax.set_xlabel(x_label)
@@ -581,10 +589,14 @@ class EISFrame:
             param_values = np.array(fit_values)
 
         # print the fitting parameters to the console
+        report = f"Fitting report:\n"
+        report += f"Equivivalent circuit: {fit_circuit}\n"
+        report += "Parameters: \n"
         for p_value, p_info in zip(param_values, param_info):
             p_info.value = p_value
+            report += f"\t {p_info}\n"
 
-        Logger.info(f"Parameters: {param_info}")
+        Logger.info(report)
 
         if path is not None:
             with open(path, 'w') as f:
@@ -853,7 +865,7 @@ def plot_legend(
     loc='upper left',
     fontsize='xx-small',
     frameon=False,
-    markerscale=1,
+    markerscale=2,
     handletextpad=0.1,
     mode='expand',
     **kwargs
@@ -881,10 +893,12 @@ def plot_legend(
     leg = ax.legend(
         loc=loc,
         fontsize=fontsize,
-        frameon=frameon,
+        frameon=True,
+        framealpha=1,
+        edgecolor='white',
         markerscale=markerscale,
         handletextpad=handletextpad,
-        mode=mode,
+        mode=None,
         borderpad=0.0,
         **kwargs
     )

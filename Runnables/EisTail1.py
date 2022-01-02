@@ -3,25 +3,29 @@ import glob
 import logging
 import os
 
-import eisplottingtool as ept
 import matplotlib.axes
-import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
+import eisplottingtool as ept
+
 
 def cycles():
-    path1 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w-60C_HT900C-8h_doubleMelt-2"
-    file1 = r"\20211124_B9P10_Water-1w-60C_HT900C-8h_doubleMelt-2_PEIS_01_PEIS_C04.mpr"
+    path1 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w" \
+            r"-60C_HT900C-8h_doubleMelt-2"
+    file1 = r"\20211124_B9P10_Water-1w-60C_HT900C-8h_doubleMelt-2_PEIS_01_PEIS_C04" \
+            r".mpr"
     path2 = r"G:\Limit\VMP3 data\Rabeb\Batch4-LLZTO\Acetonitryle-3days"
     file21 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle" \
-                r"-3days_Li300C_3mm_0p7th_PT_C15.mpr"
+             r"-3days_Li300C_3mm_0p7th_PT_C15.mpr"
     file22 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle" \
-                r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04" \
-                r".mpr"
-    path3 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min"
+             r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04" \
+             r".mpr"
+    path3 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211104_B9P4_HT400C-3h_Li" \
+            r"-3mm-300C-30min"
     file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_04_PEIS_C03.mpr"
-    path4 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w-60C_HT900C-8h_doubleMelt-2"
+    path4 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w" \
+            r"-60C_HT900C-8h_doubleMelt-2"
     file4 = r"\20211126_B9P10_Water-1w-60C_HT900C-8h_doubleMelt" \
             r"-2_FCandPT_03_MB_C04.mpr"
     files = [file4]
@@ -38,34 +42,37 @@ def cycles():
         for n, cycle in enumerate(data):
             fig, ax = ept.create_fig()
             cycle.plot_nyquist(ax)
+            fit_path = path + rf"\plots\TailInvestigation\cycle_{i:02d}-{n:03d}\
+            _param.txt"
             params, __ = cycle.fit_nyquist(
-                    ax,
-                    circuit,
-                    [0.1, 1694.1, 3.2e-10, 0.9, 620, 1.6],
-                    fit_bounds={"CPE1_n": (0, 2)},
-                    draw_circle=False,
-                    path=path + rf"\plots\TailInvestigation\cycle_{i:02d}-{n:03d}_param.txt"
-                    )
+                ax,
+                circuit,
+                [0.1, 1694.1, 3.2e-10, 0.9, 620, 1.6],
+                fit_bounds={"CPE1_n": (0, 2)},
+                draw_circle=False,
+                path=fit_path
+            )
             fig2, ax2 = ept.create_fig()
             print(f"Total imp calc: {np.nanmean(cycle.voltage / 0.007 * 1e3)}")
             cycle.plot_bode(ax2, param_values=params, param_circuit=circuit)
             plt.show()
             break
-            ept.save_fig(
-                    os.path.join(
-                            path,
-                            "plots",
-                            "TailInvestigation",
-                            f"cycle_{i:02d}-{n:03d}.png"
-                            )
-                    )
+            # ept.save_fig(
+            #     os.path.join(
+            #         path,
+            #         "plots",
+            #         "TailInvestigation",
+            #         f"cycle_{i:02d}-{n:03d}.png"
+            #     )
+            # )
 
 
 def parameter():
     path1 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211124_B9P10_Water-1w" \
-           r"-60C_HT900C-8h_doubleMelt-2\plots"
+            r"-60C_HT900C-8h_doubleMelt-2\plots"
     path2 = r"G:\Limit\VMP3 data\Rabeb\Batch4-LLZTO\Acetonitryle-3days"
-    path3 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min\plots\TailInvestigation"
+    path3 = r"G:\Limit\VMP3 data\Ueli\Ampcera-Batch9\20211104_B9P4_HT400C-3h_Li" \
+            r"-3mm-300C-30min\plots\TailInvestigation"
     param_files = glob.glob(path3 + r"\*param.txt")
     param_files.sort()
     params = []
@@ -92,4 +99,3 @@ if __name__ == "__main__":
     cycles()
     # parameter()
     logging.info('Finished')
-

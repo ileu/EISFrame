@@ -21,8 +21,8 @@ class Parameter:
         self.bounds = bounds
 
     def __repr__(self):
-        name = f"Parameter {self.name}, {self.color}"
-        value = rf"{self.value} ($\pm${self.error}) [{self.unit}]"
+        name = f"Parameter {self.name}"
+        value = rf"{self.value:.3e} (+/-{self.error}) [{self.unit}]"
         return f"{name}, {value}"
 
     def __eq__(self, other):
