@@ -33,7 +33,7 @@ class EISFrame:
         EISFrame used to store the data and plot/fit the data.
     """
 
-    def __init__(self, df: pd.DataFrame = None, data_params=None, **kwargs) -> None:
+    def __init__(self, df: pd.DataFrame = None, column_names=None, **kwargs) -> None:
         """ Initialises an EISFrame
 
         An EIS frame can plot a Nyquist plot and a lifecycle lifecycle plot
@@ -43,7 +43,7 @@ class EISFrame:
         ----------
         df : pd.DataFrame
 
-        data_params : dict
+        column_names : dict
 
         **kwargs: dict
             path: str
@@ -53,9 +53,9 @@ class EISFrame:
             cell: Cell
                 Battery cell for normalizing
         """
-        if data_params is None:
-            data_params = {}
-        self._data_params = data_params.copy()
+        if column_names is None:
+            column_names = {}
+        self.column_names = column_names.copy()
 
         if "path" in kwargs:
             self.path = kwargs["path"]
@@ -65,19 +65,19 @@ class EISFrame:
         else:
             raise ValueError()
 
-        if 'real' not in data_params:
-            if 'phase' in data_params and 'abs' in data_params:
-                self.df['real'] = df[data_params['abs']] * np.cos(
-                    df[data_params['phase']] / 360.0 * 2 * np.pi
+        if 'real' not in column_names:
+            if 'phase' in column_names and 'abs' in column_names:
+                self.df['real'] = df[column_names['abs']] * np.cos(
+                    df[column_names['phase']] / 360.0 * 2 * np.pi
                 )
-                self._data_params['real'] = 'real'
+                self.column_names['real'] = 'real'
 
-        if 'imag' not in data_params:
-            if 'phase' in data_params and 'abs' in data_params:
-                self.df['imag'] = -df[data_params['abs']] * np.sin(
-                    df[data_params['phase']] / 360.0 * 2 * np.pi
+        if 'imag' not in column_names:
+            if 'phase' in column_names and 'abs' in column_names:
+                self.df['imag'] = -df[column_names['abs']] * np.sin(
+                    df[column_names['phase']] / 360.0 * 2 * np.pi
                 )
-                self._data_params['imag'] = 'imag'
+                self.column_names['imag'] = 'imag'
 
         self.mark_points = default_mark_points
         self.lines = {}
@@ -86,37 +86,37 @@ class EISFrame:
 
     @property
     def time(self) -> np.array:
-        return self.df[self._data_params['time']].values
+        return self.df[self.column_names['time']].values
 
     @time.setter
     def time(self, value):
-        self.df[self._data_params['time']] = value
+        self.df[self.column_names['time']] = value
 
     @property
     def impedance(self) -> np.array:
-        value = self.df[self._data_params['real']].values
-        value += -1j * self.df[self._data_params['real']].values
+        value = self.df[self.column_names['real']].values
+        value += -1j * self.df[self.column_names['real']].values
         return value
 
     @property
     def real(self) -> np.array:
-        return self.df[self._data_params['real']].values
+        return self.df[self.column_names['real']].values
 
     @property
     def imag(self) -> np.array:
-        return self.df[self._data_params['imag']].values
+        return self.df[self.column_names['imag']].values
 
     @property
     def frequency(self) -> np.array:
-        return self.df[self._data_params['frequency']].values
+        return self.df[self.column_names['frequency']].values
 
     @property
     def current(self) -> np.array:
-        return self.df[self._data_params['current']].values
+        return self.df[self.column_names['current']].values
 
     @property
     def voltage(self) -> np.array:
-        return self.df[self._data_params['voltage']].values
+        return self.df[self.column_names['voltage']].values
 
     @property
     def cycle(self) -> np.array:
@@ -499,7 +499,7 @@ class EISFrame:
         fit_values=None
     ) -> tuple[dict, list]:
         """
-        Fitting for the nyquist TODO: add all options to the function
+        Fitting for the nyquist
 
         Parameters
         ----------
@@ -906,27 +906,27 @@ def plot_legend(
 
 
 def _get_default_data_param(columns):
-    params = {}
+    col_names = {}
     for col in columns:
         if match := re.match(r'Ewe[^|]*', col):
-            params['voltage'] = match.group()
+            col_names['voltage'] = match.group()
         elif match := re.match(r'I/mA[^|]*', col):
-            params['current'] = match.group()
+            col_names['current'] = match.group()
         elif match := re.match(r'Re\(Z(we-ce)?\)[^|]*', col):
-            params['real'] = match.group()
+            col_names['real'] = match.group()
         elif match := re.match(r'-Im\(Z(we-ce)?\)[^|]*', col):
-            params['imag'] = match.group()
+            col_names['imag'] = match.group()
         elif match := re.match(r'Phase\(Z(we-ce)?\)[^|]*', col):
-            params['phase'] = match.group()
+            col_names['phase'] = match.group()
         elif match := re.match(r'\|Z(we-ce)?\|[^|]*', col):
-            params['abs'] = match.group()
+            col_names['abs'] = match.group()
         elif match := re.match(r'time[^|]*', col):
-            params['time'] = match.group()
+            col_names['time'] = match.group()
         elif match := re.match(r'(z )?cycle( number)?[^|]*', col):
-            params['cycle'] = match.group()
+            col_names['cycle'] = match.group()
         elif match := re.match(r'freq[^|]*', col):
-            params['frequency'] = match.group()
-    return params
+            col_names['frequency'] = match.group()
+    return col_names
 
 
 def load_csv_to_df(path: str, sep='\t'):
@@ -992,7 +992,7 @@ def load_data(
 
     if (cycle_param := data_param.get('cycle')) is None:
         Logger.info("No cycles detected")
-        return EISFrame(data, data_params=data_param)
+        return EISFrame(data, column_names=data_param)
 
     cycles = []
 
@@ -1001,5 +1001,5 @@ def load_data(
 
     for i in range(min_cyclenumber, max_cyclenumber + 1):
         cycle = data[data[cycle_param] == i].reset_index()
-        cycles.append(EISFrame(cycle, data_params=data_param))
+        cycles.append(EISFrame(cycle, column_names=data_param))
     return cycles
