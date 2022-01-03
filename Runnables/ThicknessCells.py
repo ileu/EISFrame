@@ -29,9 +29,10 @@ class EPTfile:
 
 
 def main():
+    # TODO: only normalize to area
     path1 = r"G:\Collaborators\Sauter Ulrich\Projects\Thickness"
     path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\Thickness"
-    path = path2
+    path = path1
     file1 = r"\20211217_B10P2_Water-1W_HT400C-3h_Li-3mm-280C" \
             r"-30min_0um_EIS_01_PEIS_C15.mpr"
     file2 = r"\20211216_B10P2_Water-1W_HT400C-3h_Li-3mm-280C" \
@@ -49,7 +50,7 @@ def main():
     )
     cell100um = EPTfile(
         file2,
-        "Protonated 70um",
+        "Protonated 20um",
         color='C5',
         thickness=0.620,
         circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
@@ -57,7 +58,7 @@ def main():
     )
     cell1500um = EPTfile(
         file3,
-        "Protonated 20um",
+        "Protonated 70um",
         color='C6',
         thickness=0.540,
         circuit="R0-p(R1,CPE1)-Ws1",
@@ -65,7 +66,7 @@ def main():
     )
 
     def normalizer(values, cell: ept.Cell):
-        return values * cell.area_mm2 * cell.height_mm * 1e-2
+        return values * cell.area_mm2 * 1e-2
 
     files = [cell0um, cell100um, cell1500um]
 
