@@ -22,7 +22,7 @@ class Parameter:
 
     def __repr__(self):
         name = f"Parameter {self.name}"
-        value = rf"{self.value:.3e} (+/-{self.error}) [{self.unit}]"
+        value = rf"{self.value:.3e} (±{self.error}) [{self.unit}]"
         return f"{name}, {value}"
 
     def __eq__(self, other):
