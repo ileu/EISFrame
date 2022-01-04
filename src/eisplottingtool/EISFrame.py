@@ -609,19 +609,27 @@ class EISFrame:
         f_pred = np.logspace(-9, 9, 400)
         # plot the fitting result
         parameters = {info.name: info.value for info in param_info}
-        custom_circuit_fit = circ_calc(parameters, frequencies)
+        custom_circuit_fit_freq = circ_calc(parameters, frequencies)
+        custom_circuit_fit = circ_calc(parameters, f_pred)
 
         # adjust impedance if a cell is given
         if cell is not None:
             custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
+            custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
 
+        line = ax.scatter(
+            np.real(custom_circuit_fit_freq),
+            -np.imag(custom_circuit_fit_freq),
+            color="red",
+            zorder=5,
+            marker='x'
+        )
         line = ax.plot(
             np.real(custom_circuit_fit),
             -np.imag(custom_circuit_fit),
             label="fit",
             color="red",
             zorder=5,
-            marker='x'
         )
 
         lines = {"fit": line}

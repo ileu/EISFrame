@@ -111,7 +111,9 @@ def cycles():
                     path=path + rf"\{file.name}" + fit_path
             )
             # fig2, ax2 = ept.create_fig()
-            print(f"Total imp calc: {np.nanmean(cycle.voltage[:10] / 0.007 * 1e3)}")
+            tot_imp = np.nanmean(np.abs(cycle.voltage) / 0.007 * 1e3)
+            ax.axvline(tot_imp,ls='--')
+            print(f"Total imp calc: {tot_imp}")
             # cycle.plot_bode(ax2, param_values=params, param_circuit=circuit)
 
             ept.save_fig(
@@ -122,6 +124,7 @@ def cycles():
                     )
             )
             print("DONE")
+            break
 
 
 def parameter():
