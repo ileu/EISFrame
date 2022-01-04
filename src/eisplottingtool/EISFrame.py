@@ -599,6 +599,8 @@ class EISFrame:
         Logger.info(report)
 
         if path is not None:
+            if not os.path.isdir(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
             with open(path, 'w') as f:
                 json.dump(
                     param_info, f, default=lambda o: o.__dict__, indent=1
