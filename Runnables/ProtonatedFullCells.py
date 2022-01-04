@@ -41,8 +41,7 @@ def main():
     fc16 = EPTfile(
         fc16_deprot_nopres,
         "FC16 deprot no press",
-        color='orange',
-        marker='s'
+        color='blue',
     )
     fc17 = EPTfile(fc17_prot_pres, "FC17 prot with press", color='navy')
     fc18 = EPTfile(
@@ -52,14 +51,14 @@ def main():
         marker='s'
         )
     fc19 = EPTfile(fc19_prot_nopres, "FC19 prot no press", color='green')
-    fc19_pres = EPTfile(fc19_prot_pres, "FC19 prot with press", color='lime')
+    fc19_pres = EPTfile(fc19_prot_pres, "FC19 prot with press", color='green')
     fc20 = EPTfile(fc20_prot_pres, "FC20 prot with press", color='blue')
-    fc21 = EPTfile(fc21_prot_nopres, "FC21 prot no press", color='darkred')
+    fc21 = EPTfile(fc21_prot_nopres, "FC21 prot no press", color='orange')
 
-    path = path2
-    image_path = r"C:\Users\ueli\Desktop\Sauter Ulrich\Images\FullCell"
+    path = path1
+    image_path = r"G:\Collaborators\Sauter Ulrich\Images\FullCell"
 
-    files = [fc16, fc18, fc21]
+    files = [fc16, fc21]
 
     cell_3mm = ept.Cell(3, 0.7)
     fig, ax = ept.create_fig()
