@@ -6,11 +6,7 @@ from schemdraw.elements import Element2Term
 gap = (math.nan, math.nan)
 height = 0.25
 width = 1.0
-
-initial_state = set(globals().copy())
-non_element_functions = ['element_metadata', 'initial_state',
-                         'non_element_functions', 'typeChecker',
-                         'circuit_elements']
+text_size = 20
 
 
 class CPE(Element2Term):
@@ -21,29 +17,29 @@ class CPE(Element2Term):
         capgap = 0.25
         offset = 0.5
         self.segments.append(
-            Segment(
-                    [(0, 0), (offset, 0), (capgap, -height), gap, (offset, 0),
-                     gap, (offset + capgap, 0), (2 * offset, 0)]
-                    )
-            )
+                Segment(
+                        [(0, 0), (offset, 0), (capgap, -height), gap, (offset, 0),
+                         gap, (offset + capgap, 0), (2 * offset, 0)]
+                )
+        )
         self.segments.append(
-            Segment(
-                    [(offset, 0), (capgap, height), gap, (offset, 0), gap,
-                     (offset + capgap, 0)]
-                    )
-            )
+                Segment(
+                        [(offset, 0), (capgap, height), gap, (offset, 0), gap,
+                         (offset + capgap, 0)]
+                )
+        )
         self.segments.append(
-            Segment(
-                    [(offset + capgap, 0), (offset, height), gap,
-                     (offset + capgap, 0)]
-                    )
-            )
+                Segment(
+                        [(offset + capgap, 0), (offset, height), gap,
+                         (offset + capgap, 0)]
+                )
+        )
         self.segments.append(
-            Segment(
-                    [(offset + capgap, 0), (offset, -height), gap,
-                     (offset + capgap, 0)]
-                    )
-            )
+                Segment(
+                        [(offset + capgap, 0), (offset, -height), gap,
+                         (offset + capgap, 0)]
+                )
+        )
 
 
 class Warburg(Element2Term):
@@ -51,8 +47,18 @@ class Warburg(Element2Term):
 
     def __init__(self, *d, **kwargs):
         super().__init__(*d, **kwargs)
-        self.segments.append(Segment([(0, 0), gap, (width, 0)]))
-        self.segments.append((SegmentText((width * 0.5, 0), 'W')))
+        self.segments.append(
+                Segment(
+                        [(0, 0), (0, height), (width, height), (width, -height),
+                         (0, -height), (0, 0), gap, (width, 0)]
+                )
+        )
+        self.segments.append(
+                SegmentText(
+                        (width * 0.5, 0),
+                        'W',
+                        fontsize=text_size)
+        )
 
 
 class WarburgOpen(Element2Term):
@@ -64,9 +70,14 @@ class WarburgOpen(Element2Term):
                 Segment(
                         [(0, 0), (0, height), (width, height), (width, -height),
                          (0, -height), (0, 0), gap, (width, 0)]
-                        )
                 )
-        self.segments.append((SegmentText((width * 0.5, 0), 'Wo')))
+        )
+        self.segments.append(
+                SegmentText(
+                        (width * 0.5, 0),
+                        'Wo',
+                        fontsize=text_size)
+        )
 
 
 class WarburgShort(Element2Term):
@@ -78,6 +89,12 @@ class WarburgShort(Element2Term):
                 Segment(
                         [(0, 0), (0, height), (width, height), (width, -height),
                          (0, -height), (0, 0), gap, (width, 0)]
-                        )
                 )
-        self.segments.append((SegmentText((width * 0.5, 0), 'Ws')))
+        )
+        self.segments.append(
+                SegmentText(
+                        (width * 0.5, 0),
+                        'Ws',
+                        fontsize=text_size
+                )
+        )

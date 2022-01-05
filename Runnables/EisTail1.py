@@ -91,7 +91,7 @@ def cycles():
     files = [cell1, cell2, cell3, cell4, cell5]
 
     cell_3mm = ept.Cell(3, 0.7)
-    circuit = 'R0-p(R1,CPE1)-Ws1'
+    circuit = 'R0-p(R1,CPE1)-Wss1'
 
     for i, file in enumerate(files):
         print(file.name)
@@ -100,19 +100,24 @@ def cycles():
 
         for n, cycle in enumerate(data[:10]):
             fig, ax = ept.create_fig()
-            cycle.plot_nyquist(ax)
             fit_path = rf"\cycle_{i:02d}-{n:03d}_param.txt"
-            params, __ = cycle.fit_nyquist(
+            tot_imp = np.mean(np.abs(cycle.voltage) / 0.007 * 1e3)
+
+            cycle.plot_nyquist(ax, plot_range=(-50, tot_imp * 1.1))
+            ax.axvline(tot_imp, ls='--', label='Total resistance')
+            cycle.fit_nyquist(
                     ax,
                     circuit,
-                    [0.1, 1694.1, 3.2e-10, 0.9, 620, 1.6],
-                    fit_bounds={"CPE1_n": (0, 2)},
+                    [0.1, 1694.1, 3.2e-10, 0.9, 700, 1.6, 0.5],
+                    fit_bounds={
+                        "CPE1_n": (0, 1.2),
+                        "Wss1_R": (tot_imp * 0.3, tot_imp)
+                    },
                     draw_circle=False,
-                    path=path + rf"\{file.name}" + fit_path
+                    path=path + rf"\{file.name}" + fit_path,
+                    tot_imp=tot_imp,
             )
             # fig2, ax2 = ept.create_fig()
-            tot_imp = np.nanmean(np.abs(cycle.voltage) / 0.007 * 1e3)
-            ax.axvline(tot_imp,ls='--')
             print(f"Total imp calc: {tot_imp}")
             # cycle.plot_bode(ax2, param_values=params, param_circuit=circuit)
 
@@ -120,11 +125,12 @@ def cycles():
                     os.path.join(
                             path,
                             rf"{file.name}",
-                            f"cycle_{i:02d}-{n:03d}.png"
+                            f"cycle_{i:02d}-{n:03d}.svg"
                     )
             )
             print("DONE")
             break
+        break
 
 
 def parameter():
@@ -155,6 +161,8 @@ def parameter():
 
 
 if __name__ == "__main__":
+    logging.getLogger("eisplottingtool")
+    
     cycles()
     # parameter()
     logging.info('Finished')

@@ -168,6 +168,34 @@ class WarburgShort(Component):
         return sElm.WarburgShort()
 
 
+class WarburgShortSpezial(Component):
+    """ defines a finite-length Warburg element with variable exponent """
+
+    @staticmethod
+    def get_symbol():
+        return 'Wss'
+
+    @staticmethod
+    def get_parameters(name):
+        param1 = Parameter(name + "_R", (0, 2000), 'Ohm')
+        param2 = Parameter(name + "_T", (1e-3, 1e8), 's')
+        param3 = Parameter(name + "_n", (0, 0.5), '')
+        return [param1, param2, param3]
+
+    @staticmethod
+    def calc(param, key, freq):
+        r = param.get(key + "_R")
+        t = param.get(key + "_T")
+        n = param.get(key + "_n")
+        alpha = np.power(1j * t * 2 * np.pi * freq, n)
+        result = r / alpha * np.tanh(alpha)
+        return np.array(result)
+
+    @staticmethod
+    def draw():
+        return sElm.WarburgShort()
+
+
 circuit_components: dict[str, Type[Component]] = {
     'Resistor': Resistor,
     'Capacitor': Capacitor,
@@ -175,4 +203,5 @@ circuit_components: dict[str, Type[Component]] = {
     'Warburg': Warburg,
     'WarburgShort': WarburgShort,
     'WarburgOpen': WarburgOpen,
+    'WarburgShortSpecial': WarburgShortSpezial,
 }

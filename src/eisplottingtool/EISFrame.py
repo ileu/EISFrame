@@ -20,7 +20,7 @@ import pint
 from matplotlib import axes, legend
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import minimize, least_squares
+from scipy.optimize import minimize, least_squares, NonlinearConstraint
 
 from eisplottingtool.parser.CircuitParser import parse_circuit
 from eisplottingtool.utils.UtilClass import Cell, default_mark_points
@@ -68,14 +68,14 @@ class EISFrame:
         if 'real' not in column_names:
             if 'phase' in column_names and 'abs' in column_names:
                 self.df['real'] = df[column_names['abs']] * np.cos(
-                    df[column_names['phase']] / 360.0 * 2 * np.pi
+                        df[column_names['phase']] / 360.0 * 2 * np.pi
                 )
                 self.column_names['real'] = 'real'
 
         if 'imag' not in column_names:
             if 'phase' in column_names and 'abs' in column_names:
                 self.df['imag'] = -df[column_names['abs']] * np.sin(
-                    df[column_names['phase']] / 360.0 * 2 * np.pi
+                        df[column_names['phase']] / 360.0 * 2 * np.pi
                 )
                 self.column_names['imag'] = 'imag'
 
@@ -148,24 +148,24 @@ class EISFrame:
         self.mark_points = default_mark_points
 
     def plot_nyquist(
-        self,
-        ax: axes.Axes = None,
-        image: str = '',
-        cell: Cell = None,
-        exclude_start: int = None,
-        exclude_end: int = None,
-        show_freq: bool = False,
-        color=None,
-        ls='None',
-        marker=None,
-        plot_range=None,
-        label=None,
-        size=6,
-        scale=1.5,
-        normalize=None,
-        unit=None,
-        show_legend=True,
-        show_mark_label=True,
+            self,
+            ax: axes.Axes = None,
+            image: str = '',
+            cell: Cell = None,
+            exclude_start: int = None,
+            exclude_end: int = None,
+            show_freq: bool = False,
+            color=None,
+            ls='None',
+            marker=None,
+            plot_range=None,
+            label=None,
+            size=6,
+            scale=1.5,
+            normalize=None,
+            unit=None,
+            show_legend=True,
+            show_mark_label=True,
     ):
         """ Plots a Nyquist plot with the internal dataframe
 
@@ -247,13 +247,13 @@ class EISFrame:
 
         # plot the data
         line = ax.plot(
-            x_data,
-            y_data,
-            marker=marker,
-            color=color,
-            ls=ls,
-            label=label,
-            markersize=size,
+                x_data,
+                y_data,
+                marker=marker,
+                color=color,
+                ls=ls,
+                label=label,
+                markersize=size,
         )
         lines = {"Data": line}  # store all the lines inside lines
 
@@ -266,14 +266,14 @@ class EISFrame:
             else:
                 mark_label = None
             line = ax.plot(
-                x_data[mark.index],
-                y_data[mark.index],
-                marker=marker,
-                markerfacecolor=mark.color,
-                markeredgecolor=mark.color,
-                markersize=scale * size,
-                ls='none',
-                label=mark_label
+                    x_data[mark.index],
+                    y_data[mark.index],
+                    marker=marker,
+                    markerfacecolor=mark.color,
+                    markeredgecolor=mark.color,
+                    markersize=scale * size,
+                    ls='none',
+                    label=mark_label
             )
             lines[f"MP-{mark.name}"] = line
 
@@ -307,19 +307,19 @@ class EISFrame:
             upper_label = f"{upper_freq.to_compact():~.0f}"
 
             ax.text(
-                0.99,
-                0.99,
-                f"Freq. Range:\n {upper_label} - {lower_label}",
-                horizontalalignment='right',
-                verticalalignment='top',
-                transform=ax.transAxes,
-                size='xx-small',
-                multialignment='center',
-                bbox=dict(
-                    facecolor='white',
-                    alpha=1.0,
-                    boxstyle=BoxStyle("Round", pad=0.2)
-                )
+                    0.99,
+                    0.99,
+                    f"Freq. Range:\n {upper_label} - {lower_label}",
+                    horizontalalignment='right',
+                    verticalalignment='top',
+                    transform=ax.transAxes,
+                    size='xx-small',
+                    multialignment='center',
+                    bbox=dict(
+                            facecolor='white',
+                            alpha=1.0,
+                            boxstyle=BoxStyle("Round", pad=0.2)
+                    )
             )
 
         # if a path to a image is given, also plot it
@@ -334,17 +334,17 @@ class EISFrame:
         return lines
 
     def plot_bode(
-        self,
-        ax: axes.Axes = None,
-        cell: Cell = None,
-        exclude_start: int = None,
-        exclude_end: int = None,
-        ls='None',
-        marker='o',
-        plot_range=None,
-        param_values=None,
-        param_circuit=None,
-        size=12,
+            self,
+            ax: axes.Axes = None,
+            cell: Cell = None,
+            exclude_start: int = None,
+            exclude_end: int = None,
+            ls='None',
+            marker='o',
+            plot_range=None,
+            param_values=None,
+            param_circuit=None,
+            size=12,
     ):
         """ Plots a Nyquist plot with the internal dataframe
 
@@ -399,23 +399,23 @@ class EISFrame:
 
         # plot the data
         line_real = ax.semilogx(
-            frequency,
-            real_data,
-            marker=marker,
-            ls=ls,
-            color='red',
-            label="Re(Z)",
-            markersize=size,
+                frequency,
+                real_data,
+                marker=marker,
+                ls=ls,
+                color='red',
+                label="Re(Z)",
+                markersize=size,
         )
 
         line_imag = ax.semilogx(
-            frequency,
-            imag_data,
-            marker=marker,
-            ls=ls,
-            color='blue',
-            label="-Im(Z)",
-            markersize=size,
+                frequency,
+                imag_data,
+                marker=marker,
+                ls=ls,
+                color='blue',
+                label="-Im(Z)",
+                markersize=size,
         )
 
         lines = {
@@ -439,44 +439,44 @@ class EISFrame:
             param_info, circ_calc = parse_circuit(param_circuit)
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in true_divide"
+                        "ignore",
+                        message="divide by zero encountered in true_divide"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="invalid value encountered in true_divide"
+                        "ignore",
+                        message="invalid value encountered in true_divide"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in tanh"
+                        "ignore",
+                        message="overflow encountered in tanh"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in double_scalars"
+                        "ignore",
+                        message="divide by zero encountered in double_scalars"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in power"
+                        "ignore",
+                        message="overflow encountered in power"
                 )
                 custom_circuit_fit = circ_calc(param_values, frequency)
                 real_fit = np.real(custom_circuit_fit)
                 imag_fit = np.imag(custom_circuit_fit)
                 fit_real = ax.semilogx(
-                    frequency,
-                    real_fit,
-                    ls='-',
-                    color='black',
-                    label="Re(Z)",
-                    markersize=size,
+                        frequency,
+                        real_fit,
+                        ls='-',
+                        color='black',
+                        label="Re(Z)",
+                        markersize=size,
                 )
 
                 fit_imag = ax.semilogx(
-                    frequency,
-                    -imag_fit,
-                    ls='-',
-                    color='black',
-                    label="-Im(Z)",
-                    markersize=size,
+                        frequency,
+                        -imag_fit,
+                        ls='-',
+                        color='black',
+                        label="-Im(Z)",
+                        markersize=size,
                 )
 
                 lines["Real Fit"] = fit_real
@@ -487,16 +487,18 @@ class EISFrame:
         return lines
 
     def fit_nyquist(
-        self,
-        ax: axes.Axes,
-        fit_circuit: str = None,
-        fit_guess: list[float] = None,
-        fit_bounds: dict[str, tuple] = None,
-        path=None,
-        cell: Cell = None,
-        draw_circle: bool = True,
-        draw_circuit: bool = False,
-        fit_values=None
+            self,
+            ax: axes.Axes,
+            fit_circuit: str = None,
+            fit_guess: list[float] = None,
+            fit_bounds: dict[str, tuple] = None,
+            path=None,
+            cell: Cell = None,
+            draw_circle: bool = True,
+            draw_circuit: bool = False,
+            fit_values=None,
+            tot_imp=None,
+            **kwargs
     ) -> tuple[dict, list]:
         """
         Fitting for the nyquist
@@ -517,6 +519,7 @@ class EISFrame:
             if the corresponding circles should be drawn or not
         draw_circuit : bool
             WIP
+        tot_imp
 
         Returns
         -------
@@ -554,6 +557,8 @@ class EISFrame:
         if fit_bounds is None:
             fit_bounds = {}
 
+        print(param_info)
+
         if isinstance(fit_bounds, dict):
             for i, name in enumerate(param_names):
                 if (b := fit_bounds.get(name)) is not None:
@@ -582,8 +587,32 @@ class EISFrame:
             err = rmse(predict, z)
             return err
 
+        # TODO: improve total impedance fitting/constraint
+        # TODO: maybe to fitting of circles separately
+
         if fit_values is None:
-            opt_result = fit_routine(bounds, fit_guess, opt_func)
+            if tot_imp is None:
+                opt_result = fit_routine(bounds, fit_guess, opt_func)
+            else:
+                def condition(x, v=False):
+                    params = dict(zip(param_names, x))
+                    predict = circ_calc(params, 1e-13)
+                    err = np.abs(tot_imp - predict.real)
+                    return err
+
+                def opt_func(x):
+                    params = dict(zip(param_names, x))
+                    predict = circ_calc(params, frequencies)
+                    # last_predict = circ_calc(params, 1e-13)
+                    err = rmse(predict, z) #+ np.abs(tot_imp - last_predict.real)
+                    return err
+
+                opt_result = fit_routine(
+                    bounds,
+                    fit_guess,
+                    opt_func
+                    )
+
             param_values = opt_result.x
         else:
             param_values = np.array(fit_values)
@@ -603,7 +632,7 @@ class EISFrame:
                 os.makedirs(os.path.dirname(path))
             with open(path, 'w') as f:
                 json.dump(
-                    param_info, f, default=lambda o: o.__dict__, indent=1
+                        param_info, f, default=lambda o: o.__dict__, indent=1
                 )
 
         f_pred = np.logspace(-9, 9, 400)
@@ -618,18 +647,18 @@ class EISFrame:
             custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
 
         line = ax.scatter(
-            np.real(custom_circuit_fit_freq),
-            -np.imag(custom_circuit_fit_freq),
-            color="red",
-            zorder=5,
-            marker='x'
+                np.real(custom_circuit_fit_freq),
+                -np.imag(custom_circuit_fit_freq),
+                color="red",
+                zorder=5,
+                marker='x'
         )
         line = ax.plot(
-            np.real(custom_circuit_fit),
-            -np.imag(custom_circuit_fit),
-            label="fit",
-            color="red",
-            zorder=5,
+                np.real(custom_circuit_fit),
+                -np.imag(custom_circuit_fit),
+                label="fit",
+                color="red",
+                zorder=5,
         )
 
         lines = {"fit": line}
@@ -644,15 +673,15 @@ class EISFrame:
         return lines, param_info
 
     def plot_lifecycle(
-        self,
-        ax: axes.Axes = None,
-        plot_xrange=None,
-        plot_yrange=None,
-        label=None,
-        ls='-',
-        nbinsx=6,
-        nbinsy=4,
-        **plotkwargs
+            self,
+            ax: axes.Axes = None,
+            plot_xrange=None,
+            plot_yrange=None,
+            label=None,
+            ls='-',
+            nbinsx=6,
+            nbinsy=4,
+            **plotkwargs
     ):
         if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
             warnings.warn('Wrong data for a lifecycle Plot', RuntimeWarning)
@@ -674,12 +703,12 @@ class EISFrame:
         y_data = self.voltage[mask]
 
         line = ax.plot(
-            x_data,
-            y_data,
-            ls=ls,
-            label=label,
-            color='black',
-            **plotkwargs
+                x_data,
+                y_data,
+                ls=ls,
+                label=label,
+                color='black',
+                **plotkwargs
         )
 
         # additional configuration for the plot
@@ -708,11 +737,11 @@ class EISFrame:
         return line
 
     def _plot_semis(
-        self,
-        circuit: str,
-        param_info: list,
-        cell=None,
-        ax: axes.Axes = None
+            self,
+            circuit: str,
+            param_info: list,
+            cell=None,
+            ax: axes.Axes = None
     ):
         """
         plots the semicircles to the corresponding circuit elements.
@@ -784,7 +813,7 @@ class EISFrame:
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
             if specific_freq_magnitude <= 0:
                 color = min(
-                    self.mark_points, key=lambda x: x.magnitude
+                        self.mark_points, key=lambda x: x.magnitude
                 ).color
             else:
                 for mark in self.mark_points:
@@ -800,12 +829,12 @@ class EISFrame:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
 
             ax.fill_between(
-                np.real(elem_impedance) + prev_imp,
-                -np.imag(elem_impedance),
-                color=color,
-                alpha=0.5,
-                zorder=0,
-                ls='None'
+                    np.real(elem_impedance) + prev_imp,
+                    -np.imag(elem_impedance),
+                    color=color,
+                    alpha=0.5,
+                    zorder=0,
+                    ls='None'
             )
             prev_imp += np.real(elem_impedance)[0]
 
@@ -817,7 +846,7 @@ class EISFrame:
         pass
 
 
-def fit_routine(bounds, fit_guess, opt_func, reapeat=4):
+def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
     initial_value = np.array(fit_guess)
 
     # why does least squares have different format for bounds ???
@@ -825,60 +854,82 @@ def fit_routine(bounds, fit_guess, opt_func, reapeat=4):
     ls_bounds_ub = [bound[1] for bound in bounds]
     ls_bounds = (ls_bounds_lb, ls_bounds_ub)
 
+    print(ls_bounds, fit_guess)
+
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore",
-            message="divide by zero encountered in true_divide"
+                "ignore",
+                message="divide by zero encountered in true_divide"
         )
         warnings.filterwarnings(
-            "ignore",
-            message="invalid value encountered in true_divide"
+                "ignore",
+                message="invalid value encountered in true_divide"
         )
         warnings.filterwarnings(
-            "ignore",
-            message="overflow encountered in tanh"
+                "ignore",
+                message="overflow encountered in tanh"
         )
         warnings.filterwarnings(
-            "ignore",
-            message="divide by zero encountered in double_scalars"
+                "ignore",
+                message="divide by zero encountered in double_scalars"
         )
         warnings.filterwarnings(
-            "ignore",
-            message="overflow encountered in power"
+                "ignore",
+                message="overflow encountered in power"
         )
 
+        Logger.debug(f"Started fitting routine")
         for i in range(reapeat):
+            Logger.debug(f"Fitting routine pass {i}")
             opt_result = least_squares(
-                opt_func,
-                initial_value,
-                bounds=ls_bounds,
-                xtol=1e-13,
-                max_nfev=1000,
-                ftol=1e-9
+                    opt_func,
+                    initial_value,
+                    bounds=ls_bounds,
+                    xtol=1e-13,
+                    max_nfev=1000,
+                    ftol=1e-9
             )
             initial_value = opt_result.x
-            opt_result = minimize(
-                opt_func,
-                initial_value,
-                bounds=bounds,
-                tol=1e-13,
-                options={'maxiter': 1e4, 'ftol': 1e-9},
-                method='Nelder-Mead'
-            )
+            if condition is None:
+                opt_result = minimize(
+                        opt_func,
+                        initial_value,
+                        bounds=bounds,
+                        tol=1e-13,
+                        options={'maxiter': 1e4, 'ftol': 1e-9},
+                        method='Nelder-Mead'
+                )
+            else:
+                print("Else")
+                nonlin_condition = NonlinearConstraint(
+                        condition,
+                        -50,
+                        50
+                )
+                opt_result = minimize(
+                        opt_func,
+                        initial_value,
+                        bounds=bounds,
+                        tol=1e-13,
+                        options={'maxiter': 1e4, 'gtol': 1e-9},
+                        # method='Nelder-Mead'
+                        method='trust-constr',
+                        constraints=nonlin_condition
+                )
             initial_value = opt_result.x
-
+    Logger.debug(f"Finished fitting routine")
     return opt_result
 
 
 def plot_legend(
-    ax: axes.Axes = None,
-    loc='upper left',
-    fontsize='xx-small',
-    frameon=False,
-    markerscale=2,
-    handletextpad=0.1,
-    mode='expand',
-    **kwargs
+        ax: axes.Axes = None,
+        loc='upper left',
+        fontsize='xx-small',
+        frameon=False,
+        markerscale=2,
+        handletextpad=0.1,
+        mode='expand',
+        **kwargs
 ) -> legend.Legend:
     """ Adds legend to an axes
 
@@ -901,16 +952,16 @@ def plot_legend(
         ax = plt.gca()
 
     leg = ax.legend(
-        loc=loc,
-        fontsize=fontsize,
-        frameon=True,
-        framealpha=1,
-        edgecolor='white',
-        markerscale=markerscale,
-        handletextpad=handletextpad,
-        mode=None,
-        borderpad=0.0,
-        **kwargs
+            loc=loc,
+            fontsize=fontsize,
+            frameon=True,
+            framealpha=1,
+            edgecolor='white',
+            markerscale=markerscale,
+            handletextpad=handletextpad,
+            mode=None,
+            borderpad=0.0,
+            **kwargs
     )
     return leg
 
@@ -944,11 +995,11 @@ def load_csv_to_df(path: str, sep='\t'):
 
 
 def load_data(
-    path: str,
-    file: Union[str, list[str]] = None,
-    sep='\t',
-    cont_time: bool = True,
-    data_param: dict = None,
+        path: str,
+        file: Union[str, list[str]] = None,
+        sep='\t',
+        cont_time: bool = True,
+        data_param: dict = None,
 ) -> Union[EISFrame, list[EISFrame]]:
     """
         loads the data from the given path into an EISFrame
@@ -994,7 +1045,7 @@ def load_data(
         for param in data_param:
             if param not in data:
                 warnings.warn(
-                    f"Not valid data file since column {param} is missing"
+                        f"Not valid data file since column {param} is missing"
                 )
                 print(f"Availible parameters are {data.columns}")
                 Logger.debug("File location: " + path)
