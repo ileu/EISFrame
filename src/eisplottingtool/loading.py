@@ -11,6 +11,10 @@ from eisplottingtool.EISFrame import EISFrame
 
 Logger = logging.getLogger(__name__)
 
+"""
+    To be combined into EISframe
+"""
+
 
 def _get_default_data_param(columns):
     col_names = {}
@@ -34,10 +38,6 @@ def _get_default_data_param(columns):
         elif match := re.match(r'freq[^|]*', col):
             col_names['frequency'] = match.group()
     return col_names
-
-
-def load_csv_to_df(path: str, sep='\t'):
-    return pd.read_csv(path, sep=sep, encoding='unicode_escape')
 
 
 def load_data(
@@ -71,7 +71,7 @@ def load_data(
     __, ext = os.path.splitext(path)
 
     if ".csv" in path or ".txt" in ext:
-        data = load_csv_to_df(path, sep)
+        data = pd.read_csv(path, sep=sep, encoding='unicode_escape')
     elif ext == '.mpr' or ext == '.mpt':
         data = ecf.to_df(path)
     else:

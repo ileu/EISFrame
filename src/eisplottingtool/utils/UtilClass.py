@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import pint
 
@@ -78,6 +80,7 @@ class Parameter:
         self.error = 0.0
         self.unit = unit
         self.bounds = bounds
+        self.fixed = False
 
     def __repr__(self):
         name = f"Parameter {self.name}"
@@ -91,8 +94,9 @@ class Parameter:
 
 
 class ParameterList(list[Parameter]):
-    def __init__(self, iterable=None):
+    def __init__(self, circuit='', iterable=None):
         super().__init__()
+        self.circuit = circuit
         if iterable:
             for item in iterable:
                 self.append(item)
@@ -138,6 +142,49 @@ class ParameterList(list[Parameter]):
             output += f"\t {p}\n"
         output += ']'
         return output
+
+    def set_values(self, values: Union[list[float], dict[str, float]]):
+        if isinstance(values, list):
+            if len(self) != len(values):
+                raise ValueError("Number of values dont correspond to elements")
+            for p, value in zip(self, values):
+                p.value = value
+        elif isinstance(values, dict):
+            for key in values:
+                self[key].value = values[key]
+        else:
+            raise ValueError("Not list or dict")
+
+    def get_names(self, fixed: bool = None) -> list[str]:
+        if fixed is None:
+            names = [p.name for p in self]
+        elif fixed:
+            names = [p.name for p in self if p.fixed]
+        else:
+            names = [p.name for p in self if not p.fixed]
+        return names
+
+    def get_values(self, fixed: bool = None) -> list[float]:
+        if fixed is None:
+            values = [p.value for p in self]
+        elif fixed:
+            values = [p.value for p in self if p.fixed]
+        else:
+            values = [p.value for p in self if not p.fixed]
+        return values
+
+    def get_bounds(self, fixed: bool = None) -> list[tuple[float, float]]:
+        if fixed is None:
+            bounds = [p.bounds for p in self]
+        elif fixed:
+            bounds = [p.bounds for p in self if p.fixed]
+        else:
+            bounds = [p.bounds for p in self if not p.fixed]
+        return bounds
+
+    def get_namevaluepairs(self) -> dict[str, float]:
+        namevalue = {p.name: p.value for p in self}
+        return namevalue
 
 
 class Cell:

@@ -10,21 +10,24 @@ import logging
 import os
 import re
 import warnings
+from typing import TypeVar, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
+
 from matplotlib import axes
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
-from scipy.optimize import minimize, least_squares, NonlinearConstraint
 
 from eisplottingtool.parser.CircuitParser import parse_circuit
 from eisplottingtool.utils.UtilClass import Cell, default_mark_points
 from eisplottingtool.utils.UtilFunctions import plot_legend
+from eisplottingtool.utils.fitting import fit_routine
 
 Logger = logging.getLogger(__name__)
+T = TypeVar('T', bound='Parent')
 
 
 class EISFrame:
@@ -35,7 +38,7 @@ class EISFrame:
     def __init__(self, df: pd.DataFrame = None, column_names=None, **kwargs) -> None:
         """ Initialises an EISFrame
 
-        An EIS frame can plot a Nyquist plot and a lifecycle lifecycle plot
+        An EIS frame can plot a Nyquist plot and a lifecycle plot
         of the given cycling data with different default settings.
 
         Parameters
@@ -321,7 +324,7 @@ class EISFrame:
                     )
             )
 
-        # if a path to a image is given, also plot it
+        # if a path to an image is given, also plot it
         if image:
             imax = ax.inset_axes([.05, .5, .9, .2])
             img = plt.imread(image)
@@ -489,9 +492,9 @@ class EISFrame:
             self,
             ax: axes.Axes,
             fit_circuit: str = None,
-            fit_guess: list[float] = None,
+            fit_guess: dict[str, float] = None,
             fit_bounds: dict[str, tuple] = None,
-            constants: dict[str, float] = {},
+            fit_constants: list[str] = None,
             path=None,
             cell: Cell = None,
             draw_circle: bool = True,
@@ -509,9 +512,10 @@ class EISFrame:
              axes to draw the fit to
         fit_circuit : str
             equivalence circuit for the fitting
-        fit_guess : list[float]
+        fit_guess : dict[str, float]
             initial values for the fitting
-        fit_bounds : dict[tuple]
+        fit_bounds : dict[str, tuple]
+        fit_constants : list[str]
         fit_values
         path : str
         cell : Cell
@@ -534,39 +538,45 @@ class EISFrame:
         z = self.real - 1j * self.imag
         frequencies = np.array(frequencies[np.imag(z) < 0])[3:]
         z = np.array(z[np.imag(z) < 0])[3:]
-        # only for testing purposes like this
-        if fit_guess:
-            pass
-        elif "fit_guess" in self.eis_params:
-            fit_guess = self.eis_params["fit_guess"]
-        else:
-            fit_guess = [.01, .01, 100, .01, .05, 100, 1]
+
+        # check and parse circuit
 
         if fit_circuit:
             pass
         elif "circuit" in self.eis_params:
             fit_circuit = self.eis_params["circuit"]
         else:
-            fit_circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
+            raise ValueError("No fit circuit given")
 
         param_info, circ_calc = parse_circuit(fit_circuit)
-        param_names = [info.name for info in param_info]
 
-        # bounds for the fitting
-        bounds = []
+        # check and prepare parameters
+
+        if fit_guess:
+            pass
+        elif "fit_guess" in self.eis_params:
+            fit_guess = self.eis_params["fit_guess"]
+        else:
+            raise ValueError("No fit guess given")
+
         if fit_bounds is None:
             fit_bounds = {}
 
-        if isinstance(fit_bounds, dict):
-            for i, name in enumerate(param_names):
-                if (b := fit_bounds.get(name)) is not None:
-                    bounds.append(b)
-                else:
-                    bounds.append(param_info[i].bounds)
+        if fit_constants is None:
+            fit_constants = []
 
-        if constants is None:
-            constants = {}
-            # TODO: Add possibility to fix parameters
+        for p in param_info:
+            name = p.name
+            if name in fit_guess:
+                p.value = fit_guess.get(name)
+            else:
+                raise ValueError(f"No initial value given for {name}")
+
+            if name in fit_bounds:
+                p.bounds = fit_bounds.get(name)
+
+            if name in fit_constants:
+                p.fixed = True
 
         # calculate the weight of each datapoint
         def weight(error, value):
@@ -583,21 +593,25 @@ class EISFrame:
             return np.sqrt(mse)
 
         # prepare optimizing function:
-        def opt_func(x):
-            params = dict(zip(param_names, x))
-            predict = circ_calc(params, frequencies)
+        def opt_func(x: list[float]):
+            params = dict(zip(param_info.get_names(fixed=False), x))
+            param_info.set_values(params)
+            predict = circ_calc(param_info.get_namevaluepairs(), frequencies)
             err = rmse(predict, z)
             return err
 
-        # TODO: improve total impedance fitting/constraint
-        # TODO: maybe to fitting of circles separately
-
-        if fit_values is None:
+        if fit_values:
+            param_values = np.array(fit_values)
+        else:
             if tot_imp is None:
-                opt_result = fit_routine(bounds, fit_guess, opt_func)
+                opt_result = fit_routine(
+                        param_info.get_bounds(fixed=False),
+                        param_info.get_values(fixed=False),
+                        opt_func
+                )
             else:
                 def condition(x, v=False):
-                    params = dict(zip(param_names, x))
+                    params = param_info.get_namevaluepairs()
                     predict = circ_calc(params, 1e-13)
                     if v:
                         print(tot_imp - predict.real)
@@ -605,21 +619,20 @@ class EISFrame:
                     return err
 
                 def opt_func(x):
-                    params = dict(zip(param_names, x))
-                    predict = circ_calc(params, frequencies)
+                    params = dict(zip(param_info.get_names(fixed=False), x))
+                    param_info.set_values(params)
+                    predict = circ_calc(param_info.get_namevaluepairs(), frequencies)
                     last_predict = circ_calc(params, 1e-13)
                     err = 10 * rmse(predict, z) + np.abs(tot_imp - last_predict.real)
                     return err
 
                 opt_result = fit_routine(
-                        bounds,
-                        fit_guess,
+                        param_info.get_bounds(fixed=False),
+                        param_info.get_values(fixed=False),
                         opt_func
                 )
 
             param_values = opt_result.x
-        else:
-            param_values = np.array(fit_values)
 
         # print the fitting parameters to the console
         report = f"Fitting report:\n"
@@ -671,7 +684,7 @@ class EISFrame:
             custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
             custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
 
-        line = ax.scatter(
+        ax.scatter(
                 np.real(custom_circuit_fit_freq),
                 -np.imag(custom_circuit_fit_freq),
                 color="red",
@@ -870,75 +883,7 @@ class EISFrame:
         #  mark points
         pass
 
-
-def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
-    initial_value = np.array(fit_guess)
-
-    # why does least squares have different format for bounds ???
-    ls_bounds_lb = [bound[0] for bound in bounds]
-    ls_bounds_ub = [bound[1] for bound in bounds]
-    ls_bounds = (ls_bounds_lb, ls_bounds_ub)
-
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-                "ignore",
-                message="divide by zero encountered in true_divide"
-        )
-        warnings.filterwarnings(
-                "ignore",
-                message="invalid value encountered in true_divide"
-        )
-        warnings.filterwarnings(
-                "ignore",
-                message="overflow encountered in tanh"
-        )
-        warnings.filterwarnings(
-                "ignore",
-                message="divide by zero encountered in double_scalars"
-        )
-        warnings.filterwarnings(
-                "ignore",
-                message="overflow encountered in power"
-        )
-
-        Logger.debug(f"Started fitting routine")
-        for i in range(reapeat):
-            Logger.debug(f"Fitting routine pass {i}")
-            opt_result = least_squares(
-                    opt_func,
-                    initial_value,
-                    bounds=ls_bounds,
-                    xtol=1e-13,
-                    max_nfev=1000,
-                    ftol=1e-9
-            )
-            initial_value = opt_result.x
-            if condition is None:
-                opt_result = minimize(
-                        opt_func,
-                        initial_value,
-                        bounds=bounds,
-                        tol=1e-13,
-                        options={'maxiter': 1e4, 'ftol': 1e-9},
-                        method='Nelder-Mead'
-                )
-            else:
-                print("Else")
-                nonlin_condition = NonlinearConstraint(
-                        condition,
-                        -50,
-                        50
-                )
-                opt_result = minimize(
-                        opt_func,
-                        initial_value,
-                        bounds=bounds,
-                        tol=1e-13,
-                        options={'maxiter': 1e4, 'gtol': 1e-9},
-                        # method='Nelder-Mead'
-                        method='trust-constr',
-                        constraints=nonlin_condition
-                )
-            initial_value = opt_result.x
-    Logger.debug(f"Finished fitting routine")
-    return opt_result
+    @classmethod
+    def from_file(cls: Type[T], path) -> T:
+        # TODO: create EISFrame from file location
+        pass

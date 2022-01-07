@@ -108,7 +108,9 @@ def create_fig(
 
 
 def save_fig(
-        path: str = '', fig: figure.Figure = None, show: bool = False, **kwargs
+        path: str = '',
+        fig: figure.Figure = None,
+        show: bool = False, **kwargs
 ) -> None:
     """ Saves the current figure at path
 
@@ -138,10 +140,13 @@ def plot_legend(
         ax: axes.Axes = None,
         loc='upper left',
         fontsize='xx-small',
-        frameon=False,
+        frameon=True,
         markerscale=2,
         handletextpad=0.1,
-        mode='expand',
+        mode=None,
+        edgecolor='white',
+        borderpad=0.0,
+        framealpha=1.0,
         **kwargs
 ) -> legend.Legend:
     """ Adds legend to an axes
@@ -156,6 +161,9 @@ def plot_legend(
     handletextpad
     mode
     kwargs
+    edgecolor
+    borderpad
+    framealpha
 
     Returns
     -------
@@ -167,13 +175,13 @@ def plot_legend(
     leg = ax.legend(
             loc=loc,
             fontsize=fontsize,
-            frameon=True,
-            framealpha=1,
-            edgecolor='white',
+            frameon=frameon,
+            framealpha=framealpha,
+            edgecolor=edgecolor,
             markerscale=markerscale,
             handletextpad=handletextpad,
-            mode=None,
-            borderpad=0.0,
+            mode=mode,
+            borderpad=borderpad,
             **kwargs
     )
     return leg
