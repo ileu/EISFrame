@@ -10,20 +10,19 @@ import logging
 import os
 import re
 import warnings
-from typing import Union
 
-import eclabfiles as ecf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
-from matplotlib import axes, legend
+from matplotlib import axes
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import minimize, least_squares, NonlinearConstraint
 
 from eisplottingtool.parser.CircuitParser import parse_circuit
 from eisplottingtool.utils.UtilClass import Cell, default_mark_points
+from eisplottingtool.utils.UtilFunctions import plot_legend
 
 Logger = logging.getLogger(__name__)
 
@@ -492,6 +491,7 @@ class EISFrame:
             fit_circuit: str = None,
             fit_guess: list[float] = None,
             fit_bounds: dict[str, tuple] = None,
+            constants: dict[str, float] = {},
             path=None,
             cell: Cell = None,
             draw_circle: bool = True,
@@ -550,14 +550,12 @@ class EISFrame:
             fit_circuit = 'R0-p(R1,CPE1)-p(R2,CPE2)-Ws1'
 
         param_info, circ_calc = parse_circuit(fit_circuit)
-
         param_names = [info.name for info in param_info]
+
         # bounds for the fitting
         bounds = []
         if fit_bounds is None:
             fit_bounds = {}
-
-        print(param_info)
 
         if isinstance(fit_bounds, dict):
             for i, name in enumerate(param_names):
@@ -565,6 +563,10 @@ class EISFrame:
                     bounds.append(b)
                 else:
                     bounds.append(param_info[i].bounds)
+
+        if constants is None:
+            constants = {}
+            # TODO: Add possibility to fix parameters
 
         # calculate the weight of each datapoint
         def weight(error, value):
@@ -597,21 +599,23 @@ class EISFrame:
                 def condition(x, v=False):
                     params = dict(zip(param_names, x))
                     predict = circ_calc(params, 1e-13)
+                    if v:
+                        print(tot_imp - predict.real)
                     err = np.abs(tot_imp - predict.real)
                     return err
 
                 def opt_func(x):
                     params = dict(zip(param_names, x))
                     predict = circ_calc(params, frequencies)
-                    # last_predict = circ_calc(params, 1e-13)
-                    err = rmse(predict, z) #+ np.abs(tot_imp - last_predict.real)
+                    last_predict = circ_calc(params, 1e-13)
+                    err = 10 * rmse(predict, z) + np.abs(tot_imp - last_predict.real)
                     return err
 
                 opt_result = fit_routine(
-                    bounds,
-                    fit_guess,
-                    opt_func
-                    )
+                        bounds,
+                        fit_guess,
+                        opt_func
+                )
 
             param_values = opt_result.x
         else:
@@ -638,8 +642,29 @@ class EISFrame:
         f_pred = np.logspace(-9, 9, 400)
         # plot the fitting result
         parameters = {info.name: info.value for info in param_info}
-        custom_circuit_fit_freq = circ_calc(parameters, frequencies)
-        custom_circuit_fit = circ_calc(parameters, f_pred)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                    "ignore",
+                    message="divide by zero encountered in true_divide"
+            )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="invalid value encountered in true_divide"
+            )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="overflow encountered in tanh"
+            )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="divide by zero encountered in double_scalars"
+            )
+            warnings.filterwarnings(
+                    "ignore",
+                    message="overflow encountered in power"
+            )
+            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
+            custom_circuit_fit = circ_calc(parameters, f_pred)
 
         # adjust impedance if a cell is given
         if cell is not None:
@@ -854,8 +879,6 @@ def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
     ls_bounds_ub = [bound[1] for bound in bounds]
     ls_bounds = (ls_bounds_lb, ls_bounds_ub)
 
-    print(ls_bounds, fit_guess)
-
     with warnings.catch_warnings():
         warnings.filterwarnings(
                 "ignore",
@@ -919,148 +942,3 @@ def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
             initial_value = opt_result.x
     Logger.debug(f"Finished fitting routine")
     return opt_result
-
-
-def plot_legend(
-        ax: axes.Axes = None,
-        loc='upper left',
-        fontsize='xx-small',
-        frameon=False,
-        markerscale=2,
-        handletextpad=0.1,
-        mode='expand',
-        **kwargs
-) -> legend.Legend:
-    """ Adds legend to an axes
-
-    Parameters
-    ----------
-    ax
-    loc
-    fontsize
-    frameon
-    markerscale
-    handletextpad
-    mode
-    kwargs
-
-    Returns
-    -------
-
-    """
-    if ax is None:
-        ax = plt.gca()
-
-    leg = ax.legend(
-            loc=loc,
-            fontsize=fontsize,
-            frameon=True,
-            framealpha=1,
-            edgecolor='white',
-            markerscale=markerscale,
-            handletextpad=handletextpad,
-            mode=None,
-            borderpad=0.0,
-            **kwargs
-    )
-    return leg
-
-
-def _get_default_data_param(columns):
-    col_names = {}
-    for col in columns:
-        if match := re.match(r'Ewe[^|]*', col):
-            col_names['voltage'] = match.group()
-        elif match := re.match(r'I/mA[^|]*', col):
-            col_names['current'] = match.group()
-        elif match := re.match(r'Re\(Z(we-ce)?\)[^|]*', col):
-            col_names['real'] = match.group()
-        elif match := re.match(r'-Im\(Z(we-ce)?\)[^|]*', col):
-            col_names['imag'] = match.group()
-        elif match := re.match(r'Phase\(Z(we-ce)?\)[^|]*', col):
-            col_names['phase'] = match.group()
-        elif match := re.match(r'\|Z(we-ce)?\|[^|]*', col):
-            col_names['abs'] = match.group()
-        elif match := re.match(r'time[^|]*', col):
-            col_names['time'] = match.group()
-        elif match := re.match(r'(z )?cycle( number)?[^|]*', col):
-            col_names['cycle'] = match.group()
-        elif match := re.match(r'freq[^|]*', col):
-            col_names['frequency'] = match.group()
-    return col_names
-
-
-def load_csv_to_df(path: str, sep='\t'):
-    return pd.read_csv(path, sep=sep, encoding='unicode_escape')
-
-
-def load_data(
-        path: str,
-        file: Union[str, list[str]] = None,
-        sep='\t',
-        cont_time: bool = True,
-        data_param: dict = None,
-) -> Union[EISFrame, list[EISFrame]]:
-    """
-        loads the data from the given path into an EISFrame
-    """
-    if isinstance(file, list):
-        end_time = 0
-        data = []
-        for f in file:
-            d = load_data(path + f, sep=sep, data_param=data_param)
-            if cont_time:
-                start_time = d[0].time.iloc[0]
-                for c in d:
-                    c.time += end_time - start_time
-                end_time = d[-1].time.iloc[-1]
-
-            data += d
-
-        return data
-
-    if file is not None:
-        path = path + file
-
-    __, ext = os.path.splitext(path)
-
-    if ".csv" in path or ".txt" in ext:
-        data = load_csv_to_df(path, sep)
-    elif ext == '.mpr' or ext == '.mpt':
-        data = ecf.to_df(path)
-    else:
-        warnings.warn("Datatype not supported")
-        return []
-
-    # check if data was loaded
-    if data.empty:
-        warnings.warn("No data was loaded")
-        Logger.info("File location: " + path)
-        return []
-
-    # check if all the parameters are available
-    if data_param is None:
-        data_param = _get_default_data_param(data.columns)
-    else:
-        for param in data_param:
-            if param not in data:
-                warnings.warn(
-                        f"Not valid data file since column {param} is missing"
-                )
-                print(f"Availible parameters are {data.columns}")
-                Logger.debug("File location: " + path)
-                return []
-
-    if (cycle_param := data_param.get('cycle')) is None:
-        Logger.info("No cycles detected")
-        return EISFrame(data, column_names=data_param)
-
-    cycles = []
-
-    min_cyclenumber = int(min(data[cycle_param]))
-    max_cyclenumber = int(max(data[cycle_param]))
-
-    for i in range(min_cyclenumber, max_cyclenumber + 1):
-        cycle = data[data[cycle_param] == i].reset_index()
-        cycles.append(EISFrame(cycle, column_names=data_param))
-    return cycles

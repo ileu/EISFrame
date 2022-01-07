@@ -1,7 +1,7 @@
 import os
 from typing import Union
 
-from matplotlib import figure, axes, pyplot as plt, rcParams, cycler
+from matplotlib import figure, axes, pyplot as plt, rcParams, cycler, legend
 
 
 def set_plot_params() -> None:
@@ -17,7 +17,7 @@ def set_plot_params() -> None:
             'color',
             ['000000', '0000FE', 'FE0000', '008001', 'FD8000', '8c564b',
              'e377c2', '7f7f7f', 'bcbd22', '17becf', ]
-            )
+    )
     rcParams['axes.prop_cycle'] = plot_color_cycle
     rcParams['axes.xmargin'] = 0
     rcParams['axes.ymargin'] = 0
@@ -46,8 +46,8 @@ def set_plot_params() -> None:
                 "ytick.right": True,
                 "lines.markersize": 10,
                 "lines.markeredgewidth": 0.8,
-                }
-            )
+            }
+    )
 
 
 def create_fig(
@@ -60,7 +60,7 @@ def create_fig(
         gridspec_kw=None,
         top_ticks=False,
         **fig_kw
-        ) -> tuple[figure.Figure, Union[axes.Axes, list[axes.Axes]]]:
+) -> tuple[figure.Figure, Union[axes.Axes, list[axes.Axes]]]:
     """ Creates the figure, axes for the plots and set the style of the plot
 
     Parameters
@@ -99,7 +99,7 @@ def create_fig(
             gridspec_kw=gridspec_kw,
             subplot_kw=subplot_kw,
             **fig_kw
-            )
+    )
 
     if top_ticks:
         axs[0].xaxis.set_tick_params(which="both", labeltop=True)
@@ -109,7 +109,7 @@ def create_fig(
 
 def save_fig(
         path: str = '', fig: figure.Figure = None, show: bool = False, **kwargs
-        ) -> None:
+) -> None:
     """ Saves the current figure at path
 
     Parameters
@@ -132,3 +132,48 @@ def save_fig(
     if show:
         plt.show()
     plt.close(fig)
+
+
+def plot_legend(
+        ax: axes.Axes = None,
+        loc='upper left',
+        fontsize='xx-small',
+        frameon=False,
+        markerscale=2,
+        handletextpad=0.1,
+        mode='expand',
+        **kwargs
+) -> legend.Legend:
+    """ Adds legend to an axes
+
+    Parameters
+    ----------
+    ax
+    loc
+    fontsize
+    frameon
+    markerscale
+    handletextpad
+    mode
+    kwargs
+
+    Returns
+    -------
+
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    leg = ax.legend(
+            loc=loc,
+            fontsize=fontsize,
+            frameon=True,
+            framealpha=1,
+            edgecolor='white',
+            markerscale=markerscale,
+            handletextpad=handletextpad,
+            mode=None,
+            borderpad=0.0,
+            **kwargs
+    )
+    return leg

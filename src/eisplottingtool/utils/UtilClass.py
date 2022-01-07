@@ -2,35 +2,6 @@ import numpy as np
 import pint
 
 
-class Parameter:
-    """ Parameter class to save data of parameters
-
-    A parameter consists of a name, bounds in the form of (ll, ul) with lb =
-    lower bounds and ub = upper bounds and a unit string.
-
-    Also used to store fitting results fo the paramater.
-
-    """
-
-    def __init__(self, name, bounds, unit):
-        self.name = name
-        self.color = 'black'
-        self.value = 0.0
-        self.error = 0.0
-        self.unit = unit
-        self.bounds = bounds
-
-    def __repr__(self):
-        name = f"Parameter {self.name}"
-        value = rf"{self.value:.3e} (±{self.error}) [{self.unit}]"
-        return f"{name}, {value}"
-
-    def __eq__(self, other):
-        if isinstance(other, Parameter):
-            return self.name == other.name
-        return False
-
-
 class MarkPoint:
     """ Special point to mark in an eis plot.
 
@@ -45,7 +16,7 @@ class MarkPoint:
             color: str,
             freq: float,
             delta_f: float = -1
-            ) -> None:
+    ) -> None:
         """
         Special point in the EIS spectrum
 
@@ -90,15 +61,65 @@ class MarkPoint:
         return f"{label.to_compact():~.0f}"
 
 
-class ParameterDict(list):
-    def __init__(self, iterable=None, *args):
+class Parameter:
+    """ Parameter class to save data of parameters
+
+    A parameter consists of a name, bounds in the form of (ll, ul) with lb =
+    lower bounds and ub = upper bounds and a unit string.
+
+    Also used to store fitting results fo the paramater.
+
+    """
+
+    def __init__(self, name, bounds, unit):
+        self.name = name
+        self.color = 'black'
+        self.value = 0.0
+        self.error = 0.0
+        self.unit = unit
+        self.bounds = bounds
+
+    def __repr__(self):
+        name = f"Parameter {self.name}"
+        value = rf"({self.value:.3e} ± {self.error}) [{self.unit}]"
+        return f"<{name}, {value}>"
+
+    def __eq__(self, other):
+        if isinstance(other, Parameter):
+            return self.name == other.name
+        return False
+
+
+class ParameterList(list[Parameter]):
+    def __init__(self, iterable=None):
         super().__init__()
         if iterable:
             for item in iterable:
                 self.append(item)
 
-        for arg in args:
-            self.append(arg)
+    def append(self, item):
+        if isinstance(item, Parameter):
+            super().append(item)
+        else:
+            raise ValueError('Parameters allowed only')
+
+    def insert(self, index, item):
+        if isinstance(item, Parameter):
+            super().insert(index, item)
+        else:
+            raise ValueError('Parameters allowed only')
+
+    def __add__(self, item):
+        if isinstance(item, ParameterList):
+            super().__add__(item)
+        else:
+            raise ValueError('ParameterList allowed only')
+
+    def __iadd__(self, item):
+        if isinstance(item, ParameterList):
+            super().__iadd__(item)
+        else:
+            raise ValueError('ParameterList allowed only')
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -110,6 +131,13 @@ class ParameterDict(list):
 
     def __repr__(self):
         return super().__repr__()
+
+    def __str__(self):
+        output = '[\n'
+        for p in self:
+            output += f"\t {p}\n"
+        output += ']'
+        return output
 
 
 class Cell:
