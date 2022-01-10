@@ -116,7 +116,15 @@ def cycles():
             cycle.fit_nyquist(
                 ax,
                 circuit,
-                [0.1, 1694.1, 3.2e-10, 0.9, 700, 1.6, 0.5],
+                {
+                    'R0': 0.1,
+                    'R1': 1694.1,
+                    'CPE1_Q': 3.2e-10,
+                    'CPE1_n': 0.9,
+                    'Wss1_R': 700,
+                    'Wss1_T': 1.6,
+                    'Wss1_n': 0.5
+                },
                 fit_bounds={
                     "CPE1_n": (0, 1.2),
                     "Wss1_R": (tot_imp * 0.3, tot_imp)
