@@ -7,7 +7,7 @@ from typing import Union
 import pandas as pd
 import eclabfiles as ecf
 
-from eisplottingtool.EISFrame import EISFrame
+from eisplottingtool.EISFrameOld import EISFrame
 
 Logger = logging.getLogger(__name__)
 
