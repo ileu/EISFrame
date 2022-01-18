@@ -501,6 +501,7 @@ class EISFrame:
             draw_circuit: bool = False,
             fit_values=None,
             tot_imp=None,
+            data_slice=None,
             **kwargs
     ) -> tuple[dict, list]:
         """
@@ -534,10 +535,13 @@ class EISFrame:
         """
         # load and prepare data
 
+        if data_slice is None:
+            data_slice = slice(3, None)
+
         frequencies = self.frequency
         z = self.real - 1j * self.imag
-        frequencies = np.array(frequencies[np.imag(z) < 0])[3:]
-        z = np.array(z[np.imag(z) < 0])[3:]
+        frequencies = np.array(frequencies[np.imag(z) < 0])[data_slice]
+        z = np.array(z[np.imag(z) < 0])[data_slice]
 
         # check and parse circuit
 
@@ -565,18 +569,27 @@ class EISFrame:
         if fit_constants is None:
             fit_constants = []
 
+        param_names = []
+        param_values = {}
+        param_bounds = []
+
         for p in param_info:
             name = p.name
             if name in fit_guess:
-                p.value = fit_guess.get(name)
+                param_values[name] = fit_guess.get(name)
             else:
                 raise ValueError(f"No initial value given for {name}")
 
             if name in fit_bounds:
                 p.bounds = fit_bounds.get(name)
+            param_bounds.append(p.bounds)
 
             if name in fit_constants:
                 p.fixed = True
+                fit_guess.pop(name)
+            else:
+                p.fixed = False
+                param_names.append(name)
 
         # calculate the weight of each datapoint
         def weight(error, value):
@@ -594,9 +607,9 @@ class EISFrame:
 
         # prepare optimizing function:
         def opt_func(x: list[float]):
-            params = dict(zip(param_info.get_names(fixed=False), x))
-            param_info.set_values(params)
-            predict = circ_calc(param_info.get_namevaluepairs(), frequencies)
+            params = dict(zip(param_names, x))
+            param_values.update(params)
+            predict = circ_calc(param_values, frequencies)
             err = rmse(predict, z)
             return err
 
@@ -605,8 +618,8 @@ class EISFrame:
         else:
             if tot_imp is None:
                 opt_result = fit_routine(
-                        param_info.get_bounds(fixed=False),
-                        param_info.get_values(fixed=False),
+                        param_bounds,
+                        list(param_values.values()),
                         opt_func
                 )
             else:
@@ -619,16 +632,16 @@ class EISFrame:
                     return err
 
                 def opt_func(x):
-                    params = dict(zip(param_info.get_names(fixed=False), x))
-                    param_info.set_values(params)
-                    predict = circ_calc(param_info.get_namevaluepairs(), frequencies)
-                    last_predict = circ_calc(params, 1e-13)
+                    params = dict(zip(param_names, x))
+                    param_values.update(params)
+                    predict = circ_calc(param_values, frequencies)
+                    last_predict = circ_calc(param_values, 1e-13)
                     err = 10 * rmse(predict, z) + np.abs(tot_imp - last_predict.real)
                     return err
 
                 opt_result = fit_routine(
-                        param_info.get_bounds(fixed=False),
-                        param_info.get_values(fixed=False),
+                        param_bounds,
+                        list(param_values.values()),
                         opt_func
                 )
 

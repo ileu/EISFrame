@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 import numpy as np
 
 from eisplottingtool.parser.CircuitComponents import circuit_components
-from eisplottingtool.utils.UtilClass import Parameter, ParameterList
+from eisplottingtool.utils.UtilClass import ParameterList
 
 
 def parse_circuit(
@@ -25,6 +25,8 @@ def parse_circuit(
         - parallel = p(circuit {,circuit})
         - component = a circuit component
 
+    From this a formuilation is generated and evaluated.
+
     Parameters
     ----------
     circ : str
@@ -32,8 +34,9 @@ def parse_circuit(
 
     Returns
     -------
-    param_info : list[Parameter]
-    calculate : Callable
+    param_info
+        list of used parameter. for more information about parameters look in circuit_components
+    calculate
 
     """
 
@@ -51,10 +54,14 @@ def parse_circuit(
         -------
 
         """
-        index = re.match(r'([a-zA-Z]+)_?\d?', c)
-        name = c[:index.end()]
-        c = c[index.end():]
-        symbol = re.match('[A-Za-z]+', name).group()
+        # get and remove the name of the component from the circuit string
+        match = re.match(r"([a-zA-Z]+)_?\d?", c)
+        index = match.end()
+        name = c[:index]
+        c = c[index:]
+
+        # get the symbol of the component and check if the component exists
+        symbol = re.match("[A-Za-z]+", name).group()
 
         for key, comp in circuit_components.items():
             if comp.get_symbol() == symbol:
@@ -62,7 +69,10 @@ def parse_circuit(
         else:
             return c, 1
 
+        # append the parameter to param info
         param_info.extend(comp.get_parameters(name))
+
+        # return the circuit string and return a string for later evaluation
         return c, key + rf".calc(param,'{name}', omega)"
 
     def parallel(c: str):

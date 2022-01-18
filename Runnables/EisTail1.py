@@ -12,15 +12,15 @@ import eisplottingtool as ept
 
 class EPTfile:
     def __init__(
-        self,
-        path,
-        name,
-        ignore=False,
-        diameter=0,
-        color=None,
-        thickness=1.0,
-        circuit=None,
-        initial_par=None
+            self,
+            path,
+            name,
+            ignore=False,
+            diameter=0,
+            color=None,
+            thickness=1.0,
+            circuit=None,
+            initial_par=None
     ):
         self.ignore = ignore
         self.name = name
@@ -45,104 +45,126 @@ def cycles():
     file5 = r"\20211124_B9P10_Water-1w-60C_HT900C-8h_doubleMelt" \
             r"-2_FCandPT_03_MB_C04.mpr"
     cell1 = EPTfile(
-        file1,
-        "Acetonitryle",
-        color='C7',
-        thickness=0.7,
-        diameter=3,
-        circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+            file1,
+            "Acetonitryle",
+            color='C7',
+            thickness=0.7,
+            diameter=3,
+            circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
     )
     cell2 = EPTfile(
-        file2,
-        "Acetonitryle_restart",
-        color='C7',
-        thickness=0.7,
-        diameter=3,
-        circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+            file2,
+            "Acetonitryle_restart",
+            color='C7',
+            thickness=0.7,
+            diameter=3,
+            circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
     )
     cell3 = EPTfile(
-        file3,
-        "B9P4_HT400C",
-        color='C7',
-        thickness=0.7,
-        diameter=3,
-        circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+            file3,
+            "B9P4_HT400C",
+            color='C7',
+            thickness=0.7,
+            diameter=3,
+            circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
     )
     cell4 = EPTfile(
-        file4,
-        "B9P10_double-melt-2_FC",
-        color='C7',
-        thickness=0.7,
-        diameter=3,
-        circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+            file4,
+            "B9P10_double-melt-2_FC",
+            color='C7',
+            thickness=0.7,
+            diameter=3,
+            circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
     )
     cell5 = EPTfile(
-        file5,
-        "B9P10_double-melt-2_PT",
-        color='C7',
-        thickness=0.7,
-        diameter=3,
-        circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+            file5,
+            "B9P10_double-melt-2_PT",
+            color='C7',
+            thickness=0.7,
+            diameter=3,
+            circuit="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
     )
     files = [cell1]  # , cell2, cell3, cell4, cell5]
 
-    path = path2
+    path = path1
     cell_3mm = ept.Cell(3, 0.7)
+    circuit_half = 'R0-p(R1,CPE1)'
     circuit = 'R0-p(R1,CPE1)-Wss1'
 
     for i, file in enumerate(files):
         print(file.name)
         file_path = path + file.path
         data = ept.load_data(file_path)
+        initial_guess = {
+            'R0': 0.1,
+            'R1': 1694.1,
+            'CPE1_Q': 3.2e-10,
+            'CPE1_n': 0.9,
+            'Wss1_R': 700,
+            'Wss1_T': 1.6,
+            'Wss1_n': 0.5
+        }
 
         for n, cycle in enumerate(data[:10]):
             fig, ax = ept.create_fig()
-            fit_path = rf"\cycle_{i:02d}-{n:03d}_param.txt"
+            fit_path = rf"\cycle_{i:02d}-{n:03d}_param"
 
             tot_imp = float(
-                np.mean(
-                    np.abs(cycle.voltage) / 0.007 * 1e3,
-                    where=np.logical_and(cycle.time >= 3600, cycle.time <= 3610)
-                )
+                    np.mean(
+                            np.abs(cycle.voltage) / 0.007 * 1e3,
+                            where=np.logical_and(
+                                    cycle.time >= 3600,
+                                    cycle.time <= 3610
+                            )
+                    )
             )
 
             cycle.plot_nyquist(ax, plot_range=(-50, tot_imp * 1.1))
             ax.axvline(tot_imp, ls='--', label='Total resistance')
+            __, res = cycle.fit_nyquist(
+                    ax,
+                    circuit_half,
+                    initial_guess,
+                    fit_bounds={
+                        "CPE1_n": (0, 1.2),
+                        "Wss1_R": (tot_imp * 0.3, tot_imp)
+                    },
+                    draw_circle=False,
+                    path=path + rf"\{file.name}" + fit_path + "_0.txt",
+                    data_slice=slice(3, 50),
+            )
+            initial_guess.update(res.get_namevaluepairs())
+            initial_guess['R3'] = res["R1"].value + res["R0"].value
+            print("fit1 done")
             cycle.fit_nyquist(
-                ax,
-                circuit,
-                {
-                    'R0': 0.1,
-                    'R1': 1694.1,
-                    'CPE1_Q': 3.2e-10,
-                    'CPE1_n': 0.9,
-                    'Wss1_R': 700,
-                    'Wss1_T': 1.6,
-                    'Wss1_n': 0.5
-                },
-                fit_bounds={
-                    "CPE1_n": (0, 1.2),
-                    "Wss1_R": (tot_imp * 0.3, tot_imp)
-                },
-                draw_circle=False,
-                path=path + rf"\{file.name}" + fit_path,
-                tot_imp=tot_imp,
+                    ax,
+                    'R3-Wss1',
+                    initial_guess,
+                    fit_bounds={
+                        "CPE1_n": (0, 1.2),
+                        "Wss1_R": (tot_imp * 0.3, tot_imp)
+                    },
+                    fit_constants=["R0", "R1", "CPE1_Q", "CPE1_n"],
+                    draw_circle=False,
+                    path=path + rf"\{file.name}" + fit_path + "_1.txt",
+                    tot_imp=tot_imp,
+                    data_slice=slice(50, None),
             )
             # fig2, ax2 = ept.create_fig()
             print(f"Total imp calc: {tot_imp}")
             # cycle.plot_bode(ax2, param_values=params, param_circuit=circuit)
 
             ept.save_fig(
-                os.path.join(
-                    path,
-                    rf"{file.name}",
-                    f"cycle_{i:02d}-{n:03d}.svg"
-                )
+                    os.path.join(
+                            path,
+                            rf"{file.name}",
+                            f"cycle_{i:02d}-{n:03d}.svg"
+                    )
             )
             print("DONE")
             break

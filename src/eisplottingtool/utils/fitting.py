@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 from scipy.optimize import least_squares, minimize, NonlinearConstraint
 
-Logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
@@ -36,12 +36,13 @@ def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
                 "ignore",
                 message="overflow encountered in power"
         )
+        LOGGER.debug(f"Started fitting routine with")
+        LOGGER.debug(f"Initial guess: {initial_value}")
+        LOGGER.debug(f"Bounds: {bounds}")
+        LOGGER.debug(f"Least-Squares bounds: {ls_bounds}")
 
-        Logger.debug(f"Started fitting routine")
-        print(initial_value)
-        print(bounds)
         for i in range(reapeat):
-            Logger.debug(f"Fitting routine pass {i}")
+            LOGGER.debug(f"Fitting routine pass {i}")
             opt_result = least_squares(
                     opt_func,
                     initial_value,
@@ -61,7 +62,6 @@ def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
                         method='Nelder-Mead'
                 )
             else:
-                print("Else")
                 nonlin_condition = NonlinearConstraint(
                         condition,
                         -50,
@@ -78,5 +78,5 @@ def fit_routine(bounds, fit_guess, opt_func, reapeat=1, condition=None):
                         constraints=nonlin_condition
                 )
             initial_value = opt_result.x
-    Logger.debug(f"Finished fitting routine")
+    LOGGER.debug(f"Finished fitting routine")
     return opt_result
