@@ -75,16 +75,15 @@ class Parameter:
 
     def __init__(self, name, bounds, unit):
         self.name = name
-        self.color = 'black'
         self.value = 0.0
-        self.error = 0.0
         self.unit = unit
         self.bounds = bounds
         self.fixed = False
 
     def __repr__(self):
         name = f"Parameter {self.name}"
-        value = rf"({self.value:.3e} ± {self.error}) [{self.unit}]"
+        value = rf"{self.value:.3e} [{self.unit}]"
+        # value = rf"({self.value:.3e} ± {self.error}) [{self.unit}]"
         return f"<{name}, {value}>"
 
     def __eq__(self, other):
