@@ -141,7 +141,7 @@ def cycles():
             initial_guess.update(res.get_namevaluepairs())
             initial_guess['R3'] = res["R1"].value + res["R0"].value
             print("fit1 done")
-            cycle.fit_nyquist(
+            __, res2 = cycle.fit_nyquist(
                     ax,
                     'R3-Wss1',
                     initial_guess,
@@ -154,6 +154,16 @@ def cycles():
                     path=path + rf"\{file.name}" + fit_path + "_1.txt",
                     tot_imp=tot_imp,
                     data_slice=slice(50, None),
+            )
+            initial_guess.update(res.get_namevaluepairs())
+            res["Wss1_R"] = res2["Wss1_R"]
+            res["Wss1_Q"] = res2["Wss1_Q"]
+            res["Wss1_n"] = res2["Wss1_n"]
+            cycle.plot_fit(
+                    ax,
+                    circuit,
+                    res,
+                    color='blue'
             )
             # fig2, ax2 = ept.create_fig()
             print(f"Total imp calc: {tot_imp}")

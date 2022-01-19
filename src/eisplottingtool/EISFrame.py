@@ -16,15 +16,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
-
-from matplotlib import axes
-from matplotlib.patches import BoxStyle
-from matplotlib.ticker import AutoMinorLocator
-
 from eisplottingtool.parser.CircuitParser import parse_circuit
 from eisplottingtool.utils.UtilClass import Cell, default_mark_points
 from eisplottingtool.utils.UtilFunctions import plot_legend
 from eisplottingtool.utils.fitting import fit_routine
+from matplotlib import axes
+from matplotlib.patches import BoxStyle
+from matplotlib.ticker import AutoMinorLocator
 
 Logger = logging.getLogger(__name__)
 T = TypeVar('T', bound='Parent')
@@ -665,6 +663,37 @@ class EISFrame:
                         param_info, f, default=lambda o: o.__dict__, indent=1
                 )
 
+        lines = self.plot_fit(
+            ax,
+            fit_circuit,
+            param_info,
+            data_slice=data_slice,
+            cell=cell,
+            color='red'
+            )
+        # check if circle needs to be drawn
+        if draw_circle:
+            self._plot_semis(fit_circuit, param_info, cell, ax)
+
+        if draw_circuit:
+            self._plot_circuit(fit_circuit, ax)
+
+        plot_legend(ax)
+        return lines, param_info
+
+    def plot_fit(
+            self,
+            ax,
+            circuit,
+            param_info,
+            data_slice=slice(3, None),
+            cell=None,
+            **kwargs
+    ):
+        __, circ_calc = parse_circuit(circuit)
+
+        frequencies = np.array(self.frequency[self.imag > 0])[data_slice]
+
         f_pred = np.logspace(-9, 9, 400)
         # plot the fitting result
         parameters = {info.name: info.value for info in param_info}
@@ -691,16 +720,14 @@ class EISFrame:
             )
             custom_circuit_fit_freq = circ_calc(parameters, frequencies)
             custom_circuit_fit = circ_calc(parameters, f_pred)
-
         # adjust impedance if a cell is given
         if cell is not None:
             custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
             custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
-
         ax.scatter(
                 np.real(custom_circuit_fit_freq),
                 -np.imag(custom_circuit_fit_freq),
-                color="red",
+                color=kwargs.get("color"),
                 zorder=5,
                 marker='x'
         )
@@ -708,20 +735,11 @@ class EISFrame:
                 np.real(custom_circuit_fit),
                 -np.imag(custom_circuit_fit),
                 label="fit",
-                color="red",
+                color=kwargs.get("color"),
                 zorder=5,
         )
-
         lines = {"fit": line}
-        # check if circle needs to be drawn
-        if draw_circle:
-            self._plot_semis(fit_circuit, param_info, cell, ax)
-
-        if draw_circuit:
-            self._plot_circuit(fit_circuit, ax)
-
-        plot_legend(ax)
-        return lines, param_info
+        return lines
 
     def plot_lifecycle(
             self,
