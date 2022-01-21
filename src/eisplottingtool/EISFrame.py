@@ -659,6 +659,7 @@ class EISFrame:
 
         if path is not None:
             if not os.path.isdir(os.path.dirname(path)):
+                # TODO: look at exist_ok=True
                 os.makedirs(os.path.dirname(path))
             with open(path, 'w') as f:
                 json.dump(
