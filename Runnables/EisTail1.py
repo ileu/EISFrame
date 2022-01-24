@@ -41,8 +41,7 @@ file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle" \
 file2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle" \
         r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.mpr"
 file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_02_MB_C03.mpr"
-file4 = r"\20211216_B10P2_Water-1W_HT400C-3h_Li-3mm-280C" \
-        r"-30min_150um_FCandPT_03_MB_C13.mpr"
+file4 = r"\20220106_B10P4_Water-1w_HT400C-3h_Li-3mm-280C-30min_60um_FCandPT_03_MB_C16.mpr"
 file5 = r"\20220105_B9P4_HT400C-3h_Li-3mm-300C-30min_PT_Afterstop_02_MB_C03.mpr"
 cell1 = EPTfile(
         file1,
@@ -89,13 +88,13 @@ cell5 = EPTfile(
         circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
         initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
 )
-files = [cell5]  # , cell2, cell3, cell4, cell5]
+files = [cell4]  # , cell2, cell3, cell4, cell5]
 
 path = path1
 
+D = 0.8 * 1e-11 # cm^2/s tau = l^2 /D, l is diffusion length
 
 def cycles():
-    cell_3mm = ept.Cell(3, 0.7)
     circuit_half = 'R0-p(R1,CPE1)'
     circuit = 'R0-p(R1,CPE1)-Wss1'
 
@@ -213,6 +212,6 @@ if __name__ == "__main__":
     logger = logging.getLogger("eisplottingtool")
     logger.setLevel(logging.INFO)
 
-    # cycles()
-    parameter()
+    cycles()
+    # parameter()
     print('Finished')
