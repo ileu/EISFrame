@@ -34,60 +34,72 @@ class EPTfile:
         self.diameter = diameter
 
 
-def cycles():
-    path1 = r"G:\Collaborators\Sauter Ulrich\Projects\EIS Tail\Data"
-    path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\EIS Tail\Data"
-    file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle" \
-            r"-3days_Li300C_3mm_0p7th_PT_C15.mpr"
-    file2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle" \
-            r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.mpr"
-    file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_02_MB_C03.mpr"
-    file4 = r"\20211216_B10P2_Water-1W_HT400C-3h_Li-3mm-280C" \
-            r"-30min_150um_FCandPT_03_MB_C13.mpr"
-    cell1 = EPTfile(
-            file1,
-            "Acetonitryle",
-            color='C7',
-            thickness=0.7,
-            diameter=3,
-            circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
-    )
-    cell2 = EPTfile(
-            file2,
-            "Acetonitryle_restart",
-            color='C7',
-            thickness=0.7,
-            diameter=3,
-            circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
-    )
-    cell3 = EPTfile(
-            file3,
-            "B9P4_HT400C",
-            color='C7',
-            thickness=0.7,
-            diameter=3,
-            circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
-    )
-    cell4 = EPTfile(
-            file4,
-            "B10P4_Water_HT400C",
-            color='C7',
-            thickness=0.7,
-            diameter=3,
-            circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
-            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
-    )
-    files = [cell4]  # , cell2, cell3, cell4, cell5]
+path1 = r"G:\Collaborators\Sauter Ulrich\Projects\EIS Tail\Data"
+path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\EIS Tail\Data"
+file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle" \
+        r"-3days_Li300C_3mm_0p7th_PT_C15.mpr"
+file2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle" \
+        r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.mpr"
+file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_02_MB_C03.mpr"
+file4 = r"\20211216_B10P2_Water-1W_HT400C-3h_Li-3mm-280C" \
+        r"-30min_150um_FCandPT_03_MB_C13.mpr"
+file5 = r"\20220105_B9P4_HT400C-3h_Li-3mm-300C-30min_PT_Afterstop_02_MB_C03.mpr"
+cell1 = EPTfile(
+        file1,
+        "Acetonitryle",
+        color='C7',
+        thickness=0.7,
+        diameter=3,
+        circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+)
+cell2 = EPTfile(
+        file2,
+        "Acetonitryle_restart",
+        color='C7',
+        thickness=0.7,
+        diameter=3,
+        circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+)
+cell3 = EPTfile(
+        file3,
+        "B9P4_HT400C",
+        color='C7',
+        thickness=0.7,
+        diameter=3,
+        circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+)
+cell4 = EPTfile(
+        file4,
+        "B10P4_Water_HT400C",
+        color='C7',
+        thickness=0.7,
+        diameter=3,
+        circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+)
+cell5 = EPTfile(
+        file5,
+        "B9P4_HT400C",
+        color='C7',
+        thickness=0.7,
+        diameter=3,
+        circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+        initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
+)
+files = [cell5]  # , cell2, cell3, cell4, cell5]
 
-    path = path1
+path = path1
+
+
+def cycles():
     cell_3mm = ept.Cell(3, 0.7)
     circuit_half = 'R0-p(R1,CPE1)'
     circuit = 'R0-p(R1,CPE1)-Wss1'
 
-    for i, file in enumerate(files[:10]):
+    for i, file in enumerate(files):
         print(file.name)
         file_path = path + file.path
         data = ept.load_data(file_path)
@@ -146,7 +158,7 @@ def cycles():
                         "CPE1_n": (0, 1.2),
                         "Wss1_R": (tot_imp * 0.3, tot_imp),
                         "Wss1_n": (0, 0.5),
-                        "R3": (res["R1"] + res["R0"], 2*(res["R1"] + res["R0"]))
+                        "R3": (res["R1"] + res["R0"], 2 * (res["R1"] + res["R0"]))
                     },
                     fit_constants=["R0", "R1", "CPE1_Q", "CPE1_n"],
                     draw_circle=False,
@@ -175,38 +187,32 @@ def cycles():
 
 
 def parameter():
-    path1 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\EIS " \
-            r"Tail\Data\Acetonitryle"
-    path2 = r"G:\Collaborators\Sauter Ulrich\Projects\EIS Tail\Data\Acetonitryle"
-    path3 = r"G:\Collaborators\Sauter Ulrich\Projects\EIS " \
-            r"Tail\Data\Acetonitryle_restart"
-
-    path = path3
-
-    param_files = glob.glob(path + r"\*param*.txt")
-    param_files.sort()
-    params = defaultdict(list)
-    for n, file in enumerate(param_files):
-        print(file)
-        with open(file) as f:
-            data = json.load(f)
-        for d in data:
-            params[d['name']].append(d['value'])
-    print(params)
-    for param in params:
-        fig, ax = plt.subplots()
-        ax: matplotlib.axes.Axes
-        ax.plot(params[param], 'x')
-        ax.set_title(param)
-        ax.set_xlabel("Cycles")
-        plt.tight_layout()
-        plt.savefig(path + rf"\trends\trend_{param}")
+    for i, file in enumerate(files):
+        print(file.name)
+        param_files = glob.glob(path + fr"\{file.name}" + r"\*param*.txt")
+        param_files.sort()
+        params = defaultdict(list)
+        for n, f in enumerate(param_files):
+            print(f)
+            with open(f) as fl:
+                data = json.load(fl)
+            for d in data:
+                params[d['name']].append(d['value'])
+        print(params)
+        for param in params:
+            fig, ax = plt.subplots()
+            ax: matplotlib.axes.Axes
+            ax.plot(params[param], 'x')
+            ax.set_title(param)
+            ax.set_xlabel("Cycles")
+            plt.tight_layout()
+            plt.savefig(path + fr"\{file.name}" + rf"\trends\trend_{param}")
 
 
 if __name__ == "__main__":
     logger = logging.getLogger("eisplottingtool")
     logger.setLevel(logging.INFO)
 
-    cycles()
-    # parameter()
+    # cycles()
+    parameter()
     print('Finished')
