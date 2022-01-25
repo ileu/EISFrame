@@ -37,6 +37,8 @@ def _get_default_data_param(columns):
             col_names['cycle'] = match.group()
         elif match := re.match(r'freq[^|]*', col):
             col_names['frequency'] = match.group()
+        elif match := re.match('Ns', col):
+            col_names['ns'] = match.group()
     return col_names
 
 

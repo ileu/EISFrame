@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import os
+import re
 from collections import defaultdict
 
 import eisplottingtool as ept
@@ -41,7 +42,8 @@ file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle" \
 file2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle" \
         r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.mpr"
 file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_02_MB_C03.mpr"
-file4 = r"\20220106_B10P4_Water-1w_HT400C-3h_Li-3mm-280C-30min_60um_FCandPT_03_MB_C16.mpr"
+file4 = r"\20220106_B10P4_Water-1w_HT400C-3h_Li-3mm-280C" \
+        r"-30min_60um_FCandPT_03_MB_C16.mpr"
 file5 = r"\20220105_B9P4_HT400C-3h_Li-3mm-300C-30min_PT_Afterstop_02_MB_C03.mpr"
 cell1 = EPTfile(
         file1,
@@ -92,7 +94,8 @@ files = [cell4]  # , cell2, cell3, cell4, cell5]
 
 path = path1
 
-D = 0.8 * 1e-11 # cm^2/s tau = l^2 /D, l is diffusion length
+D = 0.8 * 1e-11  # cm^2/s tau = l^2 /D, l is diffusion length
+
 
 def cycles():
     circuit_half = 'R0-p(R1,CPE1)'
@@ -116,7 +119,6 @@ def cycles():
             print(f"cycle {n} from {len(data)}")
             fig, ax = ept.create_fig()
             fit_path = rf"\cycle_{i:02d}-{n:03d}_param"
-
             tot_imp = float(
                     np.mean(
                             np.abs(cycle.voltage) / 0.007 * 1e3,
@@ -129,6 +131,8 @@ def cycles():
             print(f"Total imp calc: {tot_imp}")
             if np.isnan(tot_imp):
                 continue
+
+            cycle.df = cycle.df[cycle.df["Ns"] == 1]
 
             cycle.plot_nyquist(ax, plot_range=(-50, tot_imp * 1.1))
             ax.axvline(tot_imp, ls='--', label='Total resistance')
@@ -195,13 +199,16 @@ def parameter():
             print(f)
             with open(f) as fl:
                 data = json.load(fl)
+            cycle_nr = float(re.split(r'\.|_|-', f)[-4])
             for d in data:
-                params[d['name']].append(d['value'])
+                params[d['name']].append((cycle_nr, d['value']))
         print(params)
         for param in params:
             fig, ax = plt.subplots()
             ax: matplotlib.axes.Axes
-            ax.plot(params[param], 'x')
+            x_val = [p[0] for p in params[param]]
+            y_val = [p[1] for p in params[param]]
+            ax.plot(x_val, y_val, 'x')
             ax.set_title(param)
             ax.set_xlabel("Cycles")
             plt.tight_layout()
@@ -212,6 +219,6 @@ if __name__ == "__main__":
     logger = logging.getLogger("eisplottingtool")
     logger.setLevel(logging.INFO)
 
-    cycles()
-    # parameter()
+    # cycles()
+    parameter()
     print('Finished')
