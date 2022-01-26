@@ -37,8 +37,8 @@ class EPTfile:
 
 path1 = r"G:\Collaborators\Sauter Ulrich\Projects\EIS Tail\Data"
 path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\EIS Tail\Data"
-file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle" \
-        r"-3days_Li300C_3mm_0p7th_PT_C15.mpr"
+file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle-3days_Li300C_3mm_0p7th_PT_C15" \
+        r".mpr"
 file2 = r"\20210210_Rabeb_LLZTO_Batch4_rAcetonitryle" \
         r"-3days_Li300C_3mm_0p7th_PT_After-stop-cell-reassembly_C04.mpr"
 file3 = r"\20211104_B9P4_HT400C-3h_Li-3mm-300C-30min_FCandPT_02_MB_C03.mpr"
@@ -90,11 +90,9 @@ cell5 = EPTfile(
         circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
         initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2]
 )
-files = [cell4]  # , cell2, cell3, cell4, cell5]
+files = [cell1]  # , cell2, cell3, cell4, cell5]
 
 path = path1
-
-D = 0.8 * 1e-11  # cm^2/s tau = l^2 /D, l is diffusion length
 
 
 def cycles():
@@ -132,7 +130,7 @@ def cycles():
             if np.isnan(tot_imp):
                 continue
 
-            cycle.df = cycle.df[cycle.df["Ns"] == 1]
+            # cycle.df = cycle.df[cycle.df["Ns"] == 1]
 
             cycle.plot_nyquist(ax, plot_range=(-50, tot_imp * 1.1))
             ax.axvline(tot_imp, ls='--', label='Total resistance')
@@ -190,6 +188,7 @@ def cycles():
 
 
 def parameter():
+    ept.utils.set_plot_params()
     for i, file in enumerate(files):
         print(file.name)
         param_files = glob.glob(path + fr"\{file.name}" + r"\*param*.txt")
@@ -201,7 +200,7 @@ def parameter():
                 data = json.load(fl)
             cycle_nr = float(re.split(r'\.|_|-', f)[-4])
             for d in data:
-                params[d['name']].append((cycle_nr, d['value']))
+                params[d['name']].append((cycle_nr, d['value'], d['unit']))
         print(params)
         for param in params:
             fig, ax = plt.subplots()
@@ -209,10 +208,47 @@ def parameter():
             x_val = [p[0] for p in params[param]]
             y_val = [p[1] for p in params[param]]
             ax.plot(x_val, y_val, 'x')
-            ax.set_title(param)
+
             ax.set_xlabel("Cycles")
+            label = param
+            label = label.replace("Wss", "Ws")
+            label = label.replace("R3", "R")
+            unit = params[param][0][2]
+            unit = unit.replace("Ohm^-1", r"\Omega^{-1}")
+            unit = unit.replace("Ohm", r"\Omega")
+            if unit == '':
+                ax.set_ylabel(f"{label}")
+            else:
+                ax.set_ylabel(f"{label}/${unit}$")
             plt.tight_layout()
             plt.savefig(path + fr"\{file.name}" + rf"\trends\trend_{param}")
+            if param == "Wss1_T":
+                d = 0.8 * 1e-11  # cm^2/s tau = l^2 /D, l is diffusion length
+                length = [np.sqrt(d * p[1]) * 1e4 for p in params[param]]
+                fig, ax = plt.subplots()
+                ax: matplotlib.axes.Axes
+                ax.plot(x_val, length, 'x')
+                ax.set_ylabel("Diffusion length/$\mu m$")
+                ax.set_xlabel("Cycles")
+                plt.tight_layout()
+                plt.savefig(path + fr"\{file.name}" + rf"\trends\diffusion_length")
+
+
+def life():
+    for i, file in enumerate(files):
+        print(f"life {file.name}")
+        file_path = path + file.path
+        data = ept.load_data(file_path)
+        fig, ax = ept.create_fig()
+        for cycle in data:
+            cycle.plot_lifecycle(
+                    ax=ax,
+                    plot_yrange=(-0.05, 0.05)
+            )
+            break
+        lifepath = path + rf"\{file.name}\life_short"
+        print(lifepath)
+        ept.save_fig(lifepath)
 
 
 if __name__ == "__main__":
@@ -221,4 +257,5 @@ if __name__ == "__main__":
 
     # cycles()
     parameter()
+    # life()
     print('Finished')

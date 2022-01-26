@@ -19,8 +19,8 @@ def set_plot_params() -> None:
              'e377c2', '7f7f7f', 'bcbd22', '17becf', ]
     )
     rcParams['axes.prop_cycle'] = plot_color_cycle
-    rcParams['axes.xmargin'] = 0
-    rcParams['axes.ymargin'] = 0
+    rcParams['axes.xmargin'] = 0.1
+    rcParams['axes.ymargin'] = 0.1
     rcParams.update(
             {
                 "figure.subplot.hspace": 0,

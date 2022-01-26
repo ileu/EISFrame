@@ -5,7 +5,7 @@ import schemdraw as sd
 from schemdraw import dsp
 
 from eisplottingtool.parser.CircuitComponents import circuit_components
-from eisplottingtool.utils.UtilClass import ParameterDict
+from eisplottingtool.utils.UtilClass import Parameter
 
 
 def draw_circuit(
@@ -13,7 +13,7 @@ def draw_circuit(
         scale_h: float = 0.25,
         par_connector_length: float = 0.25,
         scaling: Callable[[float], float] = None,
-        param_dict: ParameterDict = None,
+        color_dict: dict[str, str] = None,
         ) -> sd.Drawing:
     """ Modified version of CircuitParser.parse_circuit to draw the circuit.
 
@@ -24,7 +24,7 @@ def draw_circuit(
     scale_h : float
     par_connector_length : float
     scaling : Callable[[float], float]
-    param_dict : ParameterDict
+    color_dict : ParameterDict
 
     Returns
     -------
@@ -58,10 +58,8 @@ def draw_circuit(
         c = c[index.end():]
         color = 'black'
 
-        if param_dict is not None:
-            parm = param_dict[name]
-            if parm is not None:
-                color = parm.color
+        if color_dict is not None:
+            color = color_dict.get(name, color)
 
         symbol = re.match('[A-Za-z]+', name).group()
 
