@@ -14,6 +14,8 @@ def draw_circuit(
         par_connector_length: float = 0.25,
         scaling: Callable[[float], float] = None,
         color_dict: dict[str, str] = None,
+        shaded=False,
+        **kwargs
         ) -> sd.Drawing:
     """ Modified version of CircuitParser.parse_circuit to draw the circuit.
 
@@ -37,7 +39,7 @@ def draw_circuit(
             new_s = old_s * 0.025
             return 1
 
-    drawing = sd.Drawing()
+    drawing = sd.Drawing(**kwargs)
 
     def component(c: str, s: float):
         """ process component and remove from circuit string c
@@ -70,7 +72,10 @@ def draw_circuit(
             return c, 1
 
         nonlocal drawing
-        drawing += comp.draw().right().color(color).scale(s)
+        if shaded:
+            drawing += comp.draw().right().color(color).scale(s).fill(color)
+        else:
+            drawing += comp.draw().right().color(color).scale(s)
         return c
 
     def measure_circuit(c: str, s: float, local=False):

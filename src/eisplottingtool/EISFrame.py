@@ -693,6 +693,7 @@ class EISFrame:
         circuit,
         param_info,
         data_slice=slice(3, None),
+        scatter=True,
         cell=None,
         **kwargs
     ):
@@ -734,13 +735,14 @@ class EISFrame:
         if cell is not None:
             custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
             custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
-        ax.scatter(
-            np.real(custom_circuit_fit_freq),
-            -np.imag(custom_circuit_fit_freq),
-            color=kwargs.get("color"),
-            zorder=5,
-            marker='x'
-        )
+        if scatter:
+            ax.scatter(
+                np.real(custom_circuit_fit_freq),
+                -np.imag(custom_circuit_fit_freq),
+                color=kwargs.get("color"),
+                zorder=5,
+                marker='x'
+            )
         line = ax.plot(
             np.real(custom_circuit_fit),
             -np.imag(custom_circuit_fit),
@@ -749,6 +751,8 @@ class EISFrame:
             zorder=5,
         )
         lines = {"fit": line}
+
+        plot_legend(ax)
         return lines
 
     def plot_lifecycle(
@@ -762,7 +766,7 @@ class EISFrame:
         nbinsy=4,
         **plotkwargs
     ):
-        if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
+        if not {"time", "Ewe"}.issubset(self.df.columns):
             warnings.warn('Wrong data for a lifecycle Plot', RuntimeWarning)
             return
 

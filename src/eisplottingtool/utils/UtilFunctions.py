@@ -14,52 +14,52 @@ def set_plot_params() -> None:
     rcParams['axes.linewidth'] = 1.1
     rcParams['axes.labelpad'] = 4.0
     plot_color_cycle = cycler(
-            'color',
-            ['000000', '0000FE', 'FE0000', '008001', 'FD8000', '8c564b',
-             'e377c2', '7f7f7f', 'bcbd22', '17becf', ]
+        'color',
+        ['000000', '0000FE', 'FE0000', '008001', 'FD8000', '8c564b',
+         'e377c2', '7f7f7f', 'bcbd22', '17becf', ]
     )
     rcParams['axes.prop_cycle'] = plot_color_cycle
     rcParams['axes.xmargin'] = 0.1
     rcParams['axes.ymargin'] = 0.1
     rcParams.update(
-            {
-                "figure.subplot.hspace": 0,
-                "figure.subplot.left": 0.11,
-                "figure.subplot.right": 0.946,
-                "figure.subplot.bottom": 0.156,
-                "figure.subplot.top": 0.965,
-                "xtick.major.size": 4,
-                "xtick.minor.size": 2.5,
-                "xtick.major.width": 1.1,
-                "xtick.minor.width": 1.1,
-                "xtick.major.pad": 5,
-                "xtick.minor.visible": True,
-                "xtick.direction": 'in',
-                "xtick.top": True,
-                "ytick.major.size": 4,
-                "ytick.minor.size": 2.5,
-                "ytick.major.width": 1.1,
-                "ytick.minor.width": 1.1,
-                "ytick.major.pad": 5,
-                "ytick.minor.visible": True,
-                "ytick.direction": 'in',
-                "ytick.right": True,
-                "lines.markersize": 10,
-                "lines.markeredgewidth": 0.8,
-            }
+        {
+            "figure.subplot.hspace": 0,
+            "figure.subplot.left": 0.11,
+            "figure.subplot.right": 0.946,
+            "figure.subplot.bottom": 0.156,
+            "figure.subplot.top": 0.965,
+            "xtick.major.size": 4,
+            "xtick.minor.size": 2.5,
+            "xtick.major.width": 1.1,
+            "xtick.minor.width": 1.1,
+            "xtick.major.pad": 5,
+            "xtick.minor.visible": True,
+            "xtick.direction": 'in',
+            "xtick.top": True,
+            "ytick.major.size": 4,
+            "ytick.minor.size": 2.5,
+            "ytick.major.width": 1.1,
+            "ytick.minor.width": 1.1,
+            "ytick.major.pad": 5,
+            "ytick.minor.visible": True,
+            "ytick.direction": 'in',
+            "ytick.right": True,
+            "lines.markersize": 10,
+            "lines.markeredgewidth": 0.8,
+        }
     )
 
 
 def create_fig(
-        nrows: int = 1,
-        ncols: int = 1,
-        sharex='all',
-        sharey='all',
-        figsize=None,
-        subplot_kw=None,
-        gridspec_kw=None,
-        top_ticks=False,
-        **fig_kw
+    nrows: int = 1,
+    ncols: int = 1,
+    sharex='all',
+    sharey='all',
+    figsize=None,
+    subplot_kw=None,
+    gridspec_kw=None,
+    top_ticks=False,
+    **fig_kw
 ) -> tuple[figure.Figure, Union[axes.Axes, list[axes.Axes]]]:
     """ Creates the figure, axes for the plots and set the style of the plot
 
@@ -91,14 +91,14 @@ def create_fig(
         gridspec_kw["hspace"] = 0
 
     fig, axs = plt.subplots(
-            nrows,
-            ncols,
-            figsize=figsize,
-            sharex=sharex,
-            sharey=sharey,
-            gridspec_kw=gridspec_kw,
-            subplot_kw=subplot_kw,
-            **fig_kw
+        nrows,
+        ncols,
+        figsize=figsize,
+        sharex=sharex,
+        sharey=sharey,
+        gridspec_kw=gridspec_kw,
+        subplot_kw=subplot_kw,
+        **fig_kw
     )
 
     if top_ticks:
@@ -108,9 +108,11 @@ def create_fig(
 
 
 def save_fig(
-        path: str = '',
-        fig: figure.Figure = None,
-        show: bool = False, **kwargs
+    path: str = '',
+    fig: figure.Figure = None,
+    show: bool = False,
+    close: bool = True,
+    **kwargs
 ) -> None:
     """ Saves the current figure at path
 
@@ -133,21 +135,22 @@ def save_fig(
     fig.canvas.draw_idle()
     if show:
         plt.show()
-    plt.close(fig)
+    if close:
+        plt.close(fig)
 
 
 def plot_legend(
-        ax: axes.Axes = None,
-        loc='upper left',
-        fontsize='xx-small',
-        frameon=True,
-        markerscale=2,
-        handletextpad=0.1,
-        mode=None,
-        edgecolor='white',
-        borderpad=0.0,
-        framealpha=1.0,
-        **kwargs
+    ax: axes.Axes = None,
+    loc='upper left',
+    fontsize='xx-small',
+    frameon=True,
+    markerscale=2,
+    handletextpad=0.1,
+    mode=None,
+    edgecolor='white',
+    borderpad=0.0,
+    framealpha=1.0,
+    **kwargs
 ) -> legend.Legend:
     """ Adds legend to an axes
 
@@ -173,15 +176,15 @@ def plot_legend(
         ax = plt.gca()
 
     leg = ax.legend(
-            loc=loc,
-            fontsize=fontsize,
-            frameon=frameon,
-            framealpha=framealpha,
-            edgecolor=edgecolor,
-            markerscale=markerscale,
-            handletextpad=handletextpad,
-            mode=mode,
-            borderpad=borderpad,
-            **kwargs
+        loc=loc,
+        fontsize=fontsize,
+        frameon=frameon,
+        framealpha=framealpha,
+        edgecolor=edgecolor,
+        markerscale=markerscale,
+        handletextpad=handletextpad,
+        mode=mode,
+        borderpad=borderpad,
+        **kwargs
     )
     return leg
