@@ -8,7 +8,6 @@
 import logging
 import os
 import re
-import warnings
 from typing import TypeVar
 
 import pandas as pd
@@ -27,7 +26,7 @@ def _get_default_data_param(columns):
     for col in columns:
         if match := re.match(r'Ewe[^|]*', col):
             col_names['voltage'] = match.group()
-        elif match := re.match(r'I/mA[^|]*', col):
+        elif match := re.match(r'I[^|]*', col):
             col_names['current'] = match.group()
         elif match := re.match(r'Re\(Z(we-ce)?\)[^|]*', col):
             col_names['real'] = match.group()
@@ -43,6 +42,8 @@ def _get_default_data_param(columns):
             col_names['cycle'] = match.group()
         elif match := re.match(r'freq[^|]*', col):
             col_names['frequency'] = match.group()
+        elif match := re.match(r'Ns[^|]*', col):
+            col_names['Ns'] = match.group()
     return col_names
 
 
@@ -87,6 +88,18 @@ class EISFrame:
         if df is not None:
             self.df = df
 
+    def __str__(self):
+        return self.df.__str__()
+
+    def __repr__(self):
+        return self.df.__repr__()
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            self.eis_params['cycle'] = item
+            return self
+        return self.df.__getitem__(item)
+
     def load(self, path=None, files=None, cont_time=True):
         if path is None:
             path = self.eis_params["path"]
@@ -111,12 +124,78 @@ class EISFrame:
 
         ext = os.path.splitext(path)[1][1:]
 
-        if ext in {".csv", '.txt'}:
+        if ext in {"csv", 'txt'}:
             data = pd.read_csv(path, sep=',', encoding='unicode_escape')
-        elif ext in {'.mpr', '.mpt'}:
+        elif ext in {'mpr', 'mpt'}:
             data = ecf.to_df(path)
         else:
             raise ValueError(f"Datatype {ext} not supported")
 
         if data.empty:
-            raise ValueError(f"File {path + files} has no data")
+            raise ValueError(f"File {path} has no data")
+
+        col_names = _get_default_data_param(data.columns)
+        if col_names.get("cycle") is None:
+            raise ValueError(f"No cycles detetected in file {path}.")
+        print(col_names)
+        self.df = data
+
+        data.groupby([col_names["cycle"], col_names.get("Ns")], )
+        for key, values in data.iteritems():
+            print(data.ix[values], "\n\n")
+
+
+if __name__ == "__main__":
+    from eisplottingtool import EISFrame
+
+    path1 = r"G:\Collaborators\Sauter Ulrich\Projects\EIS Tail\Data"
+    file1 = r"\20201204_Rabeb_LLZTO_Batch4_rAcetonitryle-3days_Li300C_3mm_0p7th_PT_C15.mpr"
+
+
+    class EPTfile:
+        def __init__(
+                self,
+                path,
+                name,
+                ignore=False,
+                diameter=0,
+                color=None,
+                thickness=1.0,
+                circuit1=None,
+                circuit2=None,
+                initial_par=None,
+        ):
+            self.ignore = ignore
+            self.name = name
+            self.path = path
+            self.thickness = thickness
+            self.color = color
+            self.circuit1 = circuit1
+            self.circuit2 = circuit2
+            self.initial_par = initial_par
+            self.diameter = diameter
+
+
+    cell1 = EPTfile(
+            file1,
+            "Acetonitryle",
+            color="C7",
+            thickness=0.7,
+            diameter=3,
+            circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1, 1500, 1e-8, 0.9, 500, 1e-6, 0.9, 500, 2],
+    )
+
+    testFrame = EISFrame(
+            name="Acetonitryle",
+            path=path1 + file1,
+            color="C7",
+            circuit1="R0-p(R1,CPE1)-p(R2,CPE2)-Ws1",
+            initial_par=[1.0, 1500.0, 1e-8, 0.9, 500.0, 1e-6, 0.9, 500.0, 2.0],
+    )
+
+    print(file1)
+
+    testFrame.load()
+
+    print(testFrame)
