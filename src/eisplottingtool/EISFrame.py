@@ -67,11 +67,11 @@ class EISFrame:
     """
 
     def __init__(
-            self,
-            name: str = None,
-            path: str = None,
-            df: pd.DataFrame = None,
-            **kwargs
+        self,
+        name: str = None,
+        path: str = None,
+        df: pd.DataFrame = None,
+        **kwargs
     ) -> None:
         """ Initialises an EISFrame
 
@@ -164,27 +164,25 @@ class EISFrame:
         self.df = data.sort_index()
         self.eis_params.update(col_names)
 
-
     def plot_nyquist(
-            self,
-            ax: axes.Axes = None,
-            selection=None,
-            image: str = '',
-            cell: Cell = None,
-            exclude_start: int = None,
-            exclude_end: int = None,
-            show_freq: bool = False,
-            color=None,
-            ls='None',
-            marker=None,
-            plot_range=None,
-            label=None,
-            size=6,
-            scale=1.5,
-            normalize=None,
-            unit=None,
-            show_legend=True,
-            show_mark_label=True,
+        self,
+        ax: axes.Axes = None,
+        selection=None,
+        image: str = '',
+        cell: Cell = None,
+        exclude_data: tuple[int, int] = None,
+        show_freq: bool = False,
+        color=None,
+        ls='None',
+        marker=None,
+        plot_range=None,
+        label=None,
+        size=6,
+        scale=1.5,
+        normalize=None,
+        unit=None,
+        show_legend=True,
+        show_mark_label=True,
     ):
         """ Plots a Nyquist plot with the internal dataframe
 
@@ -198,8 +196,7 @@ class EISFrame:
         image : str
              path to image to include in plot
         cell
-        exclude_start
-        exclude_end
+        exclude_data
         show_freq
         color
         ls
@@ -220,7 +217,6 @@ class EISFrame:
         """
         if selection is None:
             selection = self.eis_params.get("selection")
-
 
         # initialize
         if marker is None:
@@ -245,6 +241,9 @@ class EISFrame:
             ax = plt.gca()
 
         # get the x,y data for plotting
+        if exclude_data is None:
+            exclude_start = exclude_end = None
+
         x_data = self.real[mask][exclude_start:exclude_end]
         y_data = self.imag[mask][exclude_start:exclude_end]
         frequency = self.frequency[mask][exclude_start:exclude_end]
@@ -270,13 +269,13 @@ class EISFrame:
 
         # plot the data
         line = ax.plot(
-                x_data,
-                y_data,
-                marker=marker,
-                color=color,
-                ls=ls,
-                label=label,
-                markersize=size,
+            x_data,
+            y_data,
+            marker=marker,
+            color=color,
+            ls=ls,
+            label=label,
+            markersize=size,
         )
         lines = {"Data": line}  # store all the lines inside lines
 
@@ -289,14 +288,14 @@ class EISFrame:
             else:
                 mark_label = None
             line = ax.plot(
-                    x_data[mark.index],
-                    y_data[mark.index],
-                    marker=marker,
-                    markerfacecolor=mark.color,
-                    markeredgecolor=mark.color,
-                    markersize=scale * size,
-                    ls='none',
-                    label=mark_label
+                x_data[mark.index],
+                y_data[mark.index],
+                marker=marker,
+                markerfacecolor=mark.color,
+                markeredgecolor=mark.color,
+                markersize=scale * size,
+                ls='none',
+                label=mark_label
             )
             lines[f"MP-{mark.name}"] = line
 
@@ -330,19 +329,19 @@ class EISFrame:
             upper_label = f"{upper_freq.to_compact():~.0f}"
 
             ax.text(
-                    0.99,
-                    0.99,
-                    f"Freq. Range:\n {upper_label} - {lower_label}",
-                    horizontalalignment='right',
-                    verticalalignment='top',
-                    transform=ax.transAxes,
-                    size='xx-small',
-                    multialignment='center',
-                    bbox=dict(
-                            facecolor='white',
-                            alpha=1.0,
-                            boxstyle=BoxStyle("Round", pad=0.2)
-                    )
+                0.99,
+                0.99,
+                f"Freq. Range:\n {upper_label} - {lower_label}",
+                horizontalalignment='right',
+                verticalalignment='top',
+                transform=ax.transAxes,
+                size='xx-small',
+                multialignment='center',
+                bbox=dict(
+                    facecolor='white',
+                    alpha=1.0,
+                    boxstyle=BoxStyle("Round", pad=0.2)
+                )
             )
 
         # if a path to an image is given, also plot it
