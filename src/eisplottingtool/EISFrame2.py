@@ -61,7 +61,7 @@ def _get_default_data_param(columns):
     return col_names
 
 
-class EISFrame:
+class EISFrame(pd.DataFrame):
     """
        EISFrame stores EIS data and plots/fits the data.
     """
@@ -72,7 +72,7 @@ class EISFrame:
             path: str = None,
             df: pd.DataFrame = None,
             **kwargs
-    ) -> None:
+            ) -> None:
         """ Initialises an EISFrame
 
         An EIS frame can plot a Nyquist plot and a lifecycle plot
@@ -93,6 +93,7 @@ class EISFrame:
             cell: Cell
                 Battery cell for normalizing
         """
+        super().__init__()
         self.eis_params = kwargs
         self.raw_df = df
         self.df = df
