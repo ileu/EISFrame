@@ -11,6 +11,7 @@ import re
 from typing import TypeVar
 
 import eclabfiles as ecf
+import numpy as np
 import pandas as pd
 import pint
 from matplotlib import axes, pyplot as plt
@@ -18,7 +19,7 @@ from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
 
 from .utils import plot_legend
-from .utils.UtilClass import Cell
+from .utils.UtilClass import Cell, default_mark_points
 
 LOGGER = logging.getLogger(__name__)
 T = TypeVar('T', bound='Parent')
@@ -94,8 +95,9 @@ class EISFrame:
                 Battery cell for normalizing
         """
         self.eis_params = kwargs
-        self.raw_df = df
         self.df = df
+        self.mark_points = default_mark_points
+        self.eis_params["Lines"] = {}
 
         if name is not None:
             self.eis_params["name"] = name
@@ -114,20 +116,64 @@ class EISFrame:
         self.df = self.select_data(item)
         return self
 
+    @property
+    def time(self) -> np.array:
+        if self.df is None:
+            self.load()
+        return self.df[self.eis_params['time']].values
+
+    @property
+    def impedance(self) -> np.array:
+        if self.df is None:
+            self.load()
+        value = self.df[self.eis_params['real']].values
+        value += -1j * self.df[self.eis_params['real']].values
+        return value
+
+    @property
+    def real(self) -> np.array:
+        if self.df is None:
+            self.load()
+        return self.df[self.eis_params['real']].values
+
+    @property
+    def imag(self) -> np.array:
+        if self.df is None:
+            self.load()
+        return self.df[self.eis_params['imag']].values
+
+    @property
+    def frequency(self) -> np.array:
+        if self.df is None:
+            self.load()
+        return self.df[self.eis_params['frequency']].values
+
+    @property
+    def current(self) -> np.array:
+        if self.df is None:
+            self.load()
+        return self.df[self.eis_params['current']].values
+
+    @property
+    def voltage(self) -> np.array:
+        if self.df is None:
+            self.load()
+        return self.df[self.eis_params['voltage']].values
+
     def select_data(self, selection):
         if isinstance(selection, int):
-            return self.raw_df[selection]
+            return self.df[selection]
         elif isinstance(selection, tuple):
-            return self.raw_df[selection]
+            return self.df[selection]
         elif isinstance(selection, dict):
             cyc = selection.get("cycle")
             ns = selection.get("sequence")
             if ns and cyc:
-                return self.raw_df[(cyc, ns)]
+                return self.df[(cyc, ns)]
             elif ns:
-                return self.raw_df[(slice(None, ns))]
+                return self.df[(slice(None, ns))]
             elif cyc:
-                return self.raw_df[cyc]
+                return self.df[cyc]
         else:
             raise ValueError("Invalid Selection")
 
@@ -170,7 +216,7 @@ class EISFrame:
         selection=None,
         image: str = '',
         cell: Cell = None,
-        exclude_data: tuple[int, int] = None,
+        exclude_data = None,
         show_freq: bool = False,
         color=None,
         ls='None',
@@ -215,12 +261,11 @@ class EISFrame:
         dictionary
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
+        if self.df is None:
+            self.load()
+
         if selection is None:
             selection = self.eis_params.get("selection")
-
-        # initialize
-        if marker is None:
-            marker = 'o'
 
         # label for the plot
         if unit is None:
@@ -241,12 +286,10 @@ class EISFrame:
             ax = plt.gca()
 
         # get the x,y data for plotting
-        if exclude_data is None:
-            exclude_start = exclude_end = None
 
-        x_data = self.real[mask][exclude_start:exclude_end]
-        y_data = self.imag[mask][exclude_start:exclude_end]
-        frequency = self.frequency[mask][exclude_start:exclude_end]
+        x_data = self.real[mask][exclude_data]
+        y_data = self.imag[mask][exclude_data]
+        frequency = self.frequency[mask][exclude_data]
 
         # adjust impedance if a cell is given
         if normalize is None:
@@ -290,7 +333,7 @@ class EISFrame:
             line = ax.plot(
                 x_data[mark.index],
                 y_data[mark.index],
-                marker=marker,
+                marker=marker if marker else 'o',
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
                 markersize=scale * size,
@@ -318,7 +361,7 @@ class EISFrame:
                 plot_legend(ax)
 
         # add lines to the axes property
-        self.lines.update(lines)
+        self.eis_params["Lines"].update(lines)
 
         if show_freq:
             ureg = pint.UnitRegistry()
