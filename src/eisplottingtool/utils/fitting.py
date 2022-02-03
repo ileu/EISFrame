@@ -15,9 +15,6 @@ def fit_routine(opt_func, fit_guess, bounds, reapeat=1, condition=None):
     ls_bounds_ub = [bound[1] for bound in bounds]
     ls_bounds = (ls_bounds_lb, ls_bounds_ub)
 
-    print(initial_value)
-    print(bounds)
-
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",

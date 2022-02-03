@@ -594,8 +594,6 @@ class EISFrame:
                     param_names.append(name)
             else:
                 raise ValueError(f"No initial value given for {name}")
-        else:
-            print("HUHU")
 
         # calculate the weight of each datapoint
         def weight(error, value):
@@ -625,7 +623,7 @@ class EISFrame:
             if tot_imp is None:
                 opt_result = fit_routine(
                     opt_func,
-                    list(fit_guess.values()),
+                    param_guess,
                     param_bounds,
                 )
             else:
@@ -639,8 +637,6 @@ class EISFrame:
 
                 def opt_func(x):
                     params = dict(zip(param_names, x))
-                    # print(param_names)
-                    # print(x)
                     param_values.update(params)
                     predict = circ_calc(param_values, frequencies)
                     last_predict = circ_calc(param_values, 1e-13)
@@ -649,7 +645,7 @@ class EISFrame:
 
                 opt_result = fit_routine(
                     opt_func,
-                    list(fit_guess.values()),
+                    param_guess,
                     param_bounds,
                 )
 
