@@ -16,13 +16,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
-from eisplottingtool.parser.CircuitParser import parse_circuit
-from eisplottingtool.utils.UtilClass import Cell, default_mark_points
-from eisplottingtool.utils.UtilFunctions import plot_legend
-from eisplottingtool.utils.fitting import fit_routine
+
 from matplotlib import axes
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
+
+from .parser.CircuitParser import parse_circuit
+from .utils.UtilClass import Cell, default_mark_points
+from .utils.UtilFunctions import plot_legend
+from .utils.fitting import fit_routine
 
 Logger = logging.getLogger(__name__)
 T = TypeVar('T', bound='Parent')
@@ -570,11 +572,15 @@ class EISFrame:
 
         param_names = []
         param_values = {}
+        param_guess = []
         param_bounds = []
 
         for p in param_info:
             name = p.name
             if name in fit_guess:
+                value = fit_guess.get(name)
+                param_values[name] = value
+
                 if name in fit_bounds:
                     p.bounds = fit_bounds.get(name)
 
@@ -584,10 +590,12 @@ class EISFrame:
                 else:
                     p.fixed = False
                     param_bounds.append(p.bounds)
-                    param_values[name] = fit_guess.get(name)
+                    param_guess.append(value)
                     param_names.append(name)
             else:
                 raise ValueError(f"No initial value given for {name}")
+        else:
+            print("HUHU")
 
         # calculate the weight of each datapoint
         def weight(error, value):
@@ -617,7 +625,7 @@ class EISFrame:
             if tot_imp is None:
                 opt_result = fit_routine(
                     opt_func,
-                    list(param_values.values()),
+                    list(fit_guess.values()),
                     param_bounds,
                 )
             else:
@@ -641,7 +649,7 @@ class EISFrame:
 
                 opt_result = fit_routine(
                     opt_func,
-                    list(param_values.values()),
+                    list(fit_guess.values()),
                     param_bounds,
                 )
 
