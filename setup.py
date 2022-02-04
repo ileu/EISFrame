@@ -27,7 +27,7 @@ setuptools.setup(
         install_requires=[
             "numpy",
             "pandas",
-            "eclabfiles>=0.3.9",
+            "eclabfiles>=0.4.0",
             "pint",
             "scipy",
             "matplotlib",
