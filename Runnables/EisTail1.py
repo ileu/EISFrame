@@ -179,13 +179,14 @@ def cycles():
         initial_guess["R3"] = initial_guess["R2"]
         __, res3 = cycle.fit_nyquist(
             ax,
-            "R3-W1",
+            "R3-Wss1-W1",
             initial_guess,
             fit_bounds={
                 "CPE1_n": (0, 1.2),
                 "Wss1_R": (tot_imp * 0.3, tot_imp),
                 "Wss1_n": (0, 0.5),
                 "R3": (res["R1"] + res["R0"], 2 * (res["R1"] + res["R0"])),
+                "W1": (10,3000),
             },
             fit_constants=[
                 "R0",
@@ -202,13 +203,15 @@ def cycles():
         )
         print(res3)
         initial_guess.update(res3)
+
+        cycle.plot_fit(ax, "R2-W1", initial_guess, color="green")
+        cycle.plot_fit(ax, "R2-Wss1", initial_guess, color="red")
         cycle.plot_fit(ax, "R0-p(R1,CPE1)-Wss1-W1", initial_guess, color="blue")
         ept.save_fig(
             os.path.join(path, rf"{file.name}", f"cycle_{i:02d}-{n:03d}.png"), show=True
         )
         print("DONE")
         break
-
 
 def life():
     print(f"life {file.name}")

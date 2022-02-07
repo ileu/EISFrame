@@ -635,12 +635,18 @@ class EISFrame:
                 #     err = np.abs(tot_imp - predict.real)
                 #     return err
 
+                def condition(params):
+                    res = params["R2"] + params["Wss1_R"]
+                    return rmse(res, tot_imp)
+
                 def opt_func(x):
                     params = dict(zip(param_names, x))
                     param_values.update(params)
                     predict = circ_calc(param_values, frequencies)
+                    main_err = rmse(predict, z)
                     last_predict = circ_calc(param_values, 1e-13)
-                    err = 10 * rmse(predict, z) + np.abs(tot_imp - last_predict.real)
+                    cond_err = condition(param_values)
+                    err = main_err + cond_err
                     return err
 
                 opt_result = fit_routine(
