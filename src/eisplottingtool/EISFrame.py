@@ -231,6 +231,9 @@ class EISFrame:
         Plots a Nyquist plot with the internal dataframe. Will also mark the
         different markpoints on the plot.
 
+        https://stackoverflow.com/questions/62308183/wrapper-function-for-matplotlib-pyplot-plot
+        https://codereview.stackexchange.com/questions/101345/generic-plotting-wrapper-around-matplotlib
+
         Parameters
         ----------
         ax
