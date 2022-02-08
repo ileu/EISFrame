@@ -108,8 +108,9 @@ class EISFrame:
 
     def __getitem__(self, item):
         self.eis_params["selection"] = item
-        self.df = self.select_data(item)
-        return self
+        if self.df is None:
+            self.load()
+        return EISFrame(df=self.select_data(item), **self.eis_params)
 
     @property
     def time(self) -> np.array:
@@ -157,18 +158,18 @@ class EISFrame:
 
     def select_data(self, selection):
         if isinstance(selection, int):
-            return self.df[selection]
+            return self.df.loc[selection]
         elif isinstance(selection, tuple):
-            return self.df[selection]
+            return self.df.loc[selection]
         elif isinstance(selection, dict):
             cyc = selection.get("cycle")
             ns = selection.get("sequence")
             if ns and cyc:
-                return self.df[(cyc, ns)]
+                return self.df.loc[(cyc, ns)]
             elif ns:
-                return self.df[(slice(None, ns))]
+                return self.df.loc[(slice(None, ns))]
             elif cyc:
-                return self.df[cyc]
+                return self.df.loc[cyc]
         elif isinstance(selection, str):
             if selection in self.eis_params:
                 return self.eis_params[selection]
@@ -263,6 +264,8 @@ class EISFrame:
         # only look at measurements with frequency data
         mask = self.frequency != 0
 
+        if exclude_data is None:
+            exclude_data = slice(None)
         # get the x,y data for plotting
         x_data = self.real[mask][exclude_data]
         y_data = self.imag[mask][exclude_data]
@@ -304,7 +307,7 @@ class EISFrame:
         line = ax.plot(
             x_data,
             y_data,
-            marker=marker,
+            marker=marker or self.eis_params.get("marker", "o"),
             color=color,
             ls=ls,
             label=name,
