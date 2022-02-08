@@ -524,6 +524,7 @@ class EISFrame:
         draw_circuit : bool
             WIP
         tot_imp
+        data_slice
 
         Returns
         -------
@@ -570,25 +571,28 @@ class EISFrame:
 
         param_names = []
         param_values = {}
+        param_guess = []
         param_bounds = []
 
         for p in param_info:
             name = p.name
             if name in fit_guess:
-                param_values[name] = fit_guess.get(name)
+                value = fit_guess.get(name)
+                param_values[name] = value
+
+                if name in fit_bounds:
+                    p.bounds = fit_bounds.get(name)
+
+                if name in fit_constants:
+                    p.fixed = True
+                    fit_guess.pop(name)
+                else:
+                    p.fixed = False
+                    param_bounds.append(p.bounds)
+                    param_guess.append(value)
+                    param_names.append(name)
             else:
                 raise ValueError(f"No initial value given for {name}")
-
-            if name in fit_bounds:
-                p.bounds = fit_bounds.get(name)
-            param_bounds.append(p.bounds)
-
-            if name in fit_constants:
-                p.fixed = True
-                fit_guess.pop(name)
-            else:
-                p.fixed = False
-                param_names.append(name)
 
         # calculate the weight of each datapoint
         def weight(error, value):
@@ -617,31 +621,37 @@ class EISFrame:
         else:
             if tot_imp is None:
                 opt_result = fit_routine(
+                    opt_func,
+                    param_guess,
                     param_bounds,
-                    list(param_values.values()),
-                    opt_func
                 )
             else:
-                def condition(x, v=False):
-                    params = param_info.get_namevaluepairs()
-                    predict = circ_calc(params, 1e-13)
-                    if v:
-                        print(tot_imp - predict.real)
-                    err = np.abs(tot_imp - predict.real)
-                    return err
+                # def condition(x, v=False):
+                #     params = param_info.get_namevaluepairs()
+                #     predict = circ_calc(params, 1e-13)
+                #     if v:
+                #         print(tot_imp - predict.real)
+                #     err = np.abs(tot_imp - predict.real)
+                #     return err
+
+                def condition(params):
+                    res = params["R2"] + params["Wss1_R"]
+                    return rmse(res, tot_imp)
 
                 def opt_func(x):
                     params = dict(zip(param_names, x))
                     param_values.update(params)
                     predict = circ_calc(param_values, frequencies)
+                    main_err = rmse(predict, z)
                     last_predict = circ_calc(param_values, 1e-13)
-                    err = 10 * rmse(predict, z) + np.abs(tot_imp - last_predict.real)
+                    cond_err = condition(param_values)
+                    err = main_err + cond_err
                     return err
 
                 opt_result = fit_routine(
+                    opt_func,
+                    param_guess,
                     param_bounds,
-                    list(param_values.values()),
-                    opt_func
                 )
 
             param_values = opt_result.x
@@ -658,60 +668,21 @@ class EISFrame:
 
         if path is not None:
             if not os.path.isdir(os.path.dirname(path)):
+                # TODO: look at exist_ok=True
                 os.makedirs(os.path.dirname(path))
             with open(path, 'w') as f:
                 json.dump(
                     param_info, f, default=lambda o: o.__dict__, indent=1
                 )
 
-        f_pred = np.logspace(-9, 9, 400)
-        # plot the fitting result
-        parameters = {info.name: info.value for info in param_info}
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="divide by zero encountered in true_divide"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="invalid value encountered in true_divide"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="overflow encountered in tanh"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="divide by zero encountered in double_scalars"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="overflow encountered in power"
-            )
-            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
-            custom_circuit_fit = circ_calc(parameters, f_pred)
-
-        # adjust impedance if a cell is given
-        if cell is not None:
-            custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
-            custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
-
-        ax.scatter(
-            np.real(custom_circuit_fit_freq),
-            -np.imag(custom_circuit_fit_freq),
-            color="red",
-            zorder=5,
-            marker='x'
+        lines = self.plot_fit(
+            ax,
+            fit_circuit,
+            param_info,
+            data_slice=data_slice,
+            cell=cell,
+            color='red'
         )
-        line = ax.plot(
-            np.real(custom_circuit_fit),
-            -np.imag(custom_circuit_fit),
-            label="fit",
-            color="red",
-            zorder=5,
-        )
-
-        lines = {"fit": line}
         # check if circle needs to be drawn
         if draw_circle:
             self._plot_semis(fit_circuit, param_info, cell, ax)
@@ -720,7 +691,10 @@ class EISFrame:
             self._plot_circuit(fit_circuit, ax)
 
         plot_legend(ax)
-        return lines, param_info
+        result = {}
+        for p in param_info:
+            result[p.name] = p.value
+        return lines, result
 
     def plot_lifecycle(
         self,
