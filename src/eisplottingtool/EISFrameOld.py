@@ -502,7 +502,7 @@ class EISFrame:
         tot_imp=None,
         data_slice=None,
         **kwargs
-    ) -> tuple[dict, list]:
+    ) -> tuple[dict, dict]:
         """
         Fitting for the nyquist
 
@@ -863,6 +863,74 @@ class EISFrame:
             prev_imp += np.real(elem_impedance)[0]
 
         return
+
+    def plot_fit(
+        self,
+        ax,
+        circuit,
+        param_info,
+        data_slice=slice(3, None),
+        scatter=True,
+        cell=None,
+        **kwargs
+    ):
+        __, circ_calc = parse_circuit(circuit)
+
+        frequencies = np.array(self.frequency[self.imag > 0])[data_slice]
+
+        f_pred = np.logspace(-9, 9, 400)
+        # plot the fitting result
+        if isinstance(param_info, list):
+            parameters = {info.name: info.value for info in param_info}
+        else:
+            parameters = param_info
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="divide by zero encountered in true_divide"
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in true_divide"
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="overflow encountered in tanh"
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="divide by zero encountered in double_scalars"
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="overflow encountered in power"
+            )
+            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
+            custom_circuit_fit = circ_calc(parameters, f_pred)
+        # adjust impedance if a cell is given
+        if cell is not None:
+            custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
+            custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
+        if scatter:
+            ax.scatter(
+                np.real(custom_circuit_fit_freq),
+                -np.imag(custom_circuit_fit_freq),
+                color=kwargs.get("color"),
+                zorder=5,
+                marker='x'
+            )
+        line = ax.plot(
+            np.real(custom_circuit_fit),
+            -np.imag(custom_circuit_fit),
+            label="fit",
+            color=kwargs.get("color"),
+            zorder=5,
+        )
+        lines = {"fit": line}
+
+        plot_legend(ax)
+        return lines
 
     def _plot_circuit(self, circuit: str, ax: axes.Axes = None):
         # TODO: Look at SchemDraw to draw circuit and color with different
