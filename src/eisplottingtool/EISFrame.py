@@ -210,7 +210,7 @@ class EISFrame:
         self.eis_params.update(col_names)
 
     def modify_data(self):
-        # TODO
+        # TODO: maybe add transform as argument
         pass
 
     def plot_nyquist(
@@ -498,21 +498,24 @@ class EISFrame:
             mse = np.nansum(wse)
             return np.sqrt(mse)
 
-        # prepare optimizing function:
-        def opt_func(x: list[float]):
-            params = dict(zip(param_names, x))
-            param_values.update(params)
-            predict = circ_calc(param_values, frequencies)
-            err = rmse(predict, z)
-            return err
-
         if tot_imp is None:
+
+            # prepare optimizing function:
+            def opt_func(x: list[float]):
+                params = dict(zip(param_names, x))
+                param_values.update(params)
+                predict = circ_calc(param_values, frequencies)
+                err = rmse(predict, z)
+                return err
+
             opt_result = fit_routine(
-                    opt_func,
-                    param_guess,
-                    param_bounds,
+                opt_func,
+                param_guess,
+                param_bounds,
             )
         else:
+            # prepare optimizing function:
+            # TODO: make condition availible from outside or
             def condition(params):
                 res = params["R2"] + params["Wss1_R"]
                 return rmse(res, tot_imp)
@@ -522,15 +525,13 @@ class EISFrame:
                 param_values.update(params)
                 predict = circ_calc(param_values, frequencies)
                 main_err = rmse(predict, z)
-                last_predict = circ_calc(param_values, 1e-13)
                 cond_err = condition(param_values)
-                err = main_err + cond_err
-                return err
+                return main_err + cond_err
 
             opt_result = fit_routine(
-                    opt_func,
-                    param_guess,
-                    param_bounds,
+                opt_func,
+                param_guess,
+                param_bounds,
             )
 
         param_values = opt_result.x
@@ -546,28 +547,17 @@ class EISFrame:
         LOGGER.info(report)
 
         if path is not None:
-            if not os.path.isdir(os.path.dirname(path)):
-                # TODO: look at exist_ok=True
-                os.makedirs(os.path.dirname(path))
-            with open(path, 'w') as f:
-                json.dump(
-                    param_info, f, default=lambda o: o.__dict__, indent=1
-                )
+            LOGGER.info(f"Wrote fit parameters to '{path}'")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                json.dump(param_info, f, indent=1)
 
+        # TODO: remove plotting from here
         lines = self.plot_fit(
-                ax,
-                fit_circuit,
-                param_info,
-                data_slice=data_slice,
-                cell=cell,
-                color='red'
+            ax, fit_circuit, param_info, data_slice=data_slice, cell=cell, color="red"
         )
 
         lines = {"fit": lines}
-
-        # check if circle needs to be drawn
-        if draw_circle:
-            self.plot_semis(fit_circuit, param_info, cell, ax)
 
         self.eis_params["fit_info"] = param_info
         return lines, param_info
