@@ -821,18 +821,17 @@ class EISFrame:
             elem_impedance = elem_info[0]
             elem_spec_freq = elem_info[1]
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-            # if specific_freq_magnitude <= 0:
-            #     color = min(self.mark_points, key=lambda x: x.magnitude).color
-            # else:
-            #     for mark in self.mark_points:
-            #         if specific_freq_magnitude == mark.magnitude:
-            #             color = mark.color
-            #             break
-            #     else:
-            #         prev_imp += np.real(elem_impedance)[0]
-            #         continue
+            if specific_freq_magnitude <= 0:
+                color = min(self.mark_points, key=lambda x: x.magnitude).color
+            else:
+                for mark in self.mark_points:
+                    if specific_freq_magnitude == mark.magnitude:
+                        color = mark.color
+                        break
+                else:
+                    prev_imp += np.real(elem_impedance)[0]
+                    continue
 
-            color = "blue"
             # draw circle
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
