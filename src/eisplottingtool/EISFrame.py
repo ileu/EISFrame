@@ -16,27 +16,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
-
 from matplotlib import axes
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
 
-from .parser.CircuitParser import parse_circuit
-from .utils.UtilClass import Cell, default_mark_points
-from .utils.UtilFunctions import plot_legend
-from .utils.fitting import fit_routine
+from eisplottingtool.parser.CircuitParser import parse_circuit
+from eisplottingtool.utils.UtilClass import Cell, default_mark_points
+from eisplottingtool.utils.UtilFunctions import plot_legend
+from eisplottingtool.utils.fitting import fit_routine
 
 Logger = logging.getLogger(__name__)
-T = TypeVar('T', bound='Parent')
+T = TypeVar("T", bound="Parent")
 
 
 class EISFrame:
     """
-        EISFrame used to store the data and plot/fit the data.
+    EISFrame used to store the data and plot/fit the data.
     """
 
     def __init__(self, df: pd.DataFrame = None, column_names=None, **kwargs) -> None:
-        """ Initialises an EISFrame
+        """Initialises an EISFrame
 
         An EIS frame can plot a Nyquist plot and a lifecycle plot
         of the given cycling data with different default settings.
@@ -67,19 +66,19 @@ class EISFrame:
         else:
             raise ValueError()
 
-        if 'real' not in column_names:
-            if 'phase' in column_names and 'abs' in column_names:
-                self.df['real'] = df[column_names['abs']] * np.cos(
-                    df[column_names['phase']] / 360.0 * 2 * np.pi
+        if "real" not in column_names:
+            if "phase" in column_names and "abs" in column_names:
+                self.df["real"] = df[column_names["abs"]] * np.cos(
+                    df[column_names["phase"]] / 360.0 * 2 * np.pi
                 )
-                self.column_names['real'] = 'real'
+                self.column_names["real"] = "real"
 
-        if 'imag' not in column_names:
-            if 'phase' in column_names and 'abs' in column_names:
-                self.df['imag'] = -df[column_names['abs']] * np.sin(
-                    df[column_names['phase']] / 360.0 * 2 * np.pi
+        if "imag" not in column_names:
+            if "phase" in column_names and "abs" in column_names:
+                self.df["imag"] = -df[column_names["abs"]] * np.sin(
+                    df[column_names["phase"]] / 360.0 * 2 * np.pi
                 )
-                self.column_names['imag'] = 'imag'
+                self.column_names["imag"] = "imag"
 
         self.mark_points = default_mark_points
         self.lines = {}
@@ -88,41 +87,41 @@ class EISFrame:
 
     @property
     def time(self) -> np.array:
-        return self.df[self.column_names['time']].values
+        return self.df[self.column_names["time"]].values
 
     @time.setter
     def time(self, value):
-        self.df[self.column_names['time']] = value
+        self.df[self.column_names["time"]] = value
 
     @property
     def impedance(self) -> np.array:
-        value = self.df[self.column_names['real']].values
-        value += -1j * self.df[self.column_names['real']].values
+        value = self.df[self.column_names["real"]].values
+        value += -1j * self.df[self.column_names["real"]].values
         return value
 
     @property
     def real(self) -> np.array:
-        return self.df[self.column_names['real']].values
+        return self.df[self.column_names["real"]].values
 
     @property
     def imag(self) -> np.array:
-        return self.df[self.column_names['imag']].values
+        return self.df[self.column_names["imag"]].values
 
     @property
     def frequency(self) -> np.array:
-        return self.df[self.column_names['frequency']].values
+        return self.df[self.column_names["frequency"]].values
 
     @property
     def current(self) -> np.array:
-        return self.df[self.column_names['current']].values
+        return self.df[self.column_names["current"]].values
 
     @property
     def voltage(self) -> np.array:
-        return self.df[self.column_names['voltage']].values
+        return self.df[self.column_names["voltage"]].values
 
     @property
     def cycle(self) -> np.array:
-        return self.df['cycle'].values()
+        return self.df["cycle"].values()
 
     def __str__(self):
         return self.df.__str__()
@@ -132,7 +131,7 @@ class EISFrame:
 
     def __getitem__(self, item):
         if isinstance(item, int):
-            self.eis_params['cycle'] = item
+            self.eis_params["cycle"] = item
             return self
         return self.df.__getitem__(item)
 
@@ -140,7 +139,7 @@ class EISFrame:
         return len(self.cycle)
 
     def reset_markpoints(self) -> None:
-        """ Resets list markpoints to default
+        """Resets list markpoints to default
 
         The default values of the list corresponds to the markpoints for
         grain boundaries, hllzo, lzo, interfacial resistance and ECR.
@@ -152,13 +151,13 @@ class EISFrame:
     def plot_nyquist(
         self,
         ax: axes.Axes = None,
-        image: str = '',
+        image: str = "",
         cell: Cell = None,
         exclude_start: int = None,
         exclude_end: int = None,
         show_freq: bool = False,
         color=None,
-        ls='None',
+        ls="None",
         marker=None,
         plot_range=None,
         label=None,
@@ -169,7 +168,7 @@ class EISFrame:
         show_legend=True,
         show_mark_label=True,
     ):
-        """ Plots a Nyquist plot with the internal dataframe
+        """Plots a Nyquist plot with the internal dataframe
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the
         different markpoints on the plot.
@@ -203,7 +202,7 @@ class EISFrame:
         """
         # initialize
         if marker is None:
-            marker = 'o'
+            marker = "o"
 
         # label for the plot
         if unit is None:
@@ -231,9 +230,12 @@ class EISFrame:
         # adjust impedance if a cell is given
         if normalize is None:
             if cell is None:
+
                 def normalize(data, c: Cell):
                     return data
+
             else:
+
                 def normalize(data, c: Cell):
                     return data * c.area_mm2 * 1e-2
 
@@ -243,8 +245,11 @@ class EISFrame:
         # find indices of mark points. Take first point in freq range
         for mark in self.mark_points:
             # mark.index = -1
-            subsequent = (idx for idx, freq in enumerate(frequency) if
-                          mark.left < freq < mark.right)
+            subsequent = (
+                idx
+                for idx, freq in enumerate(frequency)
+                if mark.left < freq < mark.right
+            )
             mark.index = next(subsequent, -1)
 
         # plot the data
@@ -274,8 +279,8 @@ class EISFrame:
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
                 markersize=scale * size,
-                ls='none',
-                label=mark_label
+                ls="none",
+                label=mark_label,
             )
             lines[f"MP-{mark.name}"] = line
 
@@ -291,8 +296,8 @@ class EISFrame:
         ax.set_ylim(*ax.get_xlim())
         ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.locator_params(nbins=4, prune='upper')
-        ax.set_aspect('equal')
+        ax.locator_params(nbins=4, prune="upper")
+        ax.set_aspect("equal")
         if len(self.mark_points) != 0 or label is not None:
             if show_legend:
                 plot_legend(ax)
@@ -312,24 +317,22 @@ class EISFrame:
                 0.99,
                 0.99,
                 f"Freq. Range:\n {upper_label} - {lower_label}",
-                horizontalalignment='right',
-                verticalalignment='top',
+                horizontalalignment="right",
+                verticalalignment="top",
                 transform=ax.transAxes,
-                size='xx-small',
-                multialignment='center',
+                size="xx-small",
+                multialignment="center",
                 bbox=dict(
-                    facecolor='white',
-                    alpha=1.0,
-                    boxstyle=BoxStyle("Round", pad=0.2)
-                )
+                    facecolor="white", alpha=1.0, boxstyle=BoxStyle("Round", pad=0.2)
+                ),
             )
 
         # if a path to an image is given, also plot it
         if image:
-            imax = ax.inset_axes([.05, .5, .9, .2])
+            imax = ax.inset_axes([0.05, 0.5, 0.9, 0.2])
             img = plt.imread(image)
             imax.imshow(img)
-            imax.axis('off')
+            imax.axis("off")
             lines["Image"] = img
             return lines, imax
 
@@ -341,14 +344,14 @@ class EISFrame:
         cell: Cell = None,
         exclude_start: int = None,
         exclude_end: int = None,
-        ls='None',
-        marker='o',
+        ls="None",
+        marker="o",
         plot_range=None,
         param_values=None,
         param_circuit=None,
         size=12,
     ):
-        """ Plots a Nyquist plot with the internal dataframe
+        """Plots a Nyquist plot with the internal dataframe
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the
         different markpoints on the plot.
@@ -405,7 +408,7 @@ class EISFrame:
             real_data,
             marker=marker,
             ls=ls,
-            color='red',
+            color="red",
             label="Re(Z)",
             markersize=size,
         )
@@ -415,14 +418,14 @@ class EISFrame:
             imag_data,
             marker=marker,
             ls=ls,
-            color='blue',
+            color="blue",
             label="-Im(Z)",
             markersize=size,
         )
 
         lines = {
             "Real Data": line_real,
-            "Imag Data": line_imag
+            "Imag Data": line_imag,
         }  # store all the lines inside lines
 
         # additional configuration for the plot
@@ -441,24 +444,19 @@ class EISFrame:
             param_info, circ_calc = parse_circuit(param_circuit)
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in true_divide"
+                    "ignore", message="divide by zero encountered in true_divide"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="invalid value encountered in true_divide"
+                    "ignore", message="invalid value encountered in true_divide"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in tanh"
+                    "ignore", message="overflow encountered in tanh"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="divide by zero encountered in double_scalars"
+                    "ignore", message="divide by zero encountered in double_scalars"
                 )
                 warnings.filterwarnings(
-                    "ignore",
-                    message="overflow encountered in power"
+                    "ignore", message="overflow encountered in power"
                 )
                 custom_circuit_fit = circ_calc(param_values, frequency)
                 real_fit = np.real(custom_circuit_fit)
@@ -466,8 +464,8 @@ class EISFrame:
                 fit_real = ax.semilogx(
                     frequency,
                     real_fit,
-                    ls='-',
-                    color='black',
+                    ls="-",
+                    color="black",
                     label="Re(Z)",
                     markersize=size,
                 )
@@ -475,8 +473,8 @@ class EISFrame:
                 fit_imag = ax.semilogx(
                     frequency,
                     -imag_fit,
-                    ls='-',
-                    color='black',
+                    ls="-",
+                    color="black",
                     label="-Im(Z)",
                     markersize=size,
                 )
@@ -502,7 +500,7 @@ class EISFrame:
         fit_values=None,
         tot_imp=None,
         data_slice=None,
-        **kwargs
+        **kwargs,
     ) -> tuple[dict, dict]:
         """
         Fitting for the nyquist
@@ -602,7 +600,7 @@ class EISFrame:
 
         # calculate rmse
         def rmse(y_predicted, y_actual):
-            """ Calculates the root mean squared error between two vectors """
+            """Calculates the root mean squared error between two vectors"""
             e = np.abs(np.subtract(y_actual, y_predicted))
             se = np.square(e)
             wse = weight(se, y_actual)
@@ -671,18 +669,11 @@ class EISFrame:
             if not os.path.isdir(os.path.dirname(path)):
                 # TODO: look at exist_ok=True
                 os.makedirs(os.path.dirname(path))
-            with open(path, 'w') as f:
-                json.dump(
-                    param_info, f, default=lambda o: o.__dict__, indent=1
-                )
+            with open(path, "w") as f:
+                json.dump(param_info, f, default=lambda o: o.__dict__, indent=1)
 
         lines = self.plot_fit(
-            ax,
-            fit_circuit,
-            param_info,
-            data_slice=data_slice,
-            cell=cell,
-            color='red'
+            ax, fit_circuit, param_info, data_slice=data_slice, cell=cell, color="red"
         )
         # check if circle needs to be drawn
         if draw_circle:
@@ -697,87 +688,19 @@ class EISFrame:
             result[p.name] = p.value
         return lines, result
 
-    def plot_fit(
-        self,
-        ax,
-        circuit,
-        param_info,
-        data_slice=slice(3, None),
-        scatter=True,
-        cell=None,
-        **kwargs
-    ):
-        __, circ_calc = parse_circuit(circuit)
-
-        frequencies = np.array(self.frequency[self.imag > 0])[data_slice]
-
-        f_pred = np.logspace(-9, 9, 400)
-        # plot the fitting result
-        if isinstance(param_info, list):
-            parameters = {info.name: info.value for info in param_info}
-        else:
-            parameters = param_info
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="divide by zero encountered in true_divide"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="invalid value encountered in true_divide"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="overflow encountered in tanh"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="divide by zero encountered in double_scalars"
-            )
-            warnings.filterwarnings(
-                "ignore",
-                message="overflow encountered in power"
-            )
-            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
-            custom_circuit_fit = circ_calc(parameters, f_pred)
-        # adjust impedance if a cell is given
-        if cell is not None:
-            custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
-            custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
-        if scatter:
-            ax.scatter(
-                np.real(custom_circuit_fit_freq),
-                -np.imag(custom_circuit_fit_freq),
-                color=kwargs.get("color"),
-                zorder=5,
-                marker='x'
-            )
-        line = ax.plot(
-            np.real(custom_circuit_fit),
-            -np.imag(custom_circuit_fit),
-            label="fit",
-            color=kwargs.get("color"),
-            zorder=5,
-        )
-        lines = {"fit": line}
-
-        plot_legend(ax)
-        return lines
-
     def plot_lifecycle(
         self,
         ax: axes.Axes = None,
         plot_xrange=None,
         plot_yrange=None,
         label=None,
-        ls='-',
+        ls="-",
         nbinsx=6,
         nbinsy=4,
-        **plotkwargs
+        **plotkwargs,
     ):
         if not {"time", "Ewe"}.issubset(self.df.columns):
-            warnings.warn('Wrong data for a lifecycle Plot', RuntimeWarning)
+            warnings.warn("Wrong data for a lifecycle Plot", RuntimeWarning)
             return
 
         # label for the plot
@@ -795,14 +718,7 @@ class EISFrame:
         x_data = self.time[mask] / 60.0 / 60.0
         y_data = self.voltage[mask]
 
-        line = ax.plot(
-            x_data,
-            y_data,
-            ls=ls,
-            label=label,
-            color='black',
-            **plotkwargs
-        )
+        line = ax.plot(x_data, y_data, ls=ls, label=label, color="black", **plotkwargs)
 
         # additional configuration for the plot
         ax.set_xlabel(x_label)
@@ -821,8 +737,8 @@ class EISFrame:
         else:
             ax.set_ylim(*plot_yrange)
 
-        ax.locator_params(axis='x', nbins=nbinsx)
-        ax.locator_params(axis='y', nbins=nbinsy, prune='both')
+        ax.locator_params(axis="x", nbins=nbinsx)
+        ax.locator_params(axis="y", nbins=nbinsy, prune="both")
 
         if label is not None:
             plot_legend(ax)
@@ -830,11 +746,7 @@ class EISFrame:
         return line
 
     def _plot_semis(
-        self,
-        circuit: str,
-        param_info: list,
-        cell=None,
-        ax: axes.Axes = None
+        self, circuit: str, param_info: list, cell=None, ax: axes.Axes = None
     ):
         """
         plots the semicircles to the corresponding circuit elements.
@@ -863,27 +775,32 @@ class EISFrame:
 
         # split the circuit in to elements connected through series
         elements = re.split(r"-(?![^(]*\))", circuit)
+
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
 
-            if match := re.match(r'(?=.*(R_?\d?))(?=.*(C(?:PE)?_?\d?))', e):
-                res = param_values.get(match.group(1))
-                cap = [param_values.get(key) for key in param_values if
-                       match.group(2) in key]
+            if re.match(r"p\(R_?\d?,C(PE)?_?\d?\)|p\(C(PE)?_?\d?,R_?\d?\)", e):
+                elem_param = {}
+                for elem in elem_info:
+                    if re.match(r"R_?\d?", elem.name):
+                        elem_param["r"] = param_values[elem.name]
+                    elif re.match(r"CPE?_?\d?_n", elem.name):
+                        elem_param["n"] = param_values[elem.name]
+                    elif re.match(r"C(PE)?_?\d?(_Q)?", elem.name):
+                        elem_param["c"] = param_values[elem.name]
 
                 def calc_specific_freq(r, c, n=1):
                     return 1.0 / (r * c) ** n / 2 / np.pi
 
-                specific_frequency = calc_specific_freq(res, *cap)
+                specific_frequency = calc_specific_freq(**elem_param)
 
-            elif match := re.match(r'(W[os]?_?\d?)', e):
-                war = [param_values.get(key) for key in param_values if
-                       match.group(1) in key]
-                if len(war) == 2:
-                    specific_frequency = 1.0 / war[1]
+            elif re.match(r"^W[os]*_?\d?$", e):
+                if len(elem_info) == 2:
+                    w_name = re.match(r"W[os]?_?\d?$", e).group(0) + "_T"
+                    specific_frequency = 1.0 / param_values[w_name]
                 else:
                     specific_frequency = 1e-2
-            elif re.match(r'(R_?\d?)', e):
+            elif re.match(r"^R_?\d?$", e):
                 specific_frequency = 1e20
             else:
                 continue
@@ -904,19 +821,18 @@ class EISFrame:
             elem_impedance = elem_info[0]
             elem_spec_freq = elem_info[1]
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-            if specific_freq_magnitude <= 0:
-                color = min(
-                    self.mark_points, key=lambda x: x.magnitude
-                ).color
-            else:
-                for mark in self.mark_points:
-                    if specific_freq_magnitude == mark.magnitude:
-                        color = mark.color
-                        break
-                else:
-                    prev_imp += np.real(elem_impedance)[0]
-                    continue
+            # if specific_freq_magnitude <= 0:
+            #     color = min(self.mark_points, key=lambda x: x.magnitude).color
+            # else:
+            #     for mark in self.mark_points:
+            #         if specific_freq_magnitude == mark.magnitude:
+            #             color = mark.color
+            #             break
+            #     else:
+            #         prev_imp += np.real(elem_impedance)[0]
+            #         continue
 
+            color = "blue"
             # draw circle
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
@@ -927,18 +843,67 @@ class EISFrame:
                 color=color,
                 alpha=0.5,
                 zorder=0,
-                ls='None'
+                ls="None",
             )
             prev_imp += np.real(elem_impedance)[0]
 
         return
 
-    def _plot_circuit(self, circuit: str, ax: axes.Axes = None):
-        # TODO: Look at SchemDraw to draw circuit and color with different
-        #  mark points
-        pass
+    def plot_fit(
+        self,
+        ax,
+        circuit,
+        param_info,
+        data_slice=slice(3, None),
+        scatter=True,
+        cell=None,
+        **kwargs,
+    ):
+        __, circ_calc = parse_circuit(circuit)
 
-    @classmethod
-    def from_file(cls: Type[T], path) -> T:
-        # TODO: create EISFrame from file location
-        pass
+        frequencies = np.array(self.frequency[self.imag > 0])[data_slice]
+
+        f_pred = np.logspace(-9, 9, 400)
+        # plot the fitting result
+        if isinstance(param_info, list):
+            parameters = {info.name: info.value for info in param_info}
+        else:
+            parameters = param_info
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="divide by zero encountered in true_divide"
+            )
+            warnings.filterwarnings(
+                "ignore", message="invalid value encountered in true_divide"
+            )
+            warnings.filterwarnings("ignore", message="overflow encountered in tanh")
+            warnings.filterwarnings(
+                "ignore", message="divide by zero encountered in double_scalars"
+            )
+            warnings.filterwarnings("ignore", message="overflow encountered in power")
+            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
+            custom_circuit_fit = circ_calc(parameters, f_pred)
+        # adjust impedance if a cell is given
+        if cell is not None:
+            custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
+            custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
+        if scatter:
+            ax.scatter(
+                np.real(custom_circuit_fit_freq),
+                -np.imag(custom_circuit_fit_freq),
+                color=kwargs.get("color"),
+                zorder=5,
+                marker="x",
+            )
+        line = ax.plot(
+            np.real(custom_circuit_fit),
+            -np.imag(custom_circuit_fit),
+            label="fit",
+            color=kwargs.get("color"),
+            zorder=5,
+        )
+        lines = {"fit": line}
+
+        plot_legend(ax)
+        return lines
