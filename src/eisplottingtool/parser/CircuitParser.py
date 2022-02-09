@@ -34,9 +34,10 @@ def parse_circuit(
 
     Returns
     -------
-    param_info
+    param_info: list[Parameter]
         list of used parameter. for more information about parameters look in circuit_components
-    calculate
+    calculate: Callable[[dict, np.array], np.array]
+        Evaluating function of the impedance of the given circuit
 
     """
 

@@ -699,7 +699,7 @@ class EISFrame:
         nbinsy=4,
         **plotkwargs,
     ):
-        if not {"time/s", "Ewe/V"}.issubset(self.df.columns):
+        if not {"time", "Ewe"}.issubset(self.df.columns):
             warnings.warn("Wrong data for a lifecycle Plot", RuntimeWarning)
             return
 
@@ -779,30 +779,28 @@ class EISFrame:
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
 
-            if match := re.match(r"p\(R_?\d?,C(PE)?_?\d?\)|p\(C(PE)?_?\d?,R_?\d?\)", e):
-                res = param_values.get(match.group(1))
-                cap = [
-                    param_values.get(key)
-                    for key in param_values
-                    if match.group(2) in key
-                ]
+            if re.match(r"p\(R_?\d?,C(PE)?_?\d?\)|p\(C(PE)?_?\d?,R_?\d?\)", e):
+                elem_param = {}
+                for elem in elem_info:
+                    if re.match(r"R_?\d?", elem.name):
+                        elem_param["r"] = param_values[elem.name]
+                    elif re.match(r"CPE?_?\d?_n", elem.name):
+                        elem_param["n"] = param_values[elem.name]
+                    elif re.match(r"C(PE)?_?\d?(_Q)?", elem.name):
+                        elem_param["c"] = param_values[elem.name]
 
                 def calc_specific_freq(r, c, n=1):
                     return 1.0 / (r * c) ** n / 2 / np.pi
 
-                specific_frequency = calc_specific_freq(res, *cap)
+                specific_frequency = calc_specific_freq(**elem_param)
 
-            elif match := re.match(r"(W[os]?_?\d?)", e):
-                war = [
-                    param_values.get(key)
-                    for key in param_values
-                    if match.group(1) in key
-                ]
-                if len(war) == 2:
-                    specific_frequency = 1.0 / war[1]
+            elif re.match(r"^W[os]*_?\d?$", e):
+                if len(elem_info) == 2:
+                    w_name = re.match(r"W[os]?_?\d?$", e).group(0) + "_T"
+                    specific_frequency = 1.0 / param_values[w_name]
                 else:
                     specific_frequency = 1e-2
-            elif re.match(r"(R_?\d?)", e):
+            elif re.match(r"^R_?\d?$", e):
                 specific_frequency = 1e20
             else:
                 continue
@@ -823,17 +821,18 @@ class EISFrame:
             elem_impedance = elem_info[0]
             elem_spec_freq = elem_info[1]
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-            if specific_freq_magnitude <= 0:
-                color = min(self.mark_points, key=lambda x: x.magnitude).color
-            else:
-                for mark in self.mark_points:
-                    if specific_freq_magnitude == mark.magnitude:
-                        color = mark.color
-                        break
-                else:
-                    prev_imp += np.real(elem_impedance)[0]
-                    continue
+            # if specific_freq_magnitude <= 0:
+            #     color = min(self.mark_points, key=lambda x: x.magnitude).color
+            # else:
+            #     for mark in self.mark_points:
+            #         if specific_freq_magnitude == mark.magnitude:
+            #             color = mark.color
+            #             break
+            #     else:
+            #         prev_imp += np.real(elem_impedance)[0]
+            #         continue
 
+            color = "blue"
             # draw circle
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
