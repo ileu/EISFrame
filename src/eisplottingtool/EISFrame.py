@@ -396,32 +396,88 @@ class EISFrame:
         **kwargs,
     ) -> tuple[dict, list]:
         """
-        Fitting for the nyquist
+        Fitting function for electrochemical impedance spectroscopy (EIS) data.
+
+        For the fitting a model or equivilant circuit is needed. The equivilant circuit is defined as a string.
+        To combine elements in series a dash (-) is used. Elements in parallel are wrapped by p( , ).
+        An element is definied by an identifier (usually letters) followed by a digit.
+        Already implemented elements are located in :class:`circuit_components<circuit_utils.circuit_components>`:
+
+        +------------------------+--------+-----------+---------------+--------------+
+        | Name                   | Symbol | Paramters | Bounds        | Units        |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Resistor               | R      | R         | (1e-6, 1e6)   | Ohm          |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Capacitance            | C      | C         | (1e-20, 1)    | Farrad       |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Constant Phase Element | CPE    | CPE_Q     | (1e-20, 1)    | Ohm^-1 s^a   |
+        |                        |        +-----------+---------------+--------------+
+        |                        |        | CPE_a     | (0, 1)        |              |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Warburg element        | W      | W         | (0, 1e10)     | Ohm^-1 s^0.5 |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Warburg short element  | Ws     | Ws_R      | (0, 1e10)     | Ohm          |
+        |                        |        +-----------+---------------+--------------+
+        |                        |        | Ws_T      | (1e-10, 1e10) | s            |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Warburg open elemnt    | Wo     | Wo_R      | (0, 1e10)     | Ohm          |
+        |                        |        +-----------+---------------+--------------+
+        |                        |        | Wo_T      | (1e-10, 1e10) | s            |
+        +------------------------+--------+-----------+---------------+--------------+
+
+        Additionaly an initial guess for the fitting parameters is needed.
+        The initial guess is given as a dictionary where each key is the parameters name and
+        the coresponding value is the guessed value for the circuit.
+
+        The bounds of each paramater can be customized by the ``fit_bounds`` parameter.
+        This parameter is a dictionary, where each key is the parameter name
+         and the value constists of a tuple for the lower and upper bound (lb, ub).
+
+        To hold a parameter constant, add the name of the paramter to a list and pass it as ``fit_constants``
 
         Parameters
         ----------
-        ax : matplotlib.axes.Axes
-             axes to draw the fit to
-        fit_circuit : str
-            equivalence circuit for the fitting
-        fit_guess : dict[str, float]
-            initial values for the fitting
-        fit_bounds : dict[str, tuple]
-        fit_constants : list[str]
-        path : str
-        cell : Cell
-        draw_circle : bool
-            if the corresponding circles should be drawn or not
-        draw_circuit : bool
-            WIP
-        tot_imp
+        df
+            Dataframe with the impedance data
 
-        Returns
-        -------
-        tuple: a tuple containing:
-            - d dict: dictionary containing all the plots
-            - parameters list: Fitting parameters with error
+        real
+            column label of the real part of the impedance
 
+        imag
+            column label of the imaginary part of the impedance
+
+        freq
+            column label of the frequency of the impedance
+
+        circuit
+            Equivalent circuit for the fit
+
+        initial_values
+            dictionary with initial values
+            Structure: {"param name": value, ... }
+
+        name
+            the name of the fit
+
+        fit_bounds
+            Custom bounds for a parameter if default bounds are not wanted
+            Structure: {"param name": (lower bound, upper bound), ...}
+            Default is ''None''
+        fit_constants
+            list of parameters which should stay constant during fitting
+            Structure: ["param name", ...]
+            Default is ''None''
+
+        ignore_neg_res
+            ignores impedance values with a negative real part
+
+        upper_freq:
+            upper frequency bound to be considered for fitting
+
+        lower_freq:
+            lower frequency boudn to be considered for fitting
+        repeat
+            how many times ``fit_routine`` gets called
         """
         # load and prepare data
 

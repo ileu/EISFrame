@@ -7,7 +7,36 @@ from scipy.optimize import least_squares, minimize, NonlinearConstraint
 LOGGER = logging.getLogger(__name__)
 
 
-def fit_routine(opt_func, fit_guess, bounds, reapeat=1, condition=None):
+def fit_routine(opt_func, fit_guess, bounds, repeat=1, condition=None):
+    """
+        Fitting routine which uses scipys least_squares and minimize.
+
+        Least_squares is a good fitting method but will get stuck in local minimas.
+        For this reason, the Nelder-Mead-Simplex algorithm is used to get out of
+        these local minima.
+        The fitting routine is inspired by Relaxis 3 fitting procedure.
+        More information about it can be found on page 188 of revison 1.25 of
+        Relaxis User Manual.
+        https://www.rhd-instruments.de/download/manuals/relaxis_manual.pdf
+
+        Parameters
+        ----------
+        opt_func
+            function that gets minimized
+        fit_guess
+            initial guess for minimization
+        bounds
+            bounds of the fitting parameters
+        repeat
+            how many times the least squares and minimize step gets repeated
+        condition
+            if the condition should apply or not
+
+        Returns
+        -------
+        scipy.optimize.OptimizeResult
+            the `OptimizeResult` from the last step
+        """
     initial_value = np.array(fit_guess)
 
     # why does least squares have different format for bounds ???
@@ -41,7 +70,7 @@ def fit_routine(opt_func, fit_guess, bounds, reapeat=1, condition=None):
         LOGGER.debug(f"Bounds: {bounds}")
         LOGGER.debug(f"Least-Squares bounds: {ls_bounds}")
 
-        for i in range(reapeat):
+        for i in range(repeat):
             LOGGER.debug(f"Fitting routine pass {i}")
             opt_result = least_squares(
                 opt_func,
