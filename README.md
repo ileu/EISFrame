@@ -46,28 +46,26 @@ To define ean equivalent circuit or impedance model
 For the fitting a model or equivilant circuit is needed. The equivilant circuit is defined as a string.
 To combine elements in series a dash (-) is used. Elements in parallel are wrapped by p( , ).
 An element is definied by an identifier (usually letters) followed by a digit.
-Already implemented elements are located in :class:`circuit_components<circuit_utils.circuit_components>`:
+Implemented components are:
 
 #### Implemented components
-The already implemented companetns are:
-
-| Name                          | Symbol | Paramters | Bounds        | Units        |
-|-------------------------------|--------|-----------|---------------|--------------|
-| Resistor                      | R      | R         | (1e-6, 1e6)   | Ohm          |
-| Capacitance                   | C      | C         | (1e-20, 1)    | Farrad       |
-| Constant Phase Element        | CPE    | CPE_Q     | (1e-20, 1)    | Ohm^-1 s^n   |
-|                               |        | CPE_n     | (0, 1)        |              |
-| Warburg element               | W      | W         | (0, 1e10)     | Ohm^-1 s^0.5 |
-| Warburg short element         | Ws     | Ws_R      | (0, 1e10)     | Ohm          |
-|                               |        | Ws_T      | (1e-10, 1e10) | s            |
-| Warburg open elemnt           | Wo     | Wo_R      | (0, 1e10)     | Ohm          |
-|                               |        | Wo_T      | (1e-10, 1e10) | s            |
-| Warburg short element special | Wss    | Wss_R     | (0, 1e10)     | Ohm          |
-|                               |        | Wss_T     | (1e-10, 1e10) | s            |
-|                               |        | Wss_n     | (0, 1)        |              |
-| Warburg open elemnt special   | Wos    | Wos_R     | (0, 1e10)     | Ohm          |
-|                               |        | Wos_T     | (1e-10, 1e10) | s            |
-|                               |        | Wos_n     | (0, 1)        |              |
+| Name                          | Symbol | Paramters | Default Bounds | Units        |
+|-------------------------------|--------|-----------|----------------|--------------|
+| Resistor                      | R      | R         | (1e-6, 1e6)    | Ohm          |
+| Capacitance                   | C      | C         | (1e-20, 1)     | Farrad       |
+| Constant Phase Element        | CPE    | CPE_Q     | (1e-20, 1)     | Ohm^-1 s^n   |
+|                               |        | CPE_n     | (0, 1)         |              |
+| Warburg element               | W      | W         | (0, 1e10)      | Ohm^-1 s^0.5 |
+| Warburg short element         | Ws     | Ws_R      | (0, 1e10)      | Ohm          |
+|                               |        | Ws_T      | (1e-10, 1e10)  | s            |
+| Warburg open elemnt           | Wo     | Wo_R      | (0, 1e10)      | Ohm          |
+|                               |        | Wo_T      | (1e-10, 1e10)  | s            |
+| Warburg short element special | Wss    | Wss_R     | (0, 1e10)      | Ohm          |
+|                               |        | Wss_T     | (1e-10, 1e10)  | s            |
+|                               |        | Wss_n     | (0, 1)         |              |
+| Warburg open elemnt special   | Wos    | Wos_R     | (0, 1e10)      | Ohm          |
+|                               |        | Wos_T     | (1e-10, 1e10)  | s            |
+|                               |        | Wos_n     | (0, 1)         |              |
 
 ### Step 4: Fit the data
 
