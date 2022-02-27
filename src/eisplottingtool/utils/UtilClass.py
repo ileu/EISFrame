@@ -215,7 +215,7 @@ class Cell:
         return "Cell with " + self.__repr__()
 
 
-grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e6, delta_f=5e5)
+grain_boundaries = MarkPoint('LLZO-GB', 'blue', freq=3e5, delta_f=5e4)
 hllzo = MarkPoint('HLLZO', 'orange', freq=3e4, delta_f=5e3)
 lxlzo = MarkPoint('LxLZO', 'lime', freq=2e3, delta_f=5e2)
 interface = MarkPoint('Interphase', 'magenta', freq=50, delta_f=5)

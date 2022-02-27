@@ -154,7 +154,7 @@ def plot_legend(
     loc="upper left",
     fontsize="xx-small",
     frameon=True,
-    markerscale=2,
+    markersize=10,
     handletextpad=0.1,
     mode=None,
     edgecolor="white",
@@ -191,12 +191,14 @@ def plot_legend(
         frameon=frameon,
         framealpha=framealpha,
         edgecolor=edgecolor,
-        markerscale=markerscale,
         handletextpad=handletextpad,
         mode=mode,
         borderpad=borderpad,
         **kwargs
     )
+
+    for handle in leg.legendHandles:
+        handle.set_markersize(markersize)
     return leg
 
 

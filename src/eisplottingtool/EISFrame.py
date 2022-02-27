@@ -25,40 +25,7 @@ from .utils import plot_legend
 from .utils.UtilClass import Cell, default_mark_points
 from .utils.fitting import fit_routine
 
-LOGGER = logging.getLogger(__name__)
-T = TypeVar("T", bound="Parent")
-
-control_types = {0: "CC", 3: "CR", 4: "Rest", 8: "PEIS"}
-
-
-def load_df_from_path(path):
-    return None
-
-
-def _get_default_data_param(columns):
-    col_names = {}
-    for col in columns:
-        if match := re.match(r"Ewe[^|]*", col):
-            col_names["voltage"] = match.group()
-        elif match := re.match(r"I[^|]*", col):
-            col_names["current"] = match.group()
-        elif match := re.match(r"Re\(Z(we-ce)?\)[^|]*", col):
-            col_names["real"] = match.group()
-        elif match := re.match(r"-Im\(Z(we-ce)?\)[^|]*", col):
-            col_names["imag"] = match.group()
-        elif match := re.match(r"Phase\(Z(we-ce)?\)[^|]*", col):
-            col_names["phase"] = match.group()
-        elif match := re.match(r"\|Z(we-ce)?\|[^|]*", col):
-            col_names["abs"] = match.group()
-        elif match := re.match(r"time[^|]*", col):
-            col_names["time"] = match.group()
-        elif match := re.match(r"(z )?cycle( number)?[^|]*", col):
-            col_names["cycle"] = match.group()
-        elif match := re.match(r"freq[^|]*", col):
-            col_names["frequency"] = match.group()
-        elif match := re.match(r"Ns", col):
-            col_names["Ns"] = match.group()
-    return col_names
+logger = logging.getLogger(__name__)
 
 
 class EISFrame:
@@ -101,9 +68,13 @@ class EISFrame:
             self.eis_params["path"] = path
 
     def __str__(self):
+        if self._df is None:
+            self.load()
         return self._df.__str__()
 
     def __repr__(self):
+        if self._df is None:
+            self.load()
         return self._df.__repr__()
 
     def __getitem__(self, item):
@@ -355,7 +326,7 @@ class EISFrame:
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.locator_params(nbins=4, prune="upper")
         ax.set_aspect("equal")
-        if not all(ax.get_legend_handles_labels()):
+        if all(ax.get_legend_handles_labels()):
             if show_legend:
                 plot_legend(ax)
 
@@ -386,21 +357,21 @@ class EISFrame:
 
         return lines
 
+    def manipulatze(self, manipulate):
+        df = manipulate(self._df.copy())
+        return EISFrame(df, **self.eis_params)
+
     def fit_nyquist(
         self,
-        ax: axes.Axes,
-        fit_circuit: str = None,
-        fit_guess: dict[str, float] = None,
+        circuit: str = None,
+        initial_values: dict[str, float] = None,
         fit_bounds: dict[str, tuple] = None,
         fit_constants: list[str] = None,
-        path=None,
-        cell: Cell = None,
-        draw_circle: bool = True,
-        draw_circuit: bool = False,
-        tot_imp=None,
-        data_slice=None,
+        upper_freq: float = np.inf,
+        lower_freq: float = 0,
+        path: str = None,
         **kwargs,
-    ) -> tuple[dict, list]:
+    ) -> dict:
         """
         Fitting function for electrochemical impedance spectroscopy (EIS) data.
 
@@ -486,19 +457,18 @@ class EISFrame:
             how many times ``fit_routine`` gets called
         """
         # load and prepare data
-
-        if data_slice is None:
-            data_slice = slice(3, None)
-
         frequencies = self.frequency
-        z = self.real - 1j * self.imag
-        frequencies = np.array(frequencies[np.imag(z) < 0])[data_slice]
-        z = np.array(z[np.imag(z) < 0])[data_slice]
 
+        mask = np.logical_and(lower_freq < frequencies, frequencies < upper_freq)
+        mask = np.logical_and(mask, self.real > 0)
+
+        frequency = frequencies[mask]
+
+        z = self.real[mask] - 1j * self.imag[mask]
         # check and parse circuit
 
-        if fit_circuit:
-            pass
+        if circuit:
+            fit_circuit = circuit
         elif "circuit" in self.eis_params:
             fit_circuit = self.eis_params["circuit"]
         else:
@@ -506,123 +476,84 @@ class EISFrame:
 
         param_info, circ_calc = parse_circuit(fit_circuit)
 
-        # check and prepare parameters
-
-        if fit_guess:
-            pass
-        elif "fit_guess" in self.eis_params:
-            fit_guess = self.eis_params["fit_guess"]
-        else:
-            raise ValueError("No fit guess given")
-
         if fit_bounds is None:
             fit_bounds = {}
 
         if fit_constants is None:
             fit_constants = []
 
-        param_names = []
-        param_values = {}
-        param_guess = []
-        param_bounds = []
+        param_values = initial_values.copy()  # stores all the values of the parameters
+        variable_names = []  # name of the parameters that are not fixed
+        variable_guess = []  # guesses for the parameters that are not fixed
+        variable_bounds = []  # bounds of the parameters that are not fixed
 
         for p in param_info:
-            name = p.name
-            if name in fit_guess:
-                val = fit_guess.get(name)
-                param_values[name] = val
-
-                if name in fit_bounds:
-                    p.bounds = fit_bounds.get(name)
-
-                if name in fit_constants:
-                    p.fixed = True
-                    fit_guess.pop(name)
-                else:
-                    p.fixed = False
-                    param_bounds.append(p.bounds)
-                    param_guess.append(val)
-                    param_names.append(name)
+            p_name = p.name
+            if p_name in initial_values:
+                if p_name not in fit_constants:
+                    variable_bounds.append(fit_bounds.get(p_name, p.bounds))
+                    variable_guess.append(initial_values.get(p_name))
+                    variable_names.append(p_name)
             else:
-                raise ValueError(f"No initial value given for {name}")
+                raise ValueError(f"No initial value given for {p_name}")
 
         # calculate the weight of each datapoint
         def weight(error, value):
+            """calculates the absolute value squared and divides the error by it"""
             square_value = value.real ** 2 + value.imag ** 2
             return np.true_divide(error, square_value)
 
         # calculate rmse
-        def rmse(y_predicted, y_actual):
+        def rmse(predicted, actual):
             """Calculates the root mean squared error between two vectors"""
-            e = np.abs(np.subtract(y_actual, y_predicted))
+            e = np.abs(np.subtract(actual, predicted))
             se = np.square(e)
-            wse = weight(se, y_actual)
+            wse = weight(se, actual)
             mse = np.nansum(wse)
             return np.sqrt(mse)
 
-        if tot_imp is None:
+        # prepare optimizing function:
+        def condition(params):
+            #TODO
+            res = params["R2"] + params["Wss1_R"]
+            return 0 * res
 
-            # prepare optimizing function:
-            def opt_func(x: list[float]):
-                params = dict(zip(param_names, x))
-                param_values.update(params)
-                predict = circ_calc(param_values, frequencies)
-                err = rmse(predict, z)
-                return err
+        def opt_func(x: list[float]):
+            params = dict(zip(variable_names, x))
+            param_values.update(params)
+            predict = circ_calc(param_values, frequency)
+            main_err = rmse(predict, z)
+            cond_err = condition(param_values)
+            return main_err + cond_err
 
-            opt_result = fit_routine(
-                opt_func,
-                param_guess,
-                param_bounds,
-            )
-        else:
-            # prepare optimizing function:
-            # TODO: make condition availible from outside or
-            def condition(params):
-                res = params["R2"] + params["Wss1_R"]
-                return rmse(res, tot_imp)
-
-            def opt_func(x):
-                params = dict(zip(param_names, x))
-                param_values.update(params)
-                predict = circ_calc(param_values, frequencies)
-                main_err = rmse(predict, z)
-                cond_err = condition(param_values)
-                return main_err + cond_err
-
-            opt_result = fit_routine(
-                opt_func,
-                param_guess,
-                param_bounds,
-            )
-
-        param_values = opt_result.x
-
-        # print the fitting parameters to the console
-        report = f"Fitting report:\n"
-        report += f"Equivivalent circuit: {fit_circuit}\n"
-        report += "Parameters: \n"
-        for p_value, p_info in zip(param_values, param_info):
-            p_info.value = p_value
-            report += f"\t {p_info}\n"
-
-        LOGGER.info(report)
-
-        if path is not None:
-            LOGGER.info(f"Wrote fit parameters to '{path}'")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "w") as f:
-                json.dump(param_info, f, indent=1)
-
-        # TODO: remove plotting from here
-        lines = self.plot_fit(
-            ax, fit_circuit, param_info, data_slice=data_slice, cell=cell, color="red"
+        # fit
+        opt_result = fit_routine(
+            opt_func,
+            variable_guess,
+            variable_bounds,
         )
 
-        lines = {"fit": lines}
+        # update values in ParameterList
+        param_values.update(dict(zip(variable_names, opt_result.x)))
+
+        # # print the fitting parameters to the console
+        # report = f"Fitting report:\n"
+        # report += f"Equivivalent circuit: {fit_circuit}\n"
+        # report += "Parameters: \n"
+        # for p_value, p_info in zip(param_values, param_info):
+        #     p_info.value = p_value
+        #     report += f"\t {p_info}\n"
+        #
+        # LOGGER.info(report)
+
+        if path is not None:
+            logger.info(f"Wrote fit parameters to '{path}'")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                json.dump(param_values, f, indent=1)
 
         self.eis_params["fit_info"] = param_info
-        return lines, param_info
+        return param_values
 
     def plot_semis(
         self, circuit: str, param_info: list, cell=None, ax: axes.Axes = None
@@ -728,47 +659,4 @@ class EISFrame:
 
         return
 
-    def plot_fit(
-        self,
-        ax,
-        circuit,
-        param_info,
-        data_slice=slice(3, None),
-        scatter=True,
-        cell=None,
-        **kwargs,
-    ):
-        __, circ_calc = parse_circuit(circuit)
 
-        frequencies = np.array(self.frequency[self.imag > 0])[data_slice]
-
-        f_pred = np.logspace(-9, 9, 400)
-        # plot the fitting result
-        if isinstance(param_info, list):
-            parameters = {info.name: info.value for info in param_info}
-        else:
-            parameters = param_info
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="overflow encountered in tanh")
-            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
-            custom_circuit_fit = circ_calc(parameters, f_pred)
-        if scatter:
-            ax.scatter(
-                np.real(custom_circuit_fit_freq),
-                -np.imag(custom_circuit_fit_freq),
-                color=kwargs.get("color"),
-                zorder=5,
-                marker="x",
-            )
-        line = ax.plot(
-            np.real(custom_circuit_fit),
-            -np.imag(custom_circuit_fit),
-            label="fit",
-            color=kwargs.get("color"),
-            zorder=5,
-        )
-        lines = {"fit": line}
-
-        plot_legend(ax)
-        return lines
