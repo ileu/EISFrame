@@ -10,7 +10,6 @@ import logging
 import os
 import re
 import warnings
-from typing import TypeVar, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,7 +25,6 @@ from eisplottingtool.utils.UtilFunctions import plot_legend
 from eisplottingtool.utils.fitting import fit_routine
 
 Logger = logging.getLogger(__name__)
-T = TypeVar("T", bound="Parent")
 
 
 class EISFrame:
@@ -46,7 +44,7 @@ class EISFrame:
 
         column_names : dict
 
-        **kwargs: dict
+        **kwargs:
             path: str
                 Path to data file
             circuit: str
@@ -60,7 +58,6 @@ class EISFrame:
 
         if "path" in kwargs:
             self.path = kwargs["path"]
-
         elif df is not None:
             self.df = df
         else:
@@ -137,16 +134,6 @@ class EISFrame:
 
     def __len__(self):
         return len(self.cycle)
-
-    def reset_markpoints(self) -> None:
-        """Resets list markpoints to default
-
-        The default values of the list corresponds to the markpoints for
-        grain boundaries, hllzo, lzo, interfacial resistance and ECR.
-
-        ? depracted ?
-        """
-        self.mark_points = default_mark_points
 
     def plot_nyquist(
         self,
