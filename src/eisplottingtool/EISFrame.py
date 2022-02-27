@@ -83,14 +83,14 @@ class EISFrame:
 
         df : pd.DataFrame
 
-        **kwargs: dict
+        **kwargs
             circuit: str
-                Equivilant circuit for impedance
+                Equivalent circuit for impedance
             cell: Cell
                 Battery cell for normalizing
         """
         self.eis_params = kwargs
-        self.df = df
+        self._df = df
         self.mark_points = default_mark_points
         self.eis_params["Lines"] = {}
 
@@ -101,80 +101,86 @@ class EISFrame:
             self.eis_params["path"] = path
 
     def __str__(self):
-        return self.df.__str__()
+        return self._df.__str__()
 
     def __repr__(self):
-        return self.df.__repr__()
+        return self._df.__repr__()
 
     def __getitem__(self, item):
         self.eis_params["selection"] = item
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return EISFrame(df=self.select_data(item), **self.eis_params)
+
+        if isinstance(item, int):
+            return EISFrame(df=self._df.loc[item], **self.eis_params)
+        elif isinstance(item, tuple):
+            return EISFrame(df=self._df.loc[item], **self.eis_params)
+        elif isinstance(item, dict):
+            cyc = item.get("cycle")
+            ns = item.get("sequence")
+            if ns and cyc:
+                return EISFrame(df=self._df.loc[(cyc, ns)], **self.eis_params)
+            elif ns:
+                return EISFrame(df=self._df.loc[(slice(None, ns))], **self.eis_params)
+            elif cyc:
+                return EISFrame(df=self._df.loc[cyc], **self.eis_params)
+        elif isinstance(item, str):
+            if item in self._df:
+                return self._df[item]
+            elif item in self.eis_params:
+                return self.eis_params[item]
+        else:
+            raise ValueError("Invalid Selection")
+
+    @property
+    def df(self) -> pd.DataFrame:
+        if self._df is None:
+            self.load()
+        return self._df
 
     @property
     def time(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return self.df[self.eis_params["time"]].values
+        return self._df[self.eis_params["time"]].values
 
     @property
     def impedance(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        value = self.df[self.eis_params["real"]].values
-        value += -1j * self.df[self.eis_params["real"]].values
+        value = self._df[self.eis_params["real"]].values
+        value += -1j * self._df[self.eis_params["real"]].values
         return value
 
     @property
     def real(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return self.df[self.eis_params["real"]].values
+        return self._df[self.eis_params["real"]].values
 
     @property
     def imag(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return self.df[self.eis_params["imag"]].values
+        return self._df[self.eis_params["imag"]].values
 
     @property
     def frequency(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return self.df[self.eis_params["frequency"]].values
+        return self._df[self.eis_params["frequency"]].values
 
     @property
     def current(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return self.df[self.eis_params["current"]].values
+        return self._df[self.eis_params["current"]].values
 
     @property
     def voltage(self) -> np.array:
-        if self.df is None:
+        if self._df is None:
             self.load()
-        return self.df[self.eis_params["voltage"]].values
-
-    def select_data(self, selection):
-        if isinstance(selection, int):
-            return self.df.loc[selection]
-        elif isinstance(selection, tuple):
-            return self.df.loc[selection]
-        elif isinstance(selection, dict):
-            cyc = selection.get("cycle")
-            ns = selection.get("sequence")
-            if ns and cyc:
-                return self.df.loc[(cyc, ns)]
-            elif ns:
-                return self.df.loc[(slice(None, ns))]
-            elif cyc:
-                return self.df.loc[cyc]
-        elif isinstance(selection, str):
-            if selection in self.eis_params:
-                return self.eis_params[selection]
-        else:
-            raise ValueError("Invalid Selection")
+        return self._df[self.eis_params["voltage"]].values
 
     def load(self, path=None):
         # TODO: combine two or more files together
@@ -202,11 +208,11 @@ class EISFrame:
         else:
             data.set_index([col_names["cycle"]], inplace=True)
 
-        ctrl = []
-        for p in data.attrs["params"]:
-            ctrl.append(p["ctrl_type"])
+        # ctrl = []
+        # for p in data.attrs["params"]:
+        #     ctrl.append(p["ctrl_type"])
 
-        self.df = data.sort_index()
+        self._df = data.sort_index()
         self.eis_params.update(col_names)
 
     def modify_data(self):
@@ -258,7 +264,7 @@ class EISFrame:
         dictionary
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
-        if self.df is None:
+        if self._df is None:
             self.load()
 
         # only look at measurements with frequency data
