@@ -5,7 +5,7 @@ import schemdraw as sd
 from schemdraw import dsp
 
 from eisplottingtool.parser.CircuitComponents import circuit_components
-from eisplottingtool.utils.UtilClass import Parameter
+from eisplottingtool.utils.Parameter import Parameter
 
 
 def draw_circuit(
@@ -27,6 +27,7 @@ def draw_circuit(
     par_connector_length : float
     scaling : Callable[[float], float]
     color_dict : ParameterDict
+    shaded
 
     Returns
     -------

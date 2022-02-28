@@ -1,7 +1,6 @@
 import os
 import matplotlib.pyplot as plt
 
-from ..loading import load_data
 from ..utils.UtilFunctions import create_fig, save_fig, plot_legend
 
 
@@ -20,7 +19,7 @@ def plot_circuit(name, path):
         'Wss2_n': 0.3484384991224112,
     }
     print(name)
-    data = load_data(path)
+    data = None
 
     cycle = data[1]
     fig, ax = create_fig()

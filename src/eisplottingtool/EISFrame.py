@@ -9,10 +9,8 @@ import json
 import logging
 import os
 import re
-import warnings
-from typing import TypeVar
+from typing import Union
 
-import eclabfiles as ecf
 import numpy as np
 import pandas as pd
 import pint
@@ -21,8 +19,8 @@ from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
 
 from .parser import parse_circuit
-from .utils import plot_legend
-from .utils.UtilClass import Cell, default_mark_points
+from .utils import MarkPoint, plot_legend
+from .utils.UtilFunctions import load_df_from_path
 from .utils.fitting import fit_routine
 
 logger = logging.getLogger(__name__)
@@ -34,7 +32,11 @@ class EISFrame:
     """
 
     def __init__(
-        self, name: str = None, path: str = None, df: pd.DataFrame = None, **kwargs
+        self,
+        name: str = None,
+        path: Union[str, list[str]] = None,
+        df: pd.DataFrame = None,
+        **kwargs,
     ) -> None:
         """Initialises an EISFrame
 
@@ -58,7 +60,6 @@ class EISFrame:
         """
         self.eis_params = kwargs
         self._df = df
-        self.mark_points = default_mark_points
         self.eis_params["Lines"] = {}
 
         if name is not None:
@@ -110,90 +111,83 @@ class EISFrame:
         return self._df
 
     @property
-    def time(self) -> np.array:
-        if self._df is None:
-            self.load()
-        return self._df[self.eis_params["time"]].values
+    def mark_points(self) -> list[MarkPoint]:
+        return self.eis_params.get("mark_points") or []
 
-    @property
-    def impedance(self) -> np.array:
-        if self._df is None:
-            self.load()
-        value = self._df[self.eis_params["real"]].values
-        value += -1j * self._df[self.eis_params["real"]].values
-        return value
-
-    @property
-    def real(self) -> np.array:
-        if self._df is None:
-            self.load()
-        return self._df[self.eis_params["real"]].values
-
-    @property
-    def imag(self) -> np.array:
-        if self._df is None:
-            self.load()
-        return self._df[self.eis_params["imag"]].values
-
-    @property
-    def frequency(self) -> np.array:
-        if self._df is None:
-            self.load()
-        return self._df[self.eis_params["frequency"]].values
-
-    @property
-    def current(self) -> np.array:
-        if self._df is None:
-            self.load()
-        return self._df[self.eis_params["current"]].values
-
-    @property
-    def voltage(self) -> np.array:
-        if self._df is None:
-            self.load()
-        return self._df[self.eis_params["voltage"]].values
+    @mark_points.setter
+    def mark_points(self, mp):
+        self.eis_params["mark_points"] = mp
 
     def load(self, path=None):
-        # TODO: combine two or more files together
         if path is None:
             path = self.eis_params["path"]
 
-        ext = os.path.splitext(path)[1][1:]
+        if not isinstance(path, list):
+            path = [path]
 
-        if ext in {"csv", "txt"}:
-            data = pd.read_csv(path, sep=",", encoding="unicode_escape")
-        elif ext in {"mpr", "mpt"}:
-            data = ecf.to_df(path)
+        data = pd.DataFrame()
+        last_time = 0
+        last_cycle = 0
+        cycle = None
+        for p in path:
+            d = load_df_from_path(p)
+            for col in d.columns:
+                if match := re.match(r"(z )?cycle( number)?[^|]*", col):
+                    cycle = match.group()
+            if not cycle:
+                raise ValueError(f"No cycles detected in file {p}.")
+            d['cycle'] = d[cycle] + last_cycle
+            d['time'] = d['time'] + last_time
+            last_time = d['time'].iloc[-1]
+            last_cycle = d['cycle'].iloc[-1]
+            data = data.append(d)
+
+        if "Ns" in data:
+            data["technique"] = data.groupby("z cycle")['Ns changes'].transform(pd.Series.cumsum)
+            data.set_index([cycle, "technique"], inplace=True)
+            # data.sort_values([cycle, "technique", "time"], inplace=True)
         else:
-            raise ValueError(f"Datatype {ext} not supported")
+            data.set_index([cycle], inplace=True)
+            # data.sort_values([cycle, "time"], inplace=True)
 
-        if data.empty:
-            raise ValueError(f"File {path} has no data")
+        if "Re(Z)" not in data:
+            data["Re(Z)"] = data["|Z|"] * np.cos(data["Phase(Z)"] / 360.0 * 2 * np.pi)
+            data["-Im(Z)"] = -data["|Z|"] * np.sin(data["Phase(Z)"] / 360.0 * 2 * np.pi)
 
-        col_names = _get_default_data_param(data.columns)
-        if "cycle" not in col_names:
-            raise ValueError(f"No cycles detetected in file {path}.")
+        self._df = data.copy()
 
-        if "Ns" in col_names:
-            data.set_index([col_names["cycle"], col_names.get("Ns")], inplace=True)
-        else:
-            data.set_index([col_names["cycle"]], inplace=True)
+    def manipulate(self, col_name, new_name, modify):
+        if self._df is None:
+            self.load()
+        self._df[new_name] = modify(self._df[col_name].copy())
+        return self
 
-        # ctrl = []
-        # for p in data.attrs["params"]:
-        #     ctrl.append(p["ctrl_type"])
+    def plot(self, nbinsx=6, nbinsy=4, *args, **kwargs):
+        if self._df is None:
+            self.load()
+        legend = kwargs.pop("legend", True)
+        title = kwargs.pop("title", None)
+        ax = kwargs.get("ax", plt.gca())
+        plot = self._df.plot(legend=False, *args, **kwargs)
 
-        self._df = data.sort_index()
-        self.eis_params.update(col_names)
+        ax.locator_params(axis="x", nbins=nbinsx)
+        ax.locator_params(axis="y", nbins=nbinsy, prune="both")
 
-    def modify_data(self):
-        # TODO: maybe add transform as argument
-        pass
+        if title:
+            ax.text(
+                .5,
+                .9,
+                title,
+                horizontalalignment='center',
+                transform=ax.transAxes
+            )
+        if legend:
+            plot_legend(ax)
+        return plot
 
     def plot_nyquist(
         self,
         ax: axes.Axes = None,
-        cycle=None,
         exclude_data=None,
         show_freq: bool = False,
         color=None,
@@ -202,6 +196,8 @@ class EISFrame:
         plot_range=None,
         show_legend=True,
         show_mark_label=True,
+        real_col=None,
+        imag_col=None,
         **kwargs,
     ):
         """Plots a Nyquist plot with the internal dataframe
@@ -216,18 +212,18 @@ class EISFrame:
         ----------
         ax
             matplotlib axes to plot to
-        cycle
         exclude_data
         show_freq
         color
         ls
         marker
         plot_range
-        label
         show_legend
         show_mark_label
+        real_col
+        imag_col
 
-        kwargs :
+        kwargs:
             color?
 
         Returns
@@ -238,31 +234,43 @@ class EISFrame:
         if self._df is None:
             self.load()
 
+        frequency = self._df["freq"].to_numpy()
+
+        if real_col:
+            real = self._df[real_col].to_numpy()
+        else:
+            real = self._df["Re(Z)"].to_numpy()
+
+        if imag_col:
+            imag = self._df[imag_col].to_numpy()
+        else:
+            imag = self._df["-Im(Z)"].to_numpy()
+
         # only look at measurements with frequency data
-        mask = self.frequency != 0
+        mask = frequency != 0
 
         if exclude_data is None:
             exclude_data = slice(None)
         # get the x,y data for plotting
-        x_data = self.real[mask][exclude_data]
-        y_data = self.imag[mask][exclude_data]
-        frequency = self.frequency[mask][exclude_data]
+        x_data = real[mask][exclude_data]
+        y_data = imag[mask][exclude_data]
+        frequency = frequency[mask][exclude_data]
 
-        # label for the plot
-        if "x_label" not in kwargs:
-            x_label = rf"Re(Z) [Ohm]"
-        else:
+        if "x_label" in kwargs:
             x_label = kwargs.get("x_label")
-
-        if "y_label" not in kwargs:
-            y_label = rf"-Im(Z) [Ohm]"
+        # label for the plot
         else:
+            x_label = rf"Re(Z) [Ohm]"
+
+        if "y_label" in kwargs:
             y_label = kwargs.get("y_label")
-
-        if "name" not in kwargs:
-            name = self.eis_params.get("name")
         else:
+            y_label = rf"-Im(Z) [Ohm]"
+
+        if "name" in kwargs:
             name = kwargs["name"]
+        else:
+            name = self.eis_params.get("name")
 
         # check if any axes is given, if not GetCurrentAxis from matplotlib
         if ax is None:
@@ -357,10 +365,6 @@ class EISFrame:
 
         return lines
 
-    def manipulatze(self, manipulate):
-        df = manipulate(self._df.copy())
-        return EISFrame(df, **self.eis_params)
-
     def fit_nyquist(
         self,
         circuit: str = None,
@@ -375,7 +379,7 @@ class EISFrame:
         """
         Fitting function for electrochemical impedance spectroscopy (EIS) data.
 
-        For the fitting a model or equivilant circuit is needed. The equivilant circuit is defined as a string.
+        For the fitting a model or equivalent circuit is needed. The equivilant circuit is defined as a string.
         To combine elements in series a dash (-) is used. Elements in parallel are wrapped by p( , ).
         An element is definied by an identifier (usually letters) followed by a digit.
         Already implemented elements are located in :class:`circuit_components<circuit_utils.circuit_components>`:
@@ -457,14 +461,16 @@ class EISFrame:
             how many times ``fit_routine`` gets called
         """
         # load and prepare data
-        frequencies = self.frequency
+        frequencies = self._df["freq"].to_numpy()
+        real = self._df["Re(Z)"].to_numpy()
+        imag = self._df["-Im(Z)"].to_numpy()
 
         mask = np.logical_and(lower_freq < frequencies, frequencies < upper_freq)
-        mask = np.logical_and(mask, self.real > 0)
+        mask = np.logical_and(mask, real > 0)
 
         frequency = frequencies[mask]
 
-        z = self.real[mask] - 1j * self.imag[mask]
+        z = real[mask] - 1j * imag[mask]
         # check and parse circuit
 
         if circuit:
@@ -500,7 +506,7 @@ class EISFrame:
         # calculate the weight of each datapoint
         def weight(error, value):
             """calculates the absolute value squared and divides the error by it"""
-            square_value = value.real ** 2 + value.imag ** 2
+            square_value = value.real**2 + value.imag**2
             return np.true_divide(error, square_value)
 
         # calculate rmse
@@ -514,9 +520,8 @@ class EISFrame:
 
         # prepare optimizing function:
         def condition(params):
-            #TODO
-            res = params["R2"] + params["Wss1_R"]
-            return 0 * res
+            # TODO
+            return 0
 
         def opt_func(x: list[float]):
             params = dict(zip(variable_names, x))
@@ -658,5 +663,3 @@ class EISFrame:
             prev_imp += np.real(elem_impedance)[0]
 
         return
-
-

@@ -117,12 +117,3 @@ class WarburgShort(Element2Term):
                 zorder=2
                 )
         )
-        # self.segments.append(
-        #     SegmentText(
-        #         (width * 0.5, 0),
-        #         'Ws',
-        #         fontsize=120,
-        #         color="blue",
-        #         zorder=1
-        #     )
-        # )

@@ -4,7 +4,7 @@ import numpy as np
 from schemdraw import elements as elm
 
 import eisplottingtool.parser.SchemeElements as sElm
-from eisplottingtool.utils.UtilClass import Parameter
+from eisplottingtool.utils.Parameter import Parameter
 
 
 class Component:

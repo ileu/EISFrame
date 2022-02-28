@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 import numpy as np
 
 from eisplottingtool.parser.CircuitComponents import circuit_components
-from eisplottingtool.utils.UtilClass import Parameter
+from eisplottingtool.utils.Parameter import Parameter
 
 
 def parse_circuit(

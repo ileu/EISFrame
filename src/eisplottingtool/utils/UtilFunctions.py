@@ -1,7 +1,24 @@
 import os
 from typing import Union
 
+import pandas as pd
+import eclabfiles as ecf
 from matplotlib import figure, axes, pyplot as plt, rcParams, cycler, legend
+
+
+def load_df_from_path(path):
+    ext = os.path.splitext(path)[1][1:]
+
+    if ext in {"csv", "txt"}:
+        data = pd.read_csv(path, sep=",", encoding="unicode_escape")
+    elif ext in {"mpr", "mpt"}:
+        data = ecf.to_df(path)
+    else:
+        raise ValueError(f"Datatype {ext} not supported")
+
+    if data.empty:
+        raise ValueError(f"File {path} has no data")
+    return data
 
 
 def set_plot_params() -> None:
@@ -69,6 +86,7 @@ def create_fig(
     subplot_kw=None,
     gridspec_kw=None,
     top_ticks=False,
+    no_params=False,
     **fig_kw
 ) -> tuple[figure.Figure, Union[axes.Axes, list[axes.Axes]]]:
     """Creates the figure, axes for the plots and set the style of the plot
@@ -87,11 +105,13 @@ def create_fig(
     top_ticks
     fig_kw
 
+
     Returns
     -------
     the figure and list of created axes
     """
-    set_plot_params()
+    if not no_params:
+        set_plot_params()
 
     if figsize is None:
         figsize = (6.4 * ncols, 4.8 * nrows)
