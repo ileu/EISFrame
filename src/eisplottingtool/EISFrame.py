@@ -142,8 +142,8 @@ class EISFrame:
             last_cycle = d['cycle'].iloc[-1]
             data = data.append(d)
 
-        if "Ns" in data:
-            data["technique"] = data.groupby("z cycle")['Ns changes'].transform(pd.Series.cumsum)
+        if "Ns changes" in data:
+            data["technique"] = data.groupby(cycle)['Ns changes'].transform(pd.Series.cumsum)
             data.set_index([cycle, "technique"], inplace=True)
             # data.sort_values([cycle, "technique", "time"], inplace=True)
         else:
