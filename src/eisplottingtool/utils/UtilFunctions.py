@@ -6,11 +6,11 @@ import eclabfiles as ecf
 from matplotlib import figure, axes, pyplot as plt, rcParams, cycler, legend
 
 
-def load_df_from_path(path):
+def load_df_from_path(path, sep="\t"):
     ext = os.path.splitext(path)[1][1:]
 
     if ext in {"csv", "txt"}:
-        data = pd.read_csv(path, sep=",", encoding="unicode_escape")
+        data = pd.read_csv(path, sep=sep, encoding="unicode_escape")
     elif ext in {"mpr", "mpt"}:
         data = ecf.to_df(path)
     else:
