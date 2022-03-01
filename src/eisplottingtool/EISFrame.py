@@ -125,7 +125,7 @@ class EISFrame:
         if not isinstance(path, list):
             path = [path]
 
-        data = pd.DataFrame()
+        data = []
         last_time = 0
         last_cycle = 0
         cycle = None
@@ -136,18 +136,20 @@ class EISFrame:
                     cycle = match.group()
             if not cycle:
                 raise ValueError(f"No cycles detected in file {p}.")
-            d['cycle'] = d[cycle] + last_cycle
-            d['time'] = d['time'] + last_time
-            last_time = d['time'].iloc[-1]
-            last_cycle = d['cycle'].iloc[-1]
-            data = data.append(d)
-
+            d["cycle"] = d[cycle] + last_cycle
+            d["time"] = d["time"] + last_time
+            last_time = d["time"].iloc[-1]
+            last_cycle = d["cycle"].iloc[-1]
+            data.append(d)
+        data = pd.concat(data)
         if "Ns changes" in data:
-            data["technique"] = data.groupby(cycle)['Ns changes'].transform(pd.Series.cumsum)
-            data.set_index([cycle, "technique"], inplace=True)
+            data["technique"] = data.groupby(cycle)["Ns changes"].transform(
+                pd.Series.cumsum
+            )
+            data.set_index(["cycle", "technique"], inplace=True)
             # data.sort_values([cycle, "technique", "time"], inplace=True)
         else:
-            data.set_index([cycle], inplace=True)
+            data.set_index(["cycle"], inplace=True)
             # data.sort_values([cycle, "time"], inplace=True)
 
         if "Re(Z)" not in data:
@@ -175,11 +177,7 @@ class EISFrame:
 
         if title:
             ax.text(
-                .5,
-                .9,
-                title,
-                horizontalalignment='center',
-                transform=ax.transAxes
+                0.5, 0.9, title, horizontalalignment="center", transform=ax.transAxes
             )
         if legend:
             plot_legend(ax)

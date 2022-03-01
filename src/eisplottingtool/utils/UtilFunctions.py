@@ -87,7 +87,7 @@ def create_fig(
     gridspec_kw=None,
     top_ticks=False,
     no_params=False,
-    **fig_kw
+    **fig_kw,
 ) -> tuple[figure.Figure, Union[axes.Axes, list[axes.Axes]]]:
     """Creates the figure, axes for the plots and set the style of the plot
 
@@ -128,7 +128,7 @@ def create_fig(
         sharey=sharey,
         gridspec_kw=gridspec_kw,
         subplot_kw=subplot_kw,
-        **fig_kw
+        **fig_kw,
     )
 
     if top_ticks:
@@ -142,7 +142,7 @@ def save_fig(
     fig: figure.Figure = None,
     show: bool = False,
     close: bool = True,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Saves the current figure at path
 
@@ -180,7 +180,7 @@ def plot_legend(
     edgecolor="white",
     borderpad=0.0,
     framealpha=1.0,
-    **kwargs
+    **kwargs,
 ) -> legend.Legend:
     """Adds legend to an axes
 
@@ -214,7 +214,7 @@ def plot_legend(
         handletextpad=handletextpad,
         mode=mode,
         borderpad=borderpad,
-        **kwargs
+        **kwargs,
     )
 
     for handle in leg.legendHandles:

@@ -32,17 +32,9 @@ def plot_circuit(
         data = manipulate(data)
 
     if kind == "scatter":
-        plot = ax.scatter(
-            np.real(data),
-            -np.imag(data),
-            **kwargs
-        )
+        plot = ax.scatter(np.real(data), -np.imag(data), **kwargs)
     elif kind == "line":
-        plot = ax.plot(
-            np.real(data),
-            -np.imag(data),
-            **kwargs
-        )
+        plot = ax.plot(np.real(data), -np.imag(data), **kwargs)
     else:
         raise ValueError(f"Unknown kind for plot found: '{kind}'")
 

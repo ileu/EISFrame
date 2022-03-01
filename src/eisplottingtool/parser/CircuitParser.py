@@ -8,9 +8,9 @@ from eisplottingtool.utils.Parameter import Parameter
 
 
 def parse_circuit(
-        circ: str,
-        ) -> Tuple[list[Parameter], Callable[[dict, np.array], np.array]]:
-    """ EBNF parser for a circuit string.
+    circ: str,
+) -> Tuple[list[Parameter], Callable[[dict, np.array], np.array]]:
+    """EBNF parser for a circuit string.
 
     Implements an extended Backus–Naur form to parse a string that descirbes
     a circuit.
@@ -44,7 +44,7 @@ def parse_circuit(
     param_info: list[Parameter] = []
 
     def component(c: str):
-        """ process component and remove from circuit string c
+        """process component and remove from circuit string c
 
         Parameters
         ----------
@@ -78,9 +78,9 @@ def parse_circuit(
 
     def parallel(c: str):
         c = c[2:]
-        tot_eq = ''
-        while not c.startswith(')'):
-            if c.startswith(','):
+        tot_eq = ""
+        while not c.startswith(")"):
+            if c.startswith(","):
                 c = c[1:]
             c, eq = circuit(c)
             if tot_eq:
@@ -90,7 +90,7 @@ def parse_circuit(
         return c, f"1.0 / ({tot_eq})"
 
     def element(c: str):
-        if c.startswith('p('):
+        if c.startswith("p("):
             c, eq = parallel(c)
         else:
             c, eq = component(c)
@@ -98,15 +98,15 @@ def parse_circuit(
 
     def circuit(c: str):
         if not c:
-            return c, ''
+            return c, ""
         c, eq = element(c)
         tot_eq = f"{eq}"
-        if c.startswith('-'):
+        if c.startswith("-"):
             c, eq = circuit(c[1:])
             tot_eq += f" + {eq}"
         return c, tot_eq
 
     __, equation = circuit(circ.replace(" ", ""))
 
-    calculate = eval('lambda param, omega: ' + equation, circuit_components.copy())
+    calculate = eval("lambda param, omega: " + equation, circuit_components.copy())
     return param_info, calculate

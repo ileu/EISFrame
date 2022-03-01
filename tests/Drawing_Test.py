@@ -21,7 +21,7 @@ def main():
     path = path1
 
     for circ in circuits:
-        print(25 * '-')
+        print(25 * "-")
         print(f"{circ=}")
         drawing = draw_circuit(circ, color_dict={"R1": "blue", "Ws": "green"}, lw=10)
         drawing.draw(show=False)
@@ -31,7 +31,7 @@ def main():
             fm.window.showMaximized()
         elif backend == "TkAgg":
             mng = plt.get_current_fig_manager()
-            mng.window.state('zoomed')
+            mng.window.state("zoomed")
         plt.show()
 
 
