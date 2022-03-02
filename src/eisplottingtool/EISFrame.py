@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import warnings
 from typing import Union
 
 import numpy as np
@@ -559,7 +560,12 @@ class EISFrame:
         return param_values
 
     def plot_semis(
-        self, circuit: str, param_info: list, cell=None, ax: axes.Axes = None
+        self,
+        circuit: str,
+        param_values: list,
+        cell=None,
+        ax: axes.Axes = None,
+        manipulate=None,
     ):
         """
         plots the semicircles to the corresponding circuit elements.
@@ -570,7 +576,7 @@ class EISFrame:
         ----------
         circuit : CustomCircuit
             CustomCircuit
-        param_info
+        param_values
         cell
         ax : matplotlib.axes.Axes
              axes to be plotted to
@@ -579,12 +585,14 @@ class EISFrame:
         -------
         nothing at the moment
         """
+        # TODO No mark point case
         # check if axes is given, else get current axes
         if ax is None:
             ax = plt.gca()
-
-        param_values = {info.name: info.value for info in param_info}
         elem_infos = []
+
+        if len(self.mark_points) == 0:
+            warnings.warn("No Markpoints chosen, will draw circles with gray color")
 
         # split the circuit in to elements connected through series
         elements = re.split(r"-(?![^(]*\))", circuit)
@@ -620,10 +628,15 @@ class EISFrame:
                 continue
 
             freq = np.logspace(-9, 9, 180)
-            elem_impedance = elem_eval(param_values, freq)
 
-            if cell is not None:
-                elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", message="overflow encountered in tanh"
+                )
+                elem_impedance = elem_eval(param_values, freq)
+
+            if manipulate:
+                elem_impedance = manipulate(elem_impedance)
 
             elem_infos.append((elem_impedance, specific_frequency))
 
