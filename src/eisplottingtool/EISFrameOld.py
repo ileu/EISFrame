@@ -666,7 +666,6 @@
 #
 #         if path is not None:
 #             if not os.path.isdir(os.path.dirname(path)):
-#                 # TODO: look at exist_ok=True
 #                 os.makedirs(os.path.dirname(path))
 #             with open(path, "w") as f:
 #                 json.dump(param_info, f, default=lambda o: o.__dict__, indent=1)
@@ -907,11 +906,8 @@
 #         return lines
 #
 #     def _plot_circuit(self, circuit: str, ax: axes.Axes = None):
-#         # TODO: Look at SchemDraw to draw circuit and color with different
-#         #  mark points
 #         pass
 #
 #     @classmethod
 #     def from_file(cls: Type[T], path) -> T:
-#         # TODO: create EISFrame from file location
 #         pass

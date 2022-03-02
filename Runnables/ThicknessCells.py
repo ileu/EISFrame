@@ -31,7 +31,6 @@ class EPTfile:
 
 
 def main():
-    # TODO: only normalize to area
     path1 = r"G:\Collaborators\Sauter Ulrich\Projects\Thickness"
     path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\Thickness"
     path = path1

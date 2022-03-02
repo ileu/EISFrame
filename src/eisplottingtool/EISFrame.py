@@ -148,14 +148,12 @@ class EISFrame:
                 pd.Series.cumsum
             )
             data.set_index(["cycle", "technique"], inplace=True)
-            # data.sort_values([cycle, "technique", "time"], inplace=True)
         else:
             data.set_index(["cycle"], inplace=True)
-            # data.sort_values([cycle, "time"], inplace=True)
 
         if "Re(Z)" not in data:
-            data["Re(Z)"] = data["|Z|"] * np.cos(data["Phase(Z)"] / 360.0 * 2 * np.pi)
-            data["-Im(Z)"] = -data["|Z|"] * np.sin(data["Phase(Z)"] / 360.0 * 2 * np.pi)
+            data["Re(Z)"] = data.get("|Z|", 0) * np.cos(data.get("Phase(Z)", 0) / 360.0 * 2 * np.pi)
+            data["-Im(Z)"] = -data.get("|Z|", 0) * np.sin(data.get("Phase(Z)", 0) / 360.0 * 2 * np.pi)
 
         self._df = data.copy()
 
@@ -505,7 +503,7 @@ class EISFrame:
         # calculate the weight of each datapoint
         def weight(error, value):
             """calculates the absolute value squared and divides the error by it"""
-            square_value = value.real**2 + value.imag**2
+            square_value = value.real ** 2 + value.imag ** 2
             return np.true_divide(error, square_value)
 
         # calculate rmse

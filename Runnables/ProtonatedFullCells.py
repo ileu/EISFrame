@@ -18,8 +18,6 @@ class EPTfile:
 
 
 def main():
-    # TODO: Show only one bad and one good full cell
-    # TODO: Show only good protonated and deprotonated
     path1 = r"G:\Collaborators\Sauter Ulrich\Projects\ProtonatedFullCells"
     path2 = r"C:\Users\ueli\Desktop\Sauter Ulrich\Projects\ProtonatedFullCells"
     fc16_deprot_nopres = (
