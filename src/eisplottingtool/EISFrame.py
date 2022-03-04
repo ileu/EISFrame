@@ -163,7 +163,7 @@ class EISFrame:
         self._df[new_name] = modify(self._df[col_name].copy())
         return self
 
-    def plot(self, nbinsx=6, nbinsy=4, *args, **kwargs):
+    def plot(self, nbinsx=6, nbinsy=4, title_xoffset=0.5, title_yoffset=0.9, title_hor_align="center", *args, **kwargs):
         if self._df is None:
             self.load()
         legend = kwargs.pop("legend", True)
@@ -176,7 +176,7 @@ class EISFrame:
 
         if title:
             ax.text(
-                0.5, 0.9, title, horizontalalignment="center", transform=ax.transAxes
+                title_xoffset, title_yoffset, title, horizontalalignment=title_hor_align, transform=ax.transAxes
             )
         if legend:
             plot_legend(ax)
@@ -302,7 +302,10 @@ class EISFrame:
             if mark.index < 0:
                 continue
             if show_mark_label:
-                mark_label = f"{mark.name} @ {mark.label(frequency)}"
+                if mark.name:
+                    mark_label = f"{mark.name} @ {mark.label(frequency)}"
+                else:
+                    mark_label = f"{mark.label(frequency)}"
             else:
                 mark_label = None
             line = ax.plot(
@@ -564,6 +567,7 @@ class EISFrame:
         cell=None,
         ax: axes.Axes = None,
         manipulate=None,
+        ignore_ecr=False,
     ):
         """
         plots the semicircles to the corresponding circuit elements.
@@ -583,7 +587,7 @@ class EISFrame:
         -------
         nothing at the moment
         """
-        # TODO No mark point case
+        # TODO No mark point case, Ecr rework
         # check if axes is given, else get current axes
         if ax is None:
             ax = plt.gca()
@@ -647,6 +651,8 @@ class EISFrame:
             elem_spec_freq = elem_info[1]
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
             if specific_freq_magnitude <= 0:
+                if ignore_ecr:
+                    continue
                 color = min(self.mark_points, key=lambda x: x.magnitude).color
             else:
                 for mark in self.mark_points:

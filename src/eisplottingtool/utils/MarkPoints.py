@@ -59,6 +59,6 @@ grain_boundaries = MarkPoint("LLZO-GB", "blue", freq=3e5, delta_f=5e4)
 hllzo = MarkPoint("HLLZO", "orange", freq=3e4, delta_f=5e3)
 lxlzo = MarkPoint("LxLZO", "lime", freq=2e3, delta_f=5e2)
 interface = MarkPoint("Interphase", "magenta", freq=50, delta_f=5)
-ecr_tail = MarkPoint("ECR", "darkgreen", freq=0.5, delta_f=1)
+ecr_tail = MarkPoint("ECR", "darkgreen", freq=0.5, delta_f=0.1)
 
 LLZO_mark_points = [grain_boundaries, hllzo, lxlzo, interface, ecr_tail]

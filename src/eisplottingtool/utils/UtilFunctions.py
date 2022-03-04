@@ -138,7 +138,7 @@ def create_fig(
 
 
 def save_fig(
-    path: str = "",
+    path: str,
     fig: figure.Figure = None,
     show: bool = False,
     close: bool = True,
@@ -159,8 +159,6 @@ def save_fig(
     """
     if fig is None:
         fig = plt.gcf()
-    if not os.path.isdir(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
     fig.savefig(path, bbox_inches="tight", **kwargs)
     fig.canvas.draw_idle()
     if show:
