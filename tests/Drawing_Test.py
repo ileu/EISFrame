@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 
-from eisplottingtool.drawing import draw_circuit
+from eisplottingtool.visualize import draw_schematic
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     for circ in circuits:
         print(25 * "-")
         print(f"{circ=}")
-        drawing = draw_circuit(circ, color_dict={"R1": "blue", "Ws": "green"}, lw=10)
+        drawing = draw_schematic(circ, color_dict={"R1": "blue", "Ws": "green"}, lw=10)
         drawing.draw(show=False)
         backend = plt.get_backend()
         if backend == "QtAgg":

@@ -374,6 +374,7 @@ class EISFrame:
         upper_freq: float = np.inf,
         lower_freq: float = 0,
         path: str = None,
+        condition = None,
         **kwargs,
     ) -> dict:
         """
@@ -519,9 +520,9 @@ class EISFrame:
             return np.sqrt(mse)
 
         # prepare optimizing function:
-        def condition(params):
-            # TODO
-            return 0
+        if condition is None:
+            def condition(params):
+                return 0
 
         def opt_func(x: list[float]):
             params = dict(zip(variable_names, x))

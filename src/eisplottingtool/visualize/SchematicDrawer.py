@@ -8,7 +8,7 @@ from eisplottingtool.parser.CircuitComponents import circuit_components
 from eisplottingtool.utils.Parameter import Parameter
 
 
-def draw_circuit(
+def draw_schematic(
     circ: str,
     scale_h: float = 0.25,
     par_connector_length: float = 0.25,
