@@ -6,6 +6,10 @@ import eclabfiles as ecf
 from matplotlib import figure, axes, pyplot as plt, rcParams, cycler, legend
 
 
+def save_fit_parameter(parameter, save):
+    pass
+
+
 def load_df_from_path(path, sep="\t"):
     ext = os.path.splitext(path)[1][1:]
 
