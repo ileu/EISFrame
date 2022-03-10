@@ -129,22 +129,23 @@ class EISFrame:
         data = []
         last_time = 0
         last_cycle = 0
-        cycle = None
         for p in path:
             d = load_df_from_path(p)
-            for col in d.columns:
-                if match := re.match(r"(z )?cycle( number)?[^|]*", col):
-                    cycle = match.group()
-            if not cycle:
+            if "half cycle" in d.columns:
+                d["cycle"] = (d["half cycle"] // 2) + last_cycle
+            elif "cycle number" in d.columns:
+                d["cycle"] = d["cycle number"] + last_cycle
+            else:
+                logger.error(f"No cycles detected. file '{p}' columnsd '{d.columns}'")
+                print(f"No cycles detected. file '{p}' columnsd '{d.columns}'")
                 raise ValueError(f"No cycles detected in file {p}.")
-            d["cycle"] = d[cycle] + last_cycle
             d["time"] = d["time"] + last_time
             last_time = d["time"].iloc[-1]
             last_cycle = d["cycle"].iloc[-1]
             data.append(d)
         data = pd.concat(data)
         if "Ns changes" in data:
-            data["technique"] = data.groupby(cycle)["Ns changes"].transform(
+            data["technique"] = data.groupby("cycle")["Ns changes"].transform(
                 pd.Series.cumsum
             )
             data.set_index(["cycle", "technique"], inplace=True)
@@ -472,8 +473,8 @@ class EISFrame:
         frequency = frequencies[mask]
 
         z = real[mask] - 1j * imag[mask]
-        # check and parse circuit
 
+        # check and parse circuit
         if circuit:
             fit_circuit = circuit
         elif "circuit" in self.eis_params:
