@@ -1,4 +1,3 @@
-
 class iter_test:
     def __init__(self, **kwargs):
         self.lesen = ["a", "b", "c", "±"]
@@ -37,16 +36,16 @@ def test_circuit_measure():
     stopper = 0
     testing = iter_test()
 
-    assert testing.read() == ['a', 'b', 'c', '±']
+    assert testing.read() == ["a", "b", "c", "±"]
     for it in testing:
         stopper += 1
         if stopper > 15:
             break
         print(it.read())
     print(testing.kwargs["current"])
-    print(testing[2].read() == 'c')
+    print(testing[2].read() == "c")
     print(testing.kwargs["current"])
-    print(testing.read() == ['a', 'b', 'c', '±'])
+    print(testing.read() == ["a", "b", "c", "±"])
     print(testing.kwargs["current"])
-    print(testing.get_cycle(1).read() == 'b')
+    print(testing.get_cycle(1).read() == "b")
     print(testing.kwargs["current"])

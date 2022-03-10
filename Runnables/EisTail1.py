@@ -186,7 +186,7 @@ def cycles():
                 "Wss1_R": (tot_imp * 0.3, tot_imp),
                 "Wss1_n": (0, 0.5),
                 "R3": (res["R1"] + res["R0"], 2 * (res["R1"] + res["R0"])),
-                "W1": (10,3000),
+                "W1": (10, 3000),
             },
             fit_constants=[
                 "R0",
@@ -212,6 +212,7 @@ def cycles():
         )
         print("DONE")
         break
+
 
 def life():
     print(f"life {file.name}")

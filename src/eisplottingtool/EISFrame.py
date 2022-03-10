@@ -10,29 +10,35 @@ import logging
 import os
 import re
 import warnings
+from typing import Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pint
-from matplotlib import axes
+from matplotlib import axes, pyplot as plt
 from matplotlib.patches import BoxStyle
 from matplotlib.ticker import AutoMinorLocator
 
-from eisplottingtool.parser.CircuitParser import parse_circuit
-from eisplottingtool.utils.UtilClass import Cell, default_mark_points
-from eisplottingtool.utils.UtilFunctions import plot_legend
-from eisplottingtool.utils.fitting import fit_routine
+from .parser import parse_circuit
+from .utils import MarkPoint, plot_legend
+from .utils.UtilFunctions import load_df_from_path
+from .utils.fitting import fit_routine
 
-Logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class EISFrame:
     """
-    EISFrame used to store the data and plot/fit the data.
+    EISFrame stores EIS data and plots/fits the data.
     """
 
-    def __init__(self, df: pd.DataFrame = None, column_names=None, **kwargs) -> None:
+    def __init__(
+        self,
+        name: str = None,
+        path: Union[str, list[str]] = None,
+        df: pd.DataFrame = None,
+        **kwargs,
+    ) -> None:
         """Initialises an EISFrame
 
         An EIS frame can plot a Nyquist plot and a lifecycle plot
@@ -40,213 +46,253 @@ class EISFrame:
 
         Parameters
         ----------
+        name: str
+
+        path: str
+            Path to data file
+
         df : pd.DataFrame
 
-        column_names : dict
-
-        **kwargs:
-            path: str
-                Path to data file
+        **kwargs
             circuit: str
-                Equivilant circuit for impedance
+                Equivalent circuit for impedance
             cell: Cell
                 Battery cell for normalizing
         """
-        if column_names is None:
-            column_names = {}
-        self.column_names = column_names.copy()
-
-        if "path" in kwargs:
-            self.path = kwargs["path"]
-        elif df is not None:
-            self.df = df
-        else:
-            raise ValueError()
-
-        if "real" not in column_names:
-            if "phase" in column_names and "abs" in column_names:
-                self.df["real"] = df[column_names["abs"]] * np.cos(
-                    df[column_names["phase"]] / 360.0 * 2 * np.pi
-                )
-                self.column_names["real"] = "real"
-
-        if "imag" not in column_names:
-            if "phase" in column_names and "abs" in column_names:
-                self.df["imag"] = -df[column_names["abs"]] * np.sin(
-                    df[column_names["phase"]] / 360.0 * 2 * np.pi
-                )
-                self.column_names["imag"] = "imag"
-
-        self.mark_points = default_mark_points
-        self.lines = {}
-
         self.eis_params = kwargs
+        self._df = df
+        self.eis_params["Lines"] = {}
 
-    @property
-    def time(self) -> np.array:
-        return self.df[self.column_names["time"]].values
+        if name is not None:
+            self.eis_params["name"] = name
 
-    @time.setter
-    def time(self, value):
-        self.df[self.column_names["time"]] = value
-
-    @property
-    def impedance(self) -> np.array:
-        value = self.df[self.column_names["real"]].values
-        value += -1j * self.df[self.column_names["real"]].values
-        return value
-
-    @property
-    def real(self) -> np.array:
-        return self.df[self.column_names["real"]].values
-
-    @property
-    def imag(self) -> np.array:
-        return self.df[self.column_names["imag"]].values
-
-    @property
-    def frequency(self) -> np.array:
-        return self.df[self.column_names["frequency"]].values
-
-    @property
-    def current(self) -> np.array:
-        return self.df[self.column_names["current"]].values
-
-    @property
-    def voltage(self) -> np.array:
-        return self.df[self.column_names["voltage"]].values
-
-    @property
-    def cycle(self) -> np.array:
-        return self.df["cycle"].values()
+        if path is not None:
+            self.eis_params["path"] = path
 
     def __str__(self):
-        return self.df.__str__()
+        if self._df is None:
+            self.load()
+        return self._df.__str__()
 
     def __repr__(self):
-        return self.df.__repr__()
+        if self._df is None:
+            self.load()
+        return self._df.__repr__()
 
     def __getitem__(self, item):
-        if isinstance(item, int):
-            self.eis_params["cycle"] = item
-            return self
-        return self.df.__getitem__(item)
+        self.eis_params["selection"] = item
+        if self._df is None:
+            self.load()
 
-    def __len__(self):
-        return len(self.cycle)
+        if isinstance(item, int):
+            return EISFrame(df=self._df.loc[item], **self.eis_params)
+        elif isinstance(item, tuple):
+            return EISFrame(df=self._df.loc[item], **self.eis_params)
+        elif isinstance(item, dict):
+            cyc = item.get("cycle")
+            ns = item.get("sequence")
+            if ns and cyc:
+                return EISFrame(df=self._df.loc[(cyc, ns)], **self.eis_params)
+            elif ns:
+                return EISFrame(df=self._df.loc[(slice(None, ns))], **self.eis_params)
+            elif cyc:
+                return EISFrame(df=self._df.loc[cyc], **self.eis_params)
+        elif isinstance(item, str):
+            if item in self._df:
+                return self._df[item]
+            elif item in self.eis_params:
+                return self.eis_params[item]
+        else:
+            raise ValueError("Invalid Selection")
+
+    @property
+    def df(self) -> pd.DataFrame:
+        if self._df is None:
+            self.load()
+        return self._df
+
+    @property
+    def mark_points(self) -> list[MarkPoint]:
+        return self.eis_params.get("mark_points") or []
+
+    @mark_points.setter
+    def mark_points(self, mp):
+        self.eis_params["mark_points"] = mp
+
+    def load(self, path=None):
+        if path is None:
+            path = self.eis_params["path"]
+
+        if not isinstance(path, list):
+            path = [path]
+
+        data = []
+        last_time = 0
+        last_cycle = 0
+        cycle = None
+        for p in path:
+            d = load_df_from_path(p)
+            for col in d.columns:
+                if match := re.match(r"(z )?cycle( number)?[^|]*", col):
+                    cycle = match.group()
+            if not cycle:
+                raise ValueError(f"No cycles detected in file {p}.")
+            d["cycle"] = d[cycle] + last_cycle
+            d["time"] = d["time"] + last_time
+            last_time = d["time"].iloc[-1]
+            last_cycle = d["cycle"].iloc[-1]
+            data.append(d)
+        data = pd.concat(data)
+        if "Ns changes" in data:
+            data["technique"] = data.groupby(cycle)["Ns changes"].transform(
+                pd.Series.cumsum
+            )
+            data.set_index(["cycle", "technique"], inplace=True)
+        else:
+            data.set_index(["cycle"], inplace=True)
+
+        if "Re(Z)" not in data:
+            data["Re(Z)"] = data.get("|Z|", 0) * np.cos(data.get("Phase(Z)", 0) / 360.0 * 2 * np.pi)
+            data["-Im(Z)"] = -data.get("|Z|", 0) * np.sin(data.get("Phase(Z)", 0) / 360.0 * 2 * np.pi)
+
+        self._df = data.copy()
+
+    def manipulate(self, col_name, new_name, modify):
+        if self._df is None:
+            self.load()
+        self._df[new_name] = modify(self._df[col_name].copy())
+        return self
+
+    def plot(self, nbinsx=6, nbinsy=4, title_xoffset=0.5, title_yoffset=0.9, title_hor_align="center", *args, **kwargs):
+        if self._df is None:
+            self.load()
+        legend = kwargs.pop("legend", True)
+        title = kwargs.pop("title", None)
+        ax = kwargs.get("ax", plt.gca())
+        plot = self._df.plot(legend=False, *args, **kwargs)
+
+        ax.locator_params(axis="x", nbins=nbinsx)
+        ax.locator_params(axis="y", nbins=nbinsy, prune="both")
+
+        if title:
+            ax.text(
+                title_xoffset, title_yoffset, title, horizontalalignment=title_hor_align, transform=ax.transAxes
+            )
+        if legend:
+            plot_legend(ax)
+        return plot
 
     def plot_nyquist(
         self,
         ax: axes.Axes = None,
-        image: str = "",
-        cell: Cell = None,
-        exclude_start: int = None,
-        exclude_end: int = None,
+        exclude_data=None,
         show_freq: bool = False,
         color=None,
         ls="None",
         marker=None,
         plot_range=None,
-        label=None,
-        size=6,
-        scale=1.5,
-        normalize=None,
-        unit=None,
         show_legend=True,
         show_mark_label=True,
+        real_col=None,
+        imag_col=None,
+        **kwargs,
     ):
         """Plots a Nyquist plot with the internal dataframe
 
         Plots a Nyquist plot with the internal dataframe. Will also mark the
         different markpoints on the plot.
 
+        https://stackoverflow.com/questions/62308183/wrapper-function-for-matplotlib-pyplot-plot
+        https://codereview.stackexchange.com/questions/101345/generic-plotting-wrapper-around-matplotlib
+
         Parameters
         ----------
-        ax : matplotlib.axes.Axes
-            axes to plot to
-        image : str
-             path to image to include in plot
-        cell
-        exclude_start
-        exclude_end
+        ax
+            matplotlib axes to plot to
+        exclude_data
         show_freq
         color
         ls
         marker
         plot_range
-        label
-        size
-        scale
-        normalize
-        unit
         show_legend
         show_mark_label
+        real_col
+        imag_col
+
+        kwargs:
+            color?
 
         Returns
         -------
         dictionary
             Contains all the matplotlib.lines.Line2D of the drawn plots
         """
-        # initialize
-        if marker is None:
-            marker = "o"
+        if self._df is None:
+            self.load()
 
-        # label for the plot
-        if unit is None:
-            if cell is None:
-                x_label = r"Re(Z)/$\Omega$"
-                y_label = r"-Im(Z)/$\Omega$"
-            else:
-                x_label = r"Re(Z)/$\Omega$.cm$^2$"
-                y_label = r"-Im(Z)/$\Omega$.cm$^2$"
+        frequency = self._df["freq"].to_numpy()
+
+        if real_col:
+            real = self._df[real_col].to_numpy()
         else:
-            x_label = rf"Re(Z) [{unit}]"
-            y_label = rf"-Im(Z) [{unit}]"
+            real = self._df["Re(Z)"].to_numpy()
+
+        if imag_col:
+            imag = self._df[imag_col].to_numpy()
+        else:
+            imag = self._df["-Im(Z)"].to_numpy()
+
         # only look at measurements with frequency data
-        mask = self.frequency != 0
+        mask = frequency != 0
+
+        if exclude_data is None:
+            exclude_data = slice(None)
+        # get the x,y data for plotting
+        x_data = real[mask][exclude_data]
+        y_data = imag[mask][exclude_data]
+        frequency = frequency[mask][exclude_data]
+
+        if "x_label" in kwargs:
+            x_label = kwargs.get("x_label")
+        # label for the plot
+        else:
+            x_label = rf"Re(Z) [Ohm]"
+
+        if "y_label" in kwargs:
+            y_label = kwargs.get("y_label")
+        else:
+            y_label = rf"-Im(Z) [Ohm]"
+
+        if "name" in kwargs:
+            name = kwargs["name"]
+        else:
+            name = self.eis_params.get("name")
 
         # check if any axes is given, if not GetCurrentAxis from matplotlib
         if ax is None:
             ax = plt.gca()
 
-        # get the x,y data for plotting
-        x_data = self.real[mask][exclude_start:exclude_end]
-        y_data = self.imag[mask][exclude_start:exclude_end]
-        frequency = self.frequency[mask][exclude_start:exclude_end]
-
-        # adjust impedance if a cell is given
-        if normalize is None:
-            if cell is None:
-
-                def normalize(data, c: Cell):
-                    return data
-
-            else:
-
-                def normalize(data, c: Cell):
-                    return data * c.area_mm2 * 1e-2
-
-        x_data = normalize(x_data, cell)
-        y_data = normalize(y_data, cell)
-
         # find indices of mark points. Take first point in freq range
         for mark in self.mark_points:
-            # mark.index = -1
-            subsequent = (
-                idx
-                for idx, freq in enumerate(frequency)
-                if mark.left < freq < mark.right
-            )
-            mark.index = next(subsequent, -1)
+            for ind, freq in enumerate(frequency):
+                if mark.left < freq < mark.right:
+                    mark.index = ind
+                    break
+            else:
+                mark.index = -1
+
+        size = 6
+        scale = 1.5
 
         # plot the data
         line = ax.plot(
             x_data,
             y_data,
-            marker=marker,
+            marker=marker or self.eis_params.get("marker", "o"),
             color=color,
             ls=ls,
-            label=label,
+            label=name,
             markersize=size,
         )
         lines = {"Data": line}  # store all the lines inside lines
@@ -256,13 +302,16 @@ class EISFrame:
             if mark.index < 0:
                 continue
             if show_mark_label:
-                mark_label = f"{mark.name} @ {mark.label(frequency)}"
+                if mark.name:
+                    mark_label = f"{mark.name} @ {mark.label(frequency)}"
+                else:
+                    mark_label = f"{mark.label(frequency)}"
             else:
                 mark_label = None
             line = ax.plot(
                 x_data[mark.index],
                 y_data[mark.index],
-                marker=marker,
+                marker=marker if marker else "o",
                 markerfacecolor=mark.color,
                 markeredgecolor=mark.color,
                 markersize=scale * size,
@@ -285,12 +334,12 @@ class EISFrame:
         ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
         ax.locator_params(nbins=4, prune="upper")
         ax.set_aspect("equal")
-        if len(self.mark_points) != 0 or label is not None:
+        if all(ax.get_legend_handles_labels()):
             if show_legend:
                 plot_legend(ax)
 
         # add lines to the axes property
-        self.lines.update(lines)
+        self.eis_params["Lines"].update(lines)
 
         if show_freq:
             ureg = pint.UnitRegistry()
@@ -314,225 +363,119 @@ class EISFrame:
                 ),
             )
 
-        # if a path to an image is given, also plot it
-        if image:
-            imax = ax.inset_axes([0.05, 0.5, 0.9, 0.2])
-            img = plt.imread(image)
-            imax.imshow(img)
-            imax.axis("off")
-            lines["Image"] = img
-            return lines, imax
-
-        return lines
-
-    def plot_bode(
-        self,
-        ax: axes.Axes = None,
-        cell: Cell = None,
-        exclude_start: int = None,
-        exclude_end: int = None,
-        ls="None",
-        marker="o",
-        plot_range=None,
-        param_values=None,
-        param_circuit=None,
-        size=12,
-    ):
-        """Plots a Nyquist plot with the internal dataframe
-
-        Plots a Nyquist plot with the internal dataframe. Will also mark the
-        different markpoints on the plot.
-
-        Parameters
-        ----------
-        ax : matplotlib.axes.Axes
-            axes to plot to
-        cell
-        exclude_start
-        exclude_end
-        ls
-        marker
-        plot_range
-        param_values
-        param_circuit
-        size
-
-        Returns
-        -------
-        dictionary
-            Contains all the matplotlib.lines.Line2D of the drawn plots
-        """
-        # label for the plot
-        x_label = r"Frequency/log(Hz)"
-        y_label = r"Impedance/$\Omega$"
-        # only look at measurements with frequency data
-        mask = self.frequency != 0
-
-        # check if any axes is given, if not GetCurrentAxis from matplotlib
-        if ax is None:
-            ax = plt.gca()
-
-        # get the x,y data for plotting
-        real_data = self.real[mask][exclude_start:exclude_end]
-        imag_data = self.imag[mask][exclude_start:exclude_end]
-        frequency = self.frequency[mask][exclude_start:exclude_end]
-
-        #  # remove all data points with (0,0) and adjust dataframe
-        # df = self.df[self.df["Re(Z)/Ohm"] != 0].copy()
-        # df = df.reset_index()[exclude_start:exclude_end]
-
-        # adjust impedance if a cell is given
-        if cell is not None:
-            real_data = real_data * cell.area_mm2 * 1e-2
-            x_label = r"Re(Z)/$\Omega$.cm$^2$"
-
-            imag_data = imag_data * cell.area_mm2 * 1e-2
-            y_label = r"-Im(Z)/$\Omega$.cm$^2$"
-
-        # plot the data
-        line_real = ax.semilogx(
-            frequency,
-            real_data,
-            marker=marker,
-            ls=ls,
-            color="red",
-            label="Re(Z)",
-            markersize=size,
-        )
-
-        line_imag = ax.semilogx(
-            frequency,
-            imag_data,
-            marker=marker,
-            ls=ls,
-            color="blue",
-            label="-Im(Z)",
-            markersize=size,
-        )
-
-        lines = {
-            "Real Data": line_real,
-            "Imag Data": line_imag,
-        }  # store all the lines inside lines
-
-        # additional configuration for the plot
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-
-        if plot_range is None:
-            ax.set_xlim(-max(frequency) * 0.05, max(frequency) * 1.05)
-        else:
-            ax.set_xlim(*plot_range)
-
-        ax.xaxis.set_minor_locator(AutoMinorLocator(n=2))
-        ax.yaxis.set_minor_locator(AutoMinorLocator(n=2))
-
-        if param_values and param_circuit:
-            param_info, circ_calc = parse_circuit(param_circuit)
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", message="divide by zero encountered in true_divide"
-                )
-                warnings.filterwarnings(
-                    "ignore", message="invalid value encountered in true_divide"
-                )
-                warnings.filterwarnings(
-                    "ignore", message="overflow encountered in tanh"
-                )
-                warnings.filterwarnings(
-                    "ignore", message="divide by zero encountered in double_scalars"
-                )
-                warnings.filterwarnings(
-                    "ignore", message="overflow encountered in power"
-                )
-                custom_circuit_fit = circ_calc(param_values, frequency)
-                real_fit = np.real(custom_circuit_fit)
-                imag_fit = np.imag(custom_circuit_fit)
-                fit_real = ax.semilogx(
-                    frequency,
-                    real_fit,
-                    ls="-",
-                    color="black",
-                    label="Re(Z)",
-                    markersize=size,
-                )
-
-                fit_imag = ax.semilogx(
-                    frequency,
-                    -imag_fit,
-                    ls="-",
-                    color="black",
-                    label="-Im(Z)",
-                    markersize=size,
-                )
-
-                lines["Real Fit"] = fit_real
-                lines["Imag Fit"] = fit_imag
-
-        plot_legend(ax)
-
         return lines
 
     def fit_nyquist(
         self,
-        ax: axes.Axes,
-        fit_circuit: str = None,
-        fit_guess: dict[str, float] = None,
+        circuit: str = None,
+        initial_values: dict[str, float] = None,
         fit_bounds: dict[str, tuple] = None,
         fit_constants: list[str] = None,
-        path=None,
-        cell: Cell = None,
-        draw_circle: bool = True,
-        draw_circuit: bool = False,
-        fit_values=None,
-        tot_imp=None,
-        data_slice=None,
+        upper_freq: float = np.inf,
+        lower_freq: float = 0,
+        path: str = None,
+        condition = None,
         **kwargs,
-    ) -> tuple[dict, dict]:
+    ) -> dict:
         """
-        Fitting for the nyquist
+        Fitting function for electrochemical impedance spectroscopy (EIS) data.
+
+        For the fitting a model or equivalent circuit is needed. The equivilant circuit is defined as a string.
+        To combine elements in series a dash (-) is used. Elements in parallel are wrapped by p( , ).
+        An element is definied by an identifier (usually letters) followed by a digit.
+        Already implemented elements are located in :class:`circuit_components<circuit_utils.circuit_components>`:
+
+        +------------------------+--------+-----------+---------------+--------------+
+        | Name                   | Symbol | Paramters | Bounds        | Units        |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Resistor               | R      | R         | (1e-6, 1e6)   | Ohm          |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Capacitance            | C      | C         | (1e-20, 1)    | Farrad       |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Constant Phase Element | CPE    | CPE_Q     | (1e-20, 1)    | Ohm^-1 s^a   |
+        |                        |        +-----------+---------------+--------------+
+        |                        |        | CPE_a     | (0, 1)        |              |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Warburg element        | W      | W         | (0, 1e10)     | Ohm^-1 s^0.5 |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Warburg short element  | Ws     | Ws_R      | (0, 1e10)     | Ohm          |
+        |                        |        +-----------+---------------+--------------+
+        |                        |        | Ws_T      | (1e-10, 1e10) | s            |
+        +------------------------+--------+-----------+---------------+--------------+
+        | Warburg open elemnt    | Wo     | Wo_R      | (0, 1e10)     | Ohm          |
+        |                        |        +-----------+---------------+--------------+
+        |                        |        | Wo_T      | (1e-10, 1e10) | s            |
+        +------------------------+--------+-----------+---------------+--------------+
+
+        Additionaly an initial guess for the fitting parameters is needed.
+        The initial guess is given as a dictionary where each key is the parameters name and
+        the coresponding value is the guessed value for the circuit.
+
+        The bounds of each paramater can be customized by the ``fit_bounds`` parameter.
+        This parameter is a dictionary, where each key is the parameter name
+         and the value constists of a tuple for the lower and upper bound (lb, ub).
+
+        To hold a parameter constant, add the name of the paramter to a list and pass it as ``fit_constants``
 
         Parameters
         ----------
-        ax : matplotlib.axes.Axes
-             axes to draw the fit to
-        fit_circuit : str
-            equivalence circuit for the fitting
-        fit_guess : dict[str, float]
-            initial values for the fitting
-        fit_bounds : dict[str, tuple]
-        fit_constants : list[str]
-        fit_values
-        path : str
-        cell : Cell
-        draw_circle : bool
-            if the corresponding circles should be drawn or not
-        draw_circuit : bool
-            WIP
-        tot_imp
-        data_slice
+        df
+            Dataframe with the impedance data
 
-        Returns
-        -------
-        tuple: a tuple containing:
-            - d dict: dictionary containing all the plots
-            - parameters list: Fitting parameters with error
+        real
+            column label of the real part of the impedance
 
+        imag
+            column label of the imaginary part of the impedance
+
+        freq
+            column label of the frequency of the impedance
+
+        circuit
+            Equivalent circuit for the fit
+
+        initial_values
+            dictionary with initial values
+            Structure: {"param name": value, ... }
+
+        name
+            the name of the fit
+
+        fit_bounds
+            Custom bounds for a parameter if default bounds are not wanted
+            Structure: {"param name": (lower bound, upper bound), ...}
+            Default is ''None''
+        fit_constants
+            list of parameters which should stay constant during fitting
+            Structure: ["param name", ...]
+            Default is ''None''
+
+        ignore_neg_res
+            ignores impedance values with a negative real part
+
+        upper_freq:
+            upper frequency bound to be considered for fitting
+
+        lower_freq:
+            lower frequency boudn to be considered for fitting
+        repeat
+            how many times ``fit_routine`` gets called
         """
         # load and prepare data
+        frequencies = self._df["freq"].to_numpy()
+        real = self._df["Re(Z)"].to_numpy()
+        imag = self._df["-Im(Z)"].to_numpy()
 
-        if data_slice is None:
-            data_slice = slice(3, None)
+        mask = np.logical_and(lower_freq < frequencies, frequencies < upper_freq)
+        mask = np.logical_and(mask, real > 0)
 
-        frequencies = self.frequency
-        z = self.real - 1j * self.imag
-        frequencies = np.array(frequencies[np.imag(z) < 0])[data_slice]
-        z = np.array(z[np.imag(z) < 0])[data_slice]
+        frequency = frequencies[mask]
 
+        z = real[mask] - 1j * imag[mask]
         # check and parse circuit
 
-        if fit_circuit:
-            pass
+        if circuit:
+            fit_circuit = circuit
         elif "circuit" in self.eis_params:
             fit_circuit = self.eis_params["circuit"]
         else:
@@ -540,200 +483,92 @@ class EISFrame:
 
         param_info, circ_calc = parse_circuit(fit_circuit)
 
-        # check and prepare parameters
-
-        if fit_guess:
-            pass
-        elif "fit_guess" in self.eis_params:
-            fit_guess = self.eis_params["fit_guess"]
-        else:
-            raise ValueError("No fit guess given")
-
         if fit_bounds is None:
             fit_bounds = {}
 
         if fit_constants is None:
             fit_constants = []
 
-        param_names = []
-        param_values = {}
-        param_guess = []
-        param_bounds = []
+        param_values = initial_values.copy()  # stores all the values of the parameters
+        variable_names = []  # name of the parameters that are not fixed
+        variable_guess = []  # guesses for the parameters that are not fixed
+        variable_bounds = []  # bounds of the parameters that are not fixed
 
         for p in param_info:
-            name = p.name
-            if name in fit_guess:
-                value = fit_guess.get(name)
-                param_values[name] = value
-
-                if name in fit_bounds:
-                    p.bounds = fit_bounds.get(name)
-
-                if name in fit_constants:
-                    p.fixed = True
-                    fit_guess.pop(name)
-                else:
-                    p.fixed = False
-                    param_bounds.append(p.bounds)
-                    param_guess.append(value)
-                    param_names.append(name)
+            p_name = p.name
+            if p_name in initial_values:
+                if p_name not in fit_constants:
+                    variable_bounds.append(fit_bounds.get(p_name, p.bounds))
+                    variable_guess.append(initial_values.get(p_name))
+                    variable_names.append(p_name)
             else:
-                raise ValueError(f"No initial value given for {name}")
+                raise ValueError(f"No initial value given for {p_name}")
 
         # calculate the weight of each datapoint
         def weight(error, value):
+            """calculates the absolute value squared and divides the error by it"""
             square_value = value.real ** 2 + value.imag ** 2
             return np.true_divide(error, square_value)
 
         # calculate rmse
-        def rmse(y_predicted, y_actual):
+        def rmse(predicted, actual):
             """Calculates the root mean squared error between two vectors"""
-            e = np.abs(np.subtract(y_actual, y_predicted))
+            e = np.abs(np.subtract(actual, predicted))
             se = np.square(e)
-            wse = weight(se, y_actual)
+            wse = weight(se, actual)
             mse = np.nansum(wse)
             return np.sqrt(mse)
 
         # prepare optimizing function:
+        if condition is None:
+            def condition(params):
+                return 0
+
         def opt_func(x: list[float]):
-            params = dict(zip(param_names, x))
+            params = dict(zip(variable_names, x))
             param_values.update(params)
-            predict = circ_calc(param_values, frequencies)
-            err = rmse(predict, z)
-            return err
+            predict = circ_calc(param_values, frequency)
+            main_err = rmse(predict, z)
+            cond_err = condition(param_values)
+            return main_err + cond_err
 
-        if fit_values:
-            param_values = np.array(fit_values)
-        else:
-            if tot_imp is None:
-                opt_result = fit_routine(
-                    opt_func,
-                    param_guess,
-                    param_bounds,
-                )
-            else:
-                # def condition(x, v=False):
-                #     params = param_info.get_namevaluepairs()
-                #     predict = circ_calc(params, 1e-13)
-                #     if v:
-                #         print(tot_imp - predict.real)
-                #     err = np.abs(tot_imp - predict.real)
-                #     return err
+        # fit
+        opt_result = fit_routine(
+            opt_func,
+            variable_guess,
+            variable_bounds,
+        )
 
-                def condition(params):
-                    res = params["R2"] + params["Wss1_R"]
-                    return rmse(res, tot_imp)
+        # update values in ParameterList
+        param_values.update(dict(zip(variable_names, opt_result.x)))
 
-                def opt_func(x):
-                    params = dict(zip(param_names, x))
-                    param_values.update(params)
-                    predict = circ_calc(param_values, frequencies)
-                    main_err = rmse(predict, z)
-                    last_predict = circ_calc(param_values, 1e-13)
-                    cond_err = condition(param_values)
-                    err = main_err + cond_err
-                    return err
-
-                opt_result = fit_routine(
-                    opt_func,
-                    param_guess,
-                    param_bounds,
-                )
-
-            param_values = opt_result.x
-
-        # print the fitting parameters to the console
-        report = f"Fitting report:\n"
-        report += f"Equivivalent circuit: {fit_circuit}\n"
-        report += "Parameters: \n"
-        for p_value, p_info in zip(param_values, param_info):
-            p_info.value = p_value
-            report += f"\t {p_info}\n"
-
-        Logger.info(report)
+        # # print the fitting parameters to the console
+        # report = f"Fitting report:\n"
+        # report += f"Equivivalent circuit: {fit_circuit}\n"
+        # report += "Parameters: \n"
+        # for p_value, p_info in zip(param_values, param_info):
+        #     p_info.value = p_value
+        #     report += f"\t {p_info}\n"
+        #
+        # LOGGER.info(report)
 
         if path is not None:
-            if not os.path.isdir(os.path.dirname(path)):
-                # TODO: look at exist_ok=True
-                os.makedirs(os.path.dirname(path))
+            logger.info(f"Wrote fit parameters to '{path}'")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as f:
-                json.dump(param_info, f, default=lambda o: o.__dict__, indent=1)
+                json.dump(param_values, f, indent=1)
 
-        lines = self.plot_fit(
-            ax, fit_circuit, param_info, data_slice=data_slice, cell=cell, color="red"
-        )
-        # check if circle needs to be drawn
-        if draw_circle:
-            self._plot_semis(fit_circuit, param_info, cell, ax)
+        self.eis_params["fit_info"] = param_info
+        return param_values
 
-        if draw_circuit:
-            self._plot_circuit(fit_circuit, ax)
-
-        plot_legend(ax)
-        result = {}
-        for p in param_info:
-            result[p.name] = p.value
-        return lines, result
-
-    def plot_lifecycle(
+    def plot_semis(
         self,
+        circuit: str,
+        param_values: list,
+        cell=None,
         ax: axes.Axes = None,
-        plot_xrange=None,
-        plot_yrange=None,
-        label=None,
-        ls="-",
-        nbinsx=6,
-        nbinsy=4,
-        **plotkwargs,
-    ):
-        if not {"time", "Ewe"}.issubset(self.df.columns):
-            warnings.warn("Wrong data for a lifecycle Plot", RuntimeWarning)
-            return
-
-        # label for the plot
-        x_label = r"Time/h"
-        y_label = r"$E_{we}$/V"
-
-        # check if any axes is given, if not GetCurrentAxis from matplotlib
-        if ax is None:
-            ax = plt.gca()
-
-        # remove all data points with (0,0)
-        mask = self.voltage != 0
-        # df = df[df["Ewe/V"] > 0.05].reset_index()
-
-        x_data = self.time[mask] / 60.0 / 60.0
-        y_data = self.voltage[mask]
-
-        line = ax.plot(x_data, y_data, ls=ls, label=label, color="black", **plotkwargs)
-
-        # additional configuration for the plot
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-
-        if plot_xrange is None:
-            xrange = max(*x_data * 1.05, *ax.get_xlim())
-            ax.set_xlim(-xrange * 0.01, xrange)
-        else:
-            ax.set_xlim(*plot_xrange)
-
-        if plot_yrange is None:
-            limits = [np.median(y_data) * 2, *ax.get_ylim()]
-            yrange = max(limits)
-            ax.set_ylim(-yrange, yrange)
-        else:
-            ax.set_ylim(*plot_yrange)
-
-        ax.locator_params(axis="x", nbins=nbinsx)
-        ax.locator_params(axis="y", nbins=nbinsy, prune="both")
-
-        if label is not None:
-            plot_legend(ax)
-
-        return line
-
-    def _plot_semis(
-        self, circuit: str, param_info: list, cell=None, ax: axes.Axes = None
+        manipulate=None,
+        ignore_ecr=False,
     ):
         """
         plots the semicircles to the corresponding circuit elements.
@@ -744,7 +579,7 @@ class EISFrame:
         ----------
         circuit : CustomCircuit
             CustomCircuit
-        param_info
+        param_values
         cell
         ax : matplotlib.axes.Axes
              axes to be plotted to
@@ -753,50 +588,58 @@ class EISFrame:
         -------
         nothing at the moment
         """
+        # TODO No mark point case, Ecr rework
         # check if axes is given, else get current axes
         if ax is None:
             ax = plt.gca()
-
-        param_values = {info.name: info.value for info in param_info}
         elem_infos = []
+
+        if len(self.mark_points) == 0:
+            warnings.warn("No Markpoints chosen, will draw circles with gray color")
 
         # split the circuit in to elements connected through series
         elements = re.split(r"-(?![^(]*\))", circuit)
-
         for e in elements:
             elem_info, elem_eval = parse_circuit(e)
 
-            if re.match(r"p\(R_?\d?,C(PE)?_?\d?\)|p\(C(PE)?_?\d?,R_?\d?\)", e):
-                elem_param = {}
-                for elem in elem_info:
-                    if re.match(r"R_?\d?", elem.name):
-                        elem_param["r"] = param_values[elem.name]
-                    elif re.match(r"CPE?_?\d?_n", elem.name):
-                        elem_param["n"] = param_values[elem.name]
-                    elif re.match(r"C(PE)?_?\d?(_Q)?", elem.name):
-                        elem_param["c"] = param_values[elem.name]
+            if match := re.match(r"(?=.*(R_?\d?))(?=.*(C(?:PE)?_?\d?))", e):
+                res = param_values.get(match.group(1))
+                cap = [
+                    param_values.get(key)
+                    for key in param_values
+                    if match.group(2) in key
+                ]
 
                 def calc_specific_freq(r, c, n=1):
                     return 1.0 / (r * c) ** n / 2 / np.pi
 
-                specific_frequency = calc_specific_freq(**elem_param)
+                specific_frequency = calc_specific_freq(res, *cap)
 
-            elif re.match(r"^W[os]*_?\d?$", e):
-                if len(elem_info) == 2:
-                    w_name = re.match(r"W[os]?_?\d?$", e).group(0) + "_T"
-                    specific_frequency = 1.0 / param_values[w_name]
+            elif match := re.match(r"(W[os]?_?\d?)", e):
+                war = [
+                    param_values.get(key)
+                    for key in param_values
+                    if match.group(1) in key
+                ]
+                if len(war) == 2:
+                    specific_frequency = 1.0 / war[1]
                 else:
                     specific_frequency = 1e-2
-            elif re.match(r"^R_?\d?$", e):
+            elif re.match(r"(R_?\d?)", e):
                 specific_frequency = 1e20
             else:
                 continue
 
             freq = np.logspace(-9, 9, 180)
-            elem_impedance = elem_eval(param_values, freq)
 
-            if cell is not None:
-                elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", message="overflow encountered in tanh"
+                )
+                elem_impedance = elem_eval(param_values, freq)
+
+            if manipulate:
+                elem_impedance = manipulate(elem_impedance)
 
             elem_infos.append((elem_impedance, specific_frequency))
 
@@ -808,18 +651,19 @@ class EISFrame:
             elem_impedance = elem_info[0]
             elem_spec_freq = elem_info[1]
             specific_freq_magnitude = np.floor(np.log10(elem_spec_freq))
-            # if specific_freq_magnitude <= 0:
-            #     color = min(self.mark_points, key=lambda x: x.magnitude).color
-            # else:
-            #     for mark in self.mark_points:
-            #         if specific_freq_magnitude == mark.magnitude:
-            #             color = mark.color
-            #             break
-            #     else:
-            #         prev_imp += np.real(elem_impedance)[0]
-            #         continue
+            if specific_freq_magnitude <= 0:
+                if ignore_ecr:
+                    continue
+                color = min(self.mark_points, key=lambda x: x.magnitude).color
+            else:
+                for mark in self.mark_points:
+                    if specific_freq_magnitude == mark.magnitude:
+                        color = mark.color
+                        break
+                else:
+                    prev_imp += np.real(elem_impedance)[0]
+                    continue
 
-            color = "blue"
             # draw circle
             if cell is not None:
                 elem_impedance = elem_impedance * cell.area_mm2 * 1e-2
@@ -835,62 +679,3 @@ class EISFrame:
             prev_imp += np.real(elem_impedance)[0]
 
         return
-
-    def plot_fit(
-        self,
-        ax,
-        circuit,
-        param_info,
-        data_slice=slice(3, None),
-        scatter=True,
-        cell=None,
-        **kwargs,
-    ):
-        __, circ_calc = parse_circuit(circuit)
-
-        frequencies = np.array(self.frequency[self.imag > 0])[data_slice]
-
-        f_pred = np.logspace(-9, 9, 400)
-        # plot the fitting result
-        if isinstance(param_info, list):
-            parameters = {info.name: info.value for info in param_info}
-        else:
-            parameters = param_info
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", message="divide by zero encountered in true_divide"
-            )
-            warnings.filterwarnings(
-                "ignore", message="invalid value encountered in true_divide"
-            )
-            warnings.filterwarnings("ignore", message="overflow encountered in tanh")
-            warnings.filterwarnings(
-                "ignore", message="divide by zero encountered in double_scalars"
-            )
-            warnings.filterwarnings("ignore", message="overflow encountered in power")
-            custom_circuit_fit_freq = circ_calc(parameters, frequencies)
-            custom_circuit_fit = circ_calc(parameters, f_pred)
-        # adjust impedance if a cell is given
-        if cell is not None:
-            custom_circuit_fit = custom_circuit_fit * cell.area_mm2 * 1e-2
-            custom_circuit_fit_freq = custom_circuit_fit_freq * cell.area_mm2 * 1e-2
-        if scatter:
-            ax.scatter(
-                np.real(custom_circuit_fit_freq),
-                -np.imag(custom_circuit_fit_freq),
-                color=kwargs.get("color"),
-                zorder=5,
-                marker="x",
-            )
-        line = ax.plot(
-            np.real(custom_circuit_fit),
-            -np.imag(custom_circuit_fit),
-            label="fit",
-            color=kwargs.get("color"),
-            zorder=5,
-        )
-        lines = {"fit": line}
-
-        plot_legend(ax)
-        return lines

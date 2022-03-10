@@ -21,7 +21,7 @@ f = 1.34123  # float or double -> handled internally
 q = -4.8e-5  # -4.8*10^-5
 z = 2 + 3j  # complex number with imaginary unit j
 
-text = 'Hello '  # String
+text = "Hello "  # String
 text1 = "world"  # String
 print(text + text1)
 
@@ -29,7 +29,7 @@ a = 10
 b = 3
 print(a // b)  # integer division
 print(a % b)  # Modulo
-print(a ** b)  # a^b
+print(a**b)  # a^b
 
 # lists
 
@@ -104,12 +104,13 @@ for i in range(len(list)):  # "standard" for loop from other languages
     print(list[i])
 
 for i, letter in enumerate(
-        list
-        ):  # enumerate genreate a tuple with (index, element) of list
+    list
+):  # enumerate genreate a tuple with (index, element) of list
     print("list at %d: %s" % (i, letter))  # string formating
 
 
 # functions
+
 
 def say_hello():
     print("Hello world!")
@@ -126,6 +127,7 @@ print(sum(3, 4))
 
 
 # default values
+
 
 def integer_division(a, b, return_reminder=False):
     if return_reminder:
@@ -160,6 +162,7 @@ echo(name="Marcus", age=18, height=1)
 
 # unpacking
 
+
 def sum(a, b):
     return a + b
 
@@ -170,7 +173,7 @@ print(sum(*list_numbers))  # * unpacks the values from the list
 
 
 def check_right_trianlge(a, b, c):
-    return a ** 2 + b ** 2 == c ** 2
+    return a**2 + b**2 == c**2
 
 
 big_triangle = {"a": 30, "b": 40, "c": 50}
@@ -180,7 +183,7 @@ print(check_right_trianlge(**big_triangle))
 # lambda expressions
 
 f = lambda x: 2 * x + 3  # Normal functions
-g = lambda x: x ** 2
+g = lambda x: x**2
 
 
 def compose(f1, f2, x):

@@ -4,11 +4,11 @@ import numpy as np
 from schemdraw import elements as elm
 
 import eisplottingtool.parser.SchemeElements as sElm
-from eisplottingtool.utils.UtilClass import Parameter
+from eisplottingtool.utils.Parameter import Parameter
 
 
 class Component:
-    """ A component which can be used in a circuit string
+    """A component which can be used in a circuit string
 
     A component stores information
     """
@@ -36,11 +36,11 @@ class Component:
 class Resistor(Component):
     @staticmethod
     def get_symbol():
-        return 'R'
+        return "R"
 
     @staticmethod
     def get_parameters(name):
-        param = Parameter(name, (1e-6, 2000), 'Ohm')
+        param = Parameter(name, (1e-6, 2000), "Ohm")
         return [param]
 
     @staticmethod
@@ -52,11 +52,11 @@ class Resistor(Component):
 class Capacitor(Component):
     @staticmethod
     def get_symbol():
-        return 'C'
+        return "C"
 
     @staticmethod
     def get_parameters(name):
-        param = Parameter(name, (1e-15, 1), 'F')
+        param = Parameter(name, (1e-15, 1), "F")
         return [param]
 
     @staticmethod
@@ -73,12 +73,12 @@ class Capacitor(Component):
 class CPE(Component):
     @staticmethod
     def get_symbol():
-        return 'CPE'
+        return "CPE"
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_Q", (1e-15, 1), 'Ohm^-1 s^n')
-        param2 = Parameter(name + "_n", (0, 1), '')
+        param1 = Parameter(name + "_Q", (1e-15, 1), "Ohm^-1 s^n")
+        param2 = Parameter(name + "_n", (0, 1), "")
         return [param1, param2]
 
     @staticmethod
@@ -94,15 +94,15 @@ class CPE(Component):
 
 
 class Warburg(Component):
-    """ defines a semi-infinite Warburg element    """
+    """defines a semi-infinite Warburg element"""
 
     @staticmethod
     def get_symbol():
-        return 'W'
+        return "W"
 
     @staticmethod
     def get_parameters(name):
-        param = Parameter(name, (0, 2000), 'Ohm^-1 s^-1/2')
+        param = Parameter(name, (0, 2000), "Ohm^-1 s^-1/2")
         return [param]
 
     @staticmethod
@@ -117,16 +117,16 @@ class Warburg(Component):
 
 
 class WarburgOpen(Component):
-    """ defines a finite-space Warburg element    """
+    """defines a finite-space Warburg element"""
 
     @staticmethod
     def get_symbol():
-        return 'Wo'
+        return "Wo"
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_R", (0, 2000), 'Ohm')
-        param2 = Parameter(name + "_T", (1e-5, 1e4), 's')
+        param1 = Parameter(name + "_R", (0, 2000), "Ohm")
+        param2 = Parameter(name + "_T", (1e-5, 1e4), "s")
         return [param1, param2]
 
     @staticmethod
@@ -143,16 +143,16 @@ class WarburgOpen(Component):
 
 
 class WarburgShort(Component):
-    """ defines a finite-length Warburg element    """
+    """defines a finite-length Warburg element"""
 
     @staticmethod
     def get_symbol():
-        return 'Ws'
+        return "Ws"
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_R", (0, 2000), 'Ohm')
-        param2 = Parameter(name + "_T", (1e-3, 1e8), 's')
+        param1 = Parameter(name + "_R", (0, 2000), "Ohm")
+        param2 = Parameter(name + "_T", (1e-3, 1e8), "s")
         return [param1, param2]
 
     @staticmethod
@@ -169,17 +169,17 @@ class WarburgShort(Component):
 
 
 class WarburgShortSpezial(Component):
-    """ defines a finite-length Warburg element with variable exponent """
+    """defines a finite-length Warburg element with variable exponent"""
 
     @staticmethod
     def get_symbol():
-        return 'Wss'
+        return "Wss"
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_R", (0, 2000), 'Ohm')
-        param2 = Parameter(name + "_T", (1e-3, 1e8), 's')
-        param3 = Parameter(name + "_n", (0, 0.5), '')
+        param1 = Parameter(name + "_R", (0, 2000), "Ohm")
+        param2 = Parameter(name + "_T", (1e-3, 1e8), "s")
+        param3 = Parameter(name + "_n", (0, 0.5), "")
         return [param1, param2, param3]
 
     @staticmethod
@@ -197,11 +197,11 @@ class WarburgShortSpezial(Component):
 
 
 circuit_components: dict[str, Type[Component]] = {
-    'Resistor': Resistor,
-    'Capacitor': Capacitor,
-    'CPE': CPE,
-    'Warburg': Warburg,
-    'WarburgShort': WarburgShort,
-    'WarburgOpen': WarburgOpen,
-    'WarburgShortSpecial': WarburgShortSpezial,
+    "Resistor": Resistor,
+    "Capacitor": Capacitor,
+    "CPE": CPE,
+    "Warburg": Warburg,
+    "WarburgShort": WarburgShort,
+    "WarburgOpen": WarburgOpen,
+    "WarburgShortSpecial": WarburgShortSpezial,
 }
