@@ -374,8 +374,8 @@ class EISFrame:
         fit_constants: list[str] = None,
         upper_freq: float = np.inf,
         lower_freq: float = 0,
-        path: str = None,
         condition = None,
+        verbose: bool = False,
         **kwargs,
     ) -> dict:
         """
@@ -387,7 +387,7 @@ class EISFrame:
         Already implemented elements are located in :class:`circuit_components<circuit_utils.circuit_components>`:
 
         +------------------------+--------+-----------+---------------+--------------+
-        | Name                   | Symbol | Paramters | Bounds        | Units        |
+        | Name                 Need to change parameter   | Symbol | Paramters | Bounds        | Units        |
         +------------------------+--------+-----------+---------------+--------------+
         | Resistor               | R      | R         | (1e-6, 1e6)   | Ohm          |
         +------------------------+--------+-----------+---------------+--------------+
@@ -543,6 +543,18 @@ class EISFrame:
         # update values in ParameterList
         param_values.update(dict(zip(variable_names, opt_result.x)))
 
+        if verbose:
+            for n, p in enumerate(param_info):
+                p.value = param_values[p]
+                if p.name in variable_names:
+                    p.fixed = False
+                    p.bounds = variable_bounds[n]
+                else:
+                    p.fixed = True
+
+            return param_info
+
+
         # # print the fitting parameters to the console
         # report = f"Fitting report:\n"
         # report += f"Equivivalent circuit: {fit_circuit}\n"
@@ -553,13 +565,13 @@ class EISFrame:
         #
         # LOGGER.info(report)
 
-        if path is not None:
-            logger.info(f"Wrote fit parameters to '{path}'")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "w") as f:
-                json.dump(param_values, f, indent=1)
+        # if path is not None:
+        #     logger.info(f"Wrote fit parameters to '{path}'")
+        #     os.makedirs(os.path.dirname(path), exist_ok=True)
+        #     with open(path, "w") as f:
+        #         json.dump(param_values, f, indent=1)
 
-        self.eis_params["fit_info"] = param_info
+        self.eis_params["fit_info"] = param_values
         return param_values
 
     def plot_semis(
