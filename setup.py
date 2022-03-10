@@ -5,11 +5,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="eisplottingtool",
-    version="0.0.1",
+    version="0.1.5",
     author="Ulrich Sauter",
     author_email="usauterv@outlook.com",
     description="A tool used to plot EIS data and other battery related data",
-    long_description=long_description,
+    long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/ileu/EISFrame",
     project_urls={
