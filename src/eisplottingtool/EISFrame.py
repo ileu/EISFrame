@@ -5,9 +5,7 @@
     Date last edited: 25.10.2021
     Python Version: 3.9.7
 """
-import json
 import logging
-import os
 import re
 import warnings
 from typing import Union
@@ -544,16 +542,16 @@ class EISFrame:
         param_values.update(dict(zip(variable_names, opt_result.x)))
 
         if verbose:
+            v_out = []
             for n, p in enumerate(param_info):
-                p.value = param_values[p]
+                p.value = param_values[p.name]
                 if p.name in variable_names:
                     p.fixed = False
                     p.bounds = variable_bounds[n]
                 else:
                     p.fixed = True
-
+                v_out.append(p.__dict__)
             return param_info
-
 
         # # print the fitting parameters to the console
         # report = f"Fitting report:\n"
