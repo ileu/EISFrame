@@ -40,7 +40,7 @@ class Resistor(Component):
 
     @staticmethod
     def get_parameters(name):
-        param = Parameter(name, (1e-6, 2000), "Ohm")
+        param = Parameter(name, (1e-6, 1e5), "Ohm")
         return [param]
 
     @staticmethod
@@ -102,7 +102,7 @@ class Warburg(Component):
 
     @staticmethod
     def get_parameters(name):
-        param = Parameter(name, (0, 2000), "Ohm^-1 s^-1/2")
+        param = Parameter(name, (0, 1e5), "Ohm^-1 s^-1/2")
         return [param]
 
     @staticmethod
@@ -125,7 +125,7 @@ class WarburgOpen(Component):
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_R", (0, 2000), "Ohm")
+        param1 = Parameter(name + "_R", (0, 1e5), "Ohm")
         param2 = Parameter(name + "_T", (1e-5, 1e4), "s")
         return [param1, param2]
 
@@ -151,7 +151,7 @@ class WarburgShort(Component):
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_R", (0, 2000), "Ohm")
+        param1 = Parameter(name + "_R", (0, 1e5), "Ohm")
         param2 = Parameter(name + "_T", (1e-3, 1e8), "s")
         return [param1, param2]
 
@@ -177,7 +177,7 @@ class WarburgShortSpezial(Component):
 
     @staticmethod
     def get_parameters(name):
-        param1 = Parameter(name + "_R", (0, 2000), "Ohm")
+        param1 = Parameter(name + "_R", (0, 1e5), "Ohm")
         param2 = Parameter(name + "_T", (1e-3, 1e8), "s")
         param3 = Parameter(name + "_n", (0, 0.5), "")
         return [param1, param2, param3]
