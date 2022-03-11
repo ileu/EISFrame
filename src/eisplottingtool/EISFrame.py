@@ -542,7 +542,7 @@ class EISFrame:
         param_values.update(dict(zip(variable_names, opt_result.x)))
 
         if verbose:
-            v_out = []
+            v_out = {}
             for n, p in enumerate(param_info):
                 p.value = param_values[p.name]
                 if p.name in variable_names:
@@ -550,7 +550,8 @@ class EISFrame:
                     p.bounds = variable_bounds[n]
                 else:
                     p.fixed = True
-                v_out.append(p.__dict__)
+                v_out[p.name] = p.__dict__
+
             return param_info
 
         # # print the fitting parameters to the console
